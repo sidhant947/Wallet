@@ -34,6 +34,13 @@ Wallet is a Flutter project designed to store card information locally on the de
 3. **Copy Card Details**: Click on the card details to quickly copy them for transactions.
 
 ## Screenshots
+ <img src="https://github.com/user-attachments/assets/684ae733-e216-4260-8c37-3616df68ba49" alt="App Info" height="300"> 
+ <img src="https://github.com/user-attachments/assets/334f6d42-74d4-4ed5-af53-6984ece9a586" alt="App Info" height="300">
+ <img src="https://github.com/user-attachments/assets/88254e4a-5c1b-4f4b-ab89-79a147bc84f5" alt="App Info" height="300">
+ <img src="https://github.com/user-attachments/assets/fb3b65e4-dbb2-4a09-9aff-72918b8814ff" alt="App Info" height="300">
+ <img src="https://github.com/user-attachments/assets/72f1c053-c2b9-4b0a-97ac-e495ae1d02ff" alt="App Info" height="300">
+
+ 
 
 ## Contributing
 
