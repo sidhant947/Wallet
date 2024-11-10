@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'hive.dart';
+import 'package:hive/hive.dart';
+import 'wallet.dart';
 
 class DataEntryScreen extends StatefulWidget {
+  const DataEntryScreen({super.key});
+
   @override
   _DataEntryScreenState createState() => _DataEntryScreenState();
 }
@@ -13,22 +16,19 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
   final TextEditingController _cvvController = TextEditingController();
 
   void _addData() async {
-    var dataBox = await openBox();
+    var dataBox = await Hive.openBox<Wallet>('cards');
 
-    String _name = _nameController.text;
-    String _number = _numberController.text;
-    String _expiry = _expiryController.text;
-    String _cvv = _cvvController.text;
+    String name = _nameController.text;
+    int number = int.parse(_numberController.text);
+    int expiry = int.parse(_expiryController.text);
+    int cvv = int.parse(_cvvController.text);
 
-    if (_name.isNotEmpty &&
-        _number.isNotEmpty &&
-        _expiry.isNotEmpty &&
-        _cvv.isNotEmpty) {
-      dataBox.add(
-          {'name': _name, 'number': _number, 'expiry': _expiry, 'cvv': _cvv});
+    if (name.isNotEmpty) {
+      await dataBox
+          .add(Wallet(name: name, number: number, expiry: expiry, cvv: cvv));
       Navigator.pop(context, true);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(' New Card Added')),
+        const SnackBar(content: Text(' New Card Added')),
       );
     }
   }
@@ -37,7 +37,7 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Enter Data'),
+        title: const Text('Enter Data'),
         backgroundColor: Colors.black,
       ),
       body: Padding(
@@ -53,7 +53,7 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             TextField(
               controller: _numberController,
               maxLength: 16,
@@ -64,7 +64,7 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
               ),
               keyboardType: TextInputType.number,
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             TextField(
               maxLength: 4,
               controller: _expiryController,
@@ -75,7 +75,7 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
               ),
               keyboardType: TextInputType.number,
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             TextField(
               maxLength: 3,
               controller: _cvvController,
@@ -86,12 +86,12 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
               ),
               keyboardType: TextInputType.number,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _addData,
               child: Container(
-                padding: EdgeInsets.all(15),
-                child: Text(
+                padding: const EdgeInsets.all(15),
+                child: const Text(
                   'Save Card',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),

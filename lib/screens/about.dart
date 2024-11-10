@@ -7,14 +7,14 @@ class AboutScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("About"),
+        title: const Text("About"),
         centerTitle: true,
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.blue.shade800,
       ),
-      body: Center(
+      body: const Center(
           child: Text(
         "Made by Sidhant",
-        style: TextStyle(fontSize: 30),
+        style: TextStyle(fontSize: 25),
       )),
     );
   }
