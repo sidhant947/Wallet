@@ -8,13 +8,13 @@ class Wallet {
   final String name;
 
   @HiveField(1)
-  final int number;
+  final String number;
 
   @HiveField(2)
-  final int expiry;
+  final String expiry;
 
   @HiveField(3)
-  final int cvv;
+  final String cvv;
 
   Wallet({
     required this.name,

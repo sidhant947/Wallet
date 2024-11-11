@@ -18,9 +18,9 @@ class WalletAdapter extends TypeAdapter<Wallet> {
     };
     return Wallet(
       name: fields[0] as String,
-      number: fields[1] as int,
-      expiry: fields[2] as int,
-      cvv: fields[3] as int,
+      number: fields[1] as String,
+      expiry: fields[2] as String,
+      cvv: fields[3] as String,
     );
   }
 

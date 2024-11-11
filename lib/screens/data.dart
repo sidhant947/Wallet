@@ -16,19 +16,19 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
   final TextEditingController _cvvController = TextEditingController();
 
   void _addData() async {
-    var dataBox = await Hive.openBox<Wallet>('cards');
+    var dataBox = await Hive.openBox<Wallet>('card');
 
     String name = _nameController.text;
-    int number = int.parse(_numberController.text);
-    int expiry = int.parse(_expiryController.text);
-    int cvv = int.parse(_cvvController.text);
+    String number = _numberController.text;
+    String expiry = _expiryController.text;
+    String cvv = _cvvController.text;
 
     if (name.isNotEmpty) {
       await dataBox
           .add(Wallet(name: name, number: number, expiry: expiry, cvv: cvv));
       Navigator.pop(context, true);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(' New Card Added')),
+        const SnackBar(content: Text('New Card Added')),
       );
     }
   }

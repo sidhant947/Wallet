@@ -25,7 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Function to open the Hive box
   Future<void> _openDataBox() async {
-    dataBox = await Hive.openBox<Wallet>('cards');
+    dataBox = await Hive.openBox<Wallet>('card');
     setState(() {}); // Trigger UI update once box is loaded
   }
 
