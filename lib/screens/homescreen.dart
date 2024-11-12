@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:lottie/lottie.dart';
 import 'wallet.dart';
 import 'about.dart';
 import 'data.dart';
@@ -10,7 +11,7 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
@@ -92,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
             size: 30,
           ),
           centerTitle: true,
-          backgroundColor: Colors.deepPurple,
+          backgroundColor: Colors.black,
           actions: [
             IconButton(
                 onPressed: () {
@@ -116,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
           size: 34,
         ),
         centerTitle: true,
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: Colors.black,
         actions: [
           IconButton(
               onPressed: () {
@@ -129,31 +130,27 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          var result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const DataEntryScreen()),
-          );
+          onPressed: () async {
+            var result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const DataEntryScreen()),
+            );
 
-          if (result != null) {
-            setState(() {});
-          }
-        },
-        child: const Icon(
-          Icons.add,
-          size: 25,
-        ),
-      ),
+            if (result != null) {
+              setState(() {});
+            }
+          },
+          backgroundColor: Colors.deepPurple,
+          child: const Icon(Icons.add)),
       body: Column(
         children: [
           ValueListenableBuilder(
             valueListenable: dataBox!.listenable(),
             builder: (context, Box<Wallet> box, _) {
               if (box.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.all(30),
+                return Expanded(
                   child: Center(
-                    child: Text('Tap on Add to Save Cards'),
+                    child: Lottie.asset("assets/loading.json"),
                   ),
                 );
               } else {
@@ -163,11 +160,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemBuilder: (context, index) {
                       var wallet = box.getAt(index);
 
-                      String formattedNumber =
-                          formatCardNumber((wallet?.number).toString());
+                      String formattedNumber = formatCardNumber(wallet!.number);
 
                       String formattedExpiry =
-                          formatExpiryNumber((wallet?.expiry).toString());
+                          formatExpiryNumber(wallet.expiry);
 
                       return Padding(
                         padding: const EdgeInsets.all(10),
@@ -190,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: Colors.deepPurple,
+                              border: Border.all(color: Colors.white),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Column(
@@ -199,12 +195,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Container(
                                   margin: const EdgeInsets.all(10.0),
                                   child: ElevatedButton(
-                                    onPressed: () {},
+                                    onPressed: () {
+                                      copyToClipboard(wallet.name);
+                                    },
                                     style: ElevatedButton.styleFrom(
                                       minimumSize: const Size(300, 50),
                                     ),
                                     child: Text(
-                                      wallet?.name ?? 'No name',
+                                      wallet.name,
                                       style: const TextStyle(
                                           fontSize: 20,
                                           fontWeight: FontWeight.w600),
@@ -216,8 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   margin: const EdgeInsets.all(10.0),
                                   child: ElevatedButton(
                                     onPressed: () {
-                                      copyToClipboard(
-                                          (wallet?.number).toString());
+                                      copyToClipboard(wallet.number);
                                     },
                                     style: ElevatedButton.styleFrom(
                                       minimumSize: const Size(300, 50),
@@ -232,7 +229,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Container(
                                       margin: const EdgeInsets.all(10.0),
                                       child: ElevatedButton(
-                                        onPressed: () {},
+                                        onPressed: () {
+                                          copyToClipboard(wallet.expiry);
+                                        },
                                         style: ElevatedButton.styleFrom(
                                           minimumSize: const Size(100, 50),
                                         ),
@@ -242,11 +241,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Container(
                                       margin: const EdgeInsets.all(10.0),
                                       child: ElevatedButton(
-                                        onPressed: () {},
+                                        onPressed: () {
+                                          copyToClipboard(wallet.cvv);
+                                        },
                                         style: ElevatedButton.styleFrom(
                                           minimumSize: const Size(100, 50),
                                         ),
-                                        child: Text((wallet?.cvv).toString()),
+                                        child: Text(wallet.cvv),
                                       ),
                                     ),
                                   ],

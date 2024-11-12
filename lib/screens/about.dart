@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -9,12 +10,17 @@ class AboutScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text("About"),
         centerTitle: true,
-        backgroundColor: Colors.blue.shade800,
+        backgroundColor: Colors.black,
       ),
-      body: const Center(
-          child: Text(
-        "Made by Sidhant",
-        style: TextStyle(fontSize: 25),
+      body: Center(
+          child: Column(
+        children: [
+          Lottie.asset("assets/dev.json"),
+          const Text(
+            "Made by Sidhant",
+            style: TextStyle(fontSize: 25),
+          ),
+        ],
       )),
     );
   }

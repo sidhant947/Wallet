@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:lottie/lottie.dart';
 import 'wallet.dart';
 
 class DataEntryScreen extends StatefulWidget {
   const DataEntryScreen({super.key});
 
   @override
-  _DataEntryScreenState createState() => _DataEntryScreenState();
+  State<DataEntryScreen> createState() => _DataEntryScreenState();
 }
 
 class _DataEntryScreenState extends State<DataEntryScreen> {
@@ -37,7 +38,10 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Enter Data'),
+        title: const Text(
+          'Save Your Card',
+          style: TextStyle(fontSize: 20),
+        ),
         backgroundColor: Colors.black,
       ),
       body: Padding(
@@ -89,13 +93,11 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _addData,
-              child: Container(
-                padding: const EdgeInsets.all(15),
-                child: const Text(
-                  'Save Card',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(300, 75),
               ),
+              child:
+                  SizedBox(height: 70, child: Lottie.asset("assets/card.json")),
             ),
           ],
         ),
