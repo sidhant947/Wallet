@@ -38,6 +38,7 @@ dependencies:
   hive_flutter: ^1.1.0
   flutter_slidable: ^3.1.1
   lottie: ^3.1.3
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -78,10 +79,16 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
+  fonts:
+    - family: Bebas
+      fonts:
+        - asset: assets/fonts/BebasNeue-Regular.ttf
+    - family: ZenDots
+      fonts:
+        - asset: assets/fonts/ZenDots-Regular.ttf
+    - family: ZSpace
+      fonts:
+        - asset: assets/fonts/SpaceGrotesk-VariableFont_wght.ttf    
   #       - asset: fonts/Schyler-Italic.ttf
   #         style: italic
   #   - family: Trajan Pro

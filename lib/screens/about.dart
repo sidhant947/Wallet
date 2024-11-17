@@ -8,7 +8,10 @@ class AboutScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("About"),
+        title: const Text(
+          "About",
+          style: TextStyle(fontFamily: "ZenDots"),
+        ),
         centerTitle: true,
         backgroundColor: Colors.black,
       ),
@@ -18,7 +21,7 @@ class AboutScreen extends StatelessWidget {
           Lottie.asset("assets/dev.json"),
           const Text(
             "Made by Sidhant",
-            style: TextStyle(fontSize: 25),
+            style: TextStyle(fontFamily: 'ZenDots', fontSize: 25),
           ),
         ],
       )),

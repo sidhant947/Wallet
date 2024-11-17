@@ -34,7 +34,9 @@ class _HomeScreenState extends State<HomeScreen> {
     dataBox?.deleteAt(index); // Null-safe access
     setState(() {});
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Card Deleted')),
+      const SnackBar(
+        content: Text('Card Deleted'),
+      ),
     );
   }
 
@@ -57,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
       count++;
 
       if (count == 4 && i != input.length - 1) {
-        result.write(' - ');
+        result.write('  ');
         count = 0;
       }
     }
@@ -141,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
             }
           },
           backgroundColor: Colors.deepPurple,
-          child: const Icon(Icons.add)),
+          child: const Icon(Icons.add_card)),
       body: Column(
         children: [
           ValueListenableBuilder(
@@ -185,69 +187,73 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           child: Container(
                             padding: const EdgeInsets.all(10),
+                            height: 200,
                             decoration: BoxDecoration(
+                              boxShadow: const [
+                                BoxShadow(
+                                    color: Colors.white,
+                                    spreadRadius: 0.25,
+                                    blurRadius: 5,
+                                    blurStyle: BlurStyle.outer),
+                              ],
+                              // color: Colors.black,
                               border: Border.all(color: Colors.white),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 // Card Name
                                 Container(
+                                  alignment: Alignment.topRight,
                                   margin: const EdgeInsets.all(10.0),
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      copyToClipboard(wallet.name);
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      minimumSize: const Size(300, 50),
-                                    ),
-                                    child: Text(
-                                      wallet.name,
+                                  child: Text(wallet.name,
                                       style: const TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w600),
-                                    ),
-                                  ),
+                                          fontFamily: 'Bebas', fontSize: 28)),
                                 ),
                                 // Card Number
-                                Container(
-                                  margin: const EdgeInsets.all(10.0),
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      copyToClipboard(wallet.number);
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      minimumSize: const Size(300, 50),
+                                GestureDetector(
+                                  onTap: () {
+                                    copyToClipboard(wallet.number);
+                                  },
+                                  child: Container(
+                                    margin: const EdgeInsets.all(10.0),
+                                    child: Text(
+                                      formattedNumber,
+                                      style: const TextStyle(
+                                          fontFamily: 'ZSpace', fontSize: 22),
                                     ),
-                                    child: Text(formattedNumber),
                                   ),
                                 ),
                                 // Expiry and CVV
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
                                   children: <Widget>[
-                                    Container(
-                                      margin: const EdgeInsets.all(10.0),
-                                      child: ElevatedButton(
-                                        onPressed: () {
-                                          copyToClipboard(wallet.expiry);
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          minimumSize: const Size(100, 50),
+                                    GestureDetector(
+                                      onTap: () {
+                                        copyToClipboard(wallet.expiry);
+                                      },
+                                      child: Container(
+                                        margin: const EdgeInsets.all(10.0),
+                                        child: Text(
+                                          formattedExpiry,
+                                          style: const TextStyle(
+                                              fontFamily: 'ZenDots'),
                                         ),
-                                        child: Text(formattedExpiry),
                                       ),
                                     ),
-                                    Container(
-                                      margin: const EdgeInsets.all(10.0),
-                                      child: ElevatedButton(
-                                        onPressed: () {
-                                          copyToClipboard(wallet.cvv);
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          minimumSize: const Size(100, 50),
+                                    GestureDetector(
+                                      onTap: () {
+                                        copyToClipboard(wallet.cvv);
+                                      },
+                                      child: Container(
+                                        margin: const EdgeInsets.all(10.0),
+                                        child: Text(
+                                          wallet.cvv,
+                                          style: const TextStyle(
+                                              fontFamily: 'ZenDots'),
                                         ),
-                                        child: Text(wallet.cvv),
                                       ),
                                     ),
                                   ],

@@ -28,9 +28,6 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
       await dataBox
           .add(Wallet(name: name, number: number, expiry: expiry, cvv: cvv));
       Navigator.pop(context, true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('New Card Added')),
-      );
     }
   }
 
@@ -40,7 +37,7 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
       appBar: AppBar(
         title: const Text(
           'Save Your Card',
-          style: TextStyle(fontSize: 20),
+          style: TextStyle(fontFamily: 'Bebas', fontSize: 30),
         ),
         backgroundColor: Colors.black,
       ),
@@ -49,23 +46,20 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
         child: Column(
           children: [
             TextField(
-              maxLength: 20,
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Enter Name of Card',
-                hintText: 'Axis NEO',
-                border: OutlineInputBorder(),
-              ),
-            ),
+                maxLength: 20,
+                controller: _nameController,
+                decoration: const InputDecoration(
+                    // labelText: 'Card Name',
+                    hintText: 'Axis NEO',
+                    hintStyle: TextStyle(fontFamily: 'ZSpace'))),
             const SizedBox(height: 10),
             TextField(
               controller: _numberController,
               maxLength: 16,
               decoration: const InputDecoration(
-                labelText: 'Enter Number',
-                hintText: '1234567891234567',
-                border: OutlineInputBorder(),
-              ),
+                  // labelText: 'Enter Number',
+                  hintText: '1234567891234567',
+                  hintStyle: TextStyle(fontFamily: 'ZSpace')),
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 10),
@@ -73,10 +67,9 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
               maxLength: 4,
               controller: _expiryController,
               decoration: const InputDecoration(
-                labelText: 'Enter Expiry',
-                hintText: "MMYY",
-                border: OutlineInputBorder(),
-              ),
+                  // labelText: 'Enter Expiry',
+                  hintText: "MMYY",
+                  hintStyle: TextStyle(fontFamily: 'ZSpace')),
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 10),
@@ -84,21 +77,25 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
               maxLength: 3,
               controller: _cvvController,
               decoration: const InputDecoration(
-                labelText: 'CVV',
-                hintText: "000",
-                border: OutlineInputBorder(),
-              ),
+                  // labelText: 'CVV',
+                  hintText: "000",
+                  hintStyle: TextStyle(fontFamily: 'ZSpace')),
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _addData,
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(300, 75),
-              ),
-              child:
-                  SizedBox(height: 70, child: Lottie.asset("assets/card.json")),
-            ),
+            GestureDetector(
+                onTap: _addData,
+                child: Container(
+                    height: 70,
+                    width: 150,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                          color: Colors.white, // Border color
+                          width: 0.09 // Border width
+                          ),
+                      // borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Lottie.asset("assets/card.json"))),
           ],
         ),
       ),
