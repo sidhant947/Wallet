@@ -1,6 +1,6 @@
 # Wallet
 
-Wallet is a Flutter project designed to store card information locally on the device, ensuring that the data is secure and cannot be stolen, as the application does not have internet access. The app is optimized for efficiency, allowing users to quickly copy card details for transactions.
+Wallet is a Flutter project designed to store card information locally on the device, ensuring that the data is secure and cannot be stolen, as the application does not have internet access. The app is optimized for efficiency, allowing users to quickly copy card details for transactions. Pay Bills using UPI for Supported Banks.
 
 ## Features
 
@@ -34,10 +34,11 @@ Wallet is a Flutter project designed to store card information locally on the de
 3. **Copy Card Details**: Click on the card details to quickly copy them for transactions.
 
 ## Screenshots
- <img src="https://github.com/user-attachments/assets/684ae733-e216-4260-8c37-3616df68ba49" alt="App Info" height="300"> 
- <img src="https://github.com/user-attachments/assets/334f6d42-74d4-4ed5-af53-6984ece9a586" alt="App Info" height="300">
- <img src="https://github.com/user-attachments/assets/88254e4a-5c1b-4f4b-ab89-79a147bc84f5" alt="App Info" height="300">
- <img src="https://github.com/user-attachments/assets/72f1c053-c2b9-4b0a-97ac-e495ae1d02ff" alt="App Info" height="300">
+ <img src="https://github.com/user-attachments/assets/bd07ecaa-484e-4aab-a189-21daf5c13386" alt="App Info" height="300"> 
+ <img src="https://github.com/user-attachments/assets/e00c7f5c-047e-4dac-a7d2-f472b56cc110" alt="App Info" height="300">
+ <img src="https://github.com/user-attachments/assets/f247843b-e516-498c-ae91-1fc4527c9a3f" alt="App Info" height="300">
+ <img src="https://github.com/user-attachments/assets/60ff0d68-52e0-4e9c-8bfe-292a14643e99" alt="App Info" height="300">
+
 
  
 
