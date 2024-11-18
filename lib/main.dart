@@ -30,6 +30,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
+        fontFamily: "Bebas",
         scaffoldBackgroundColor: Colors.black,
       ),
       home: const HomeScreen(),

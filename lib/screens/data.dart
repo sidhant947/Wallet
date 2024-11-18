@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:lottie/lottie.dart';
 import 'wallet.dart';
 
 class DataEntryScreen extends StatefulWidget {
@@ -86,16 +85,19 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
             GestureDetector(
                 onTap: _addData,
                 child: Container(
-                    height: 70,
-                    width: 150,
+                    padding: const EdgeInsets.all(5),
+                    width: 200,
+                    alignment: Alignment.center,
                     decoration: BoxDecoration(
                       border: Border.all(
-                          color: Colors.white, // Border color
-                          width: 0.09 // Border width
-                          ),
-                      // borderRadius: BorderRadius.circular(10),
+                        color: Colors.white, // Border color
+                        // Border width
+                      ),
                     ),
-                    child: Lottie.asset("assets/card.json"))),
+                    child: const Text(
+                      "Save Card",
+                      style: TextStyle(fontSize: 30),
+                    ))),
           ],
         ),
       ),

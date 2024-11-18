@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lottie/lottie.dart';
+import 'paybill.dart';
 import 'wallet.dart';
 import 'about.dart';
 import 'data.dart';
@@ -119,6 +120,15 @@ class _HomeScreenState extends State<HomeScreen> {
           size: 34,
         ),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.qr_code_scanner),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => PayBill()),
+            );
+          },
+        ),
         backgroundColor: Colors.black,
         actions: [
           IconButton(
@@ -128,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   MaterialPageRoute(builder: (context) => const AboutScreen()),
                 );
               },
-              icon: const Icon(Icons.person))
+              icon: const Icon(Icons.person_2_rounded))
         ],
       ),
       floatingActionButton: FloatingActionButton(
