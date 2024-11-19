@@ -5,7 +5,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lottie/lottie.dart';
 import 'paybill.dart';
 import 'wallet.dart';
-import 'about.dart';
 import 'data.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -17,6 +16,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   Box<Wallet>? dataBox; // Use nullable Box
+
+  bool mask = false;
 
   @override
   void initState() {
@@ -97,49 +98,31 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           centerTitle: true,
           backgroundColor: Colors.black,
-          actions: [
-            IconButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const AboutScreen()),
-                  );
-                },
-                icon: const Icon(Icons.person))
-          ],
         ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
+      // extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Icon(
           Icons.wallet,
           size: 34,
         ),
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.qr_code_scanner),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => PayBill()),
-            );
-          },
-        ),
-        backgroundColor: Colors.black,
         actions: [
           IconButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const AboutScreen()),
-                );
-              },
-              icon: const Icon(Icons.person_2_rounded))
+            icon: const Icon(Icons.qr_code_scanner),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => PayBill()),
+              );
+            },
+          ),
         ],
+        backgroundColor: Colors.black,
       ),
       floatingActionButton: FloatingActionButton(
           onPressed: () async {
@@ -206,7 +189,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                     blurRadius: 5,
                                     blurStyle: BlurStyle.outer),
                               ],
-                              // color: Colors.black,
                               border: Border.all(color: Colors.white),
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -242,12 +224,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                   children: <Widget>[
                                     GestureDetector(
                                       onTap: () {
-                                        copyToClipboard(wallet.expiry);
+                                        mask = !mask;
+                                        setState(() {});
                                       },
                                       child: Container(
                                         margin: const EdgeInsets.all(10.0),
                                         child: Text(
-                                          formattedExpiry,
+                                          mask ? formattedExpiry : "XX/XX",
                                           style: const TextStyle(
                                               fontFamily: 'ZenDots'),
                                         ),
@@ -255,12 +238,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     GestureDetector(
                                       onTap: () {
-                                        copyToClipboard(wallet.cvv);
+                                        mask = !mask;
+                                        setState(() {});
                                       },
                                       child: Container(
                                         margin: const EdgeInsets.all(10.0),
                                         child: Text(
-                                          wallet.cvv,
+                                          mask ? wallet.cvv : "XXX",
                                           style: const TextStyle(
                                               fontFamily: 'ZenDots'),
                                         ),

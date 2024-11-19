@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'about.dart';
+
 class PayBill extends StatelessWidget {
   PayBill({super.key});
 
@@ -25,6 +27,16 @@ class PayBill extends StatelessWidget {
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
+        actions: [
+          IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AboutScreen()),
+                );
+              },
+              icon: const Icon(Icons.person_2_rounded))
+        ],
       ),
       body: ListView.builder(
           itemCount: banks.length,
@@ -70,8 +82,6 @@ class AxisScreen extends StatefulWidget {
 class _AxisScreenState extends State<AxisScreen> {
   final TextEditingController _firstController = TextEditingController();
   final TextEditingController _secondController = TextEditingController();
-
-  String? _errorMessage;
 
   Future<void> _launchURL() async {
     final firstValue = _firstController.text;
