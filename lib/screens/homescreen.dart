@@ -3,9 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lottie/lottie.dart';
-import 'paybill.dart';
-import 'wallet.dart';
-import 'data.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:wallet/screens/cards.dart';
+import 'package:wallet/screens/identityscreen.dart';
+import '../pages/paybill.dart';
+import '../models/wallet.dart';
+import '../pages/data.dart';
+import 'loyaltyscreen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -86,6 +90,16 @@ class _HomeScreenState extends State<HomeScreen> {
     return result.toString();
   }
 
+  Future<void> _launchURL(String link) async {
+    final url = Uri.parse(link);
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (dataBox == null) {
@@ -99,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
           centerTitle: true,
           backgroundColor: Colors.black,
         ),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const Center(child: Text("Loading")),
       );
     }
 
@@ -123,6 +137,61 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
         backgroundColor: Colors.black,
+      ),
+      drawer: Drawer(
+        backgroundColor: Colors.black,
+        child: ListView(
+          padding: const EdgeInsets.all(0),
+          children: <Widget>[
+            GestureDetector(
+              onTap: () {
+                _launchURL("mailto:khatkarsidhant@gmail.com");
+              },
+              child: const UserAccountsDrawerHeader(
+                decoration: BoxDecoration(color: Colors.black),
+                accountName: Text('For Suggestion/Queries'),
+                accountEmail: Text('khatkarsidhant@gmail.com'),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.credit_card),
+              title: const Text('Bank Cards'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const BankCards()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.shopping_basket),
+              title: const Text('Loyalty Cards'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const LoyaltyScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.fingerprint),
+              title: const Text('Identity Cards'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const IdentityScreen()),
+                );
+              },
+            ),
+            const Divider(),
+            Lottie.asset("assets/card.json"),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
           onPressed: () async {

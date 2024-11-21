@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'wallet.dart';
+import '../models/wallet.dart';
 
 class DataEntryScreen extends StatefulWidget {
   const DataEntryScreen({super.key});

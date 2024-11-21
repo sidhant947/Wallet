@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'screens/homescreen.dart';
-import 'screens/wallet.dart'; // Make sure to import the Card model class
+import 'models/wallet.dart'; // Make sure to import the Card model class
 
 void main() async {
   // Ensure Flutter bindings are initialized
@@ -11,11 +11,9 @@ void main() async {
   await Hive.initFlutter();
 
   // Register the generated adapter for Card
-  Hive.registerAdapter(WalletAdapter()); // Register the adapter
-
-  // Open the Hive box before running the app
-  await Hive.openBox<Wallet>('card');
-// Open a box to store the Card objects
+  Hive.registerAdapter(WalletAdapter());
+  Hive.registerAdapter(LoyaltyAdapter());
+  Hive.registerAdapter(IdentityAdapter());
 
   runApp(const MyApp());
 }
