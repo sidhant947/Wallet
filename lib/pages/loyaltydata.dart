@@ -43,14 +43,14 @@ class _LoyaltyDataEntryScreenState extends State<LoyaltyDataEntryScreen> {
                 maxLength: 20,
                 controller: _nameController,
                 decoration: const InputDecoration(
-                    hintText: 'Brand Name',
+                    hintText: 'Brand Name / Starbucks',
                     hintStyle: TextStyle(fontFamily: 'ZSpace'))),
             const SizedBox(height: 10),
             TextField(
               controller: _numberController,
               maxLength: 16,
               decoration: const InputDecoration(
-                  hintText: 'Barcode Number',
+                  hintText: 'Barcode Number / AB84350458',
                   hintStyle: TextStyle(fontFamily: 'ZSpace')),
             ),
             GestureDetector(
