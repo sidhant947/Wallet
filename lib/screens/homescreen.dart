@@ -4,7 +4,6 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lottie/lottie.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:wallet/screens/cards.dart';
 import 'package:wallet/screens/identityscreen.dart';
 import '../pages/paybill.dart';
 import '../models/wallet.dart';
@@ -154,17 +153,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.credit_card),
-              title: const Text('Bank Cards'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const BankCards()),
-                );
-              },
-            ),
-            ListTile(
               leading: const Icon(Icons.shopping_basket),
               title: const Text('Loyalty Cards'),
               onTap: () {
@@ -277,13 +265,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                   onTap: () {
                                     copyToClipboard(wallet.number);
                                   },
-                                  child: Container(
-                                    margin: const EdgeInsets.all(10.0),
-                                    child: Text(
-                                      formattedNumber,
-                                      style: const TextStyle(
-                                          fontFamily: 'ZSpace', fontSize: 22),
-                                    ),
+                                  child: Text(
+                                    formattedNumber,
+                                    style: const TextStyle(
+                                        fontFamily: 'ZSpace', fontSize: 20),
                                   ),
                                 ),
                                 // Expiry and CVV
@@ -296,13 +281,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                         mask = !mask;
                                         setState(() {});
                                       },
-                                      child: Container(
-                                        margin: const EdgeInsets.all(10.0),
-                                        child: Text(
-                                          mask ? formattedExpiry : "XX/XX",
-                                          style: const TextStyle(
-                                              fontFamily: 'ZenDots'),
-                                        ),
+                                      child: Text(
+                                        mask ? formattedExpiry : "XX/XX",
+                                        style: const TextStyle(
+                                            fontFamily: 'ZenDots'),
                                       ),
                                     ),
                                     GestureDetector(
@@ -311,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         setState(() {});
                                       },
                                       child: Container(
-                                        margin: const EdgeInsets.all(10.0),
+                                        padding: const EdgeInsets.all(5),
                                         child: Text(
                                           mask ? wallet.cvv : "XXX",
                                           style: const TextStyle(
