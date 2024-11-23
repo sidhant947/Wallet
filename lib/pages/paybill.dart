@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import 'about.dart';
 
 class PayBill extends StatelessWidget {
@@ -144,9 +143,11 @@ class _AxisScreenState extends State<AxisScreen> {
             ),
             const SizedBox(height: 16),
             const Text(
-              "Please Check Name on Payment Page before Paying",
-              style: TextStyle(fontSize: 18),
-            )
+              "Please Check Name on Payment Page before Paying, We are not Liable for any Wrong Payments",
+              style: TextStyle(
+                fontSize: 15,
+              ),
+            ),
           ],
         ),
       ),
@@ -226,9 +227,11 @@ class _AmexScreenState extends State<AmexScreen> {
               height: 15,
             ),
             const Text(
-              "Please Check Name on Payment Page before Paying",
-              style: TextStyle(fontSize: 18),
-            )
+              "Please Check Name on Payment Page before Paying, We are not Liable for any Wrong Payments",
+              style: TextStyle(
+                fontSize: 15,
+              ),
+            ),
           ],
         ),
       ),
@@ -309,9 +312,11 @@ class _IciciScreenState extends State<IciciScreen> {
               height: 15,
             ),
             const Text(
-              "Please Check Name on Payment Page before Paying",
-              style: TextStyle(fontSize: 18),
-            )
+              "Please Check Name on Payment Page before Paying, We are not Liable for any Wrong Payments",
+              style: TextStyle(
+                fontSize: 15,
+              ),
+            ),
           ],
         ),
       ),
@@ -392,9 +397,11 @@ class _IdfcScreenState extends State<IdfcScreen> {
               height: 15,
             ),
             const Text(
-              "Please Check Name on Payment Page before Paying",
-              style: TextStyle(fontSize: 18),
-            )
+              "Please Check Name on Payment Page before Paying, We are not Liable for any Wrong Payments",
+              style: TextStyle(
+                fontSize: 15,
+              ),
+            ),
           ],
         ),
       ),
@@ -485,9 +492,11 @@ class _AubankScreenState extends State<AubankScreen> {
               height: 15,
             ),
             const Text(
-              "Please Check Name on Payment Page before Paying",
-              style: TextStyle(fontSize: 18),
-            )
+              "Please Check Name on Payment Page before Paying, We are not Liable for any Wrong Payments",
+              style: TextStyle(
+                fontSize: 15,
+              ),
+            ),
           ],
         ),
       ),

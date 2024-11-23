@@ -83,7 +83,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
               setState(() {});
             }
           },
-          backgroundColor: Colors.deepPurple,
+          backgroundColor: Colors.deepPurpleAccent.withOpacity(0.5),
           child: const Icon(Icons.shopping_basket_rounded)),
       body: Column(
         children: [
@@ -92,16 +92,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
             builder: (context, Box<Loyalty> box, _) {
               if (box.isEmpty) {
                 return Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Add loyalty card , only 1 barcode supported now",
-                        style: TextStyle(fontSize: 25),
-                      ),
-                      Lottie.asset("assets/loading.json"),
-                    ],
-                  ),
+                  child: Lottie.asset("assets/loading.json"),
                 );
               } else {
                 return Expanded(
@@ -120,7 +111,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
                                 onPressed: (BuildContext context) {
                                   _removeData(context, index);
                                 },
-                                backgroundColor: Colors.black,
+                                backgroundColor: Colors.transparent,
                                 foregroundColor: Colors.white,
                                 icon: Icons.delete,
                                 label: 'Delete',
@@ -128,17 +119,16 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
                             ],
                           ),
                           child: Container(
-                            padding: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              boxShadow: const [
-                                BoxShadow(
-                                    color: Colors.white,
-                                    spreadRadius: 0.25,
-                                    blurRadius: 5,
-                                    blurStyle: BlurStyle.outer),
-                              ],
-                              border: Border.all(color: Colors.white),
                               borderRadius: BorderRadius.circular(20),
+                              color: Colors.white.withOpacity(0.2),
+                              boxShadow: [
+                                BoxShadow(
+                                    color: Colors.green.withOpacity(0.5),
+                                    blurRadius: 125,
+                                    spreadRadius: 10),
+                              ],
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,

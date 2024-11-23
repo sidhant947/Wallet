@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:local_auth/local_auth.dart';
 import 'screens/homescreen.dart';
 import 'models/wallet.dart'; // Make sure to import the Card model class
 
 void main() async {
   // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
+
+  final auth = LocalAuthentication();
+
+  await auth.authenticate(
+      localizedReason: 'Touch your finger on the sensor to login');
 
   // Initialize Hive (make sure to call Hive.initFlutter() for Flutter projects)
   await Hive.initFlutter();

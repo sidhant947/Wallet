@@ -18,9 +18,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final _controller = PageController(viewportFraction: 0.8, keepPage: true);
   Box<Wallet>? dataBox; // Use nullable Box
 
-  bool mask = false;
+  bool mask = true;
 
   @override
   void initState() {
@@ -64,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
       count++;
 
       if (count == 4 && i != input.length - 1) {
-        result.write('  ');
+        result.write('\n');
         count = 0;
       }
     }
@@ -89,16 +90,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return result.toString();
   }
 
-  Future<void> _launchURL(String link) async {
-    final url = Uri.parse(link);
-
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
-      throw 'Could not launch $url';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (dataBox == null) {
@@ -117,40 +108,24 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Scaffold(
-      // extendBodyBehindAppBar: true,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Icon(
           Icons.wallet,
           size: 34,
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.qr_code_scanner),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => PayBill()),
-              );
-            },
-          ),
-        ],
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.transparent,
       ),
       drawer: Drawer(
         backgroundColor: Colors.black,
         child: ListView(
           padding: const EdgeInsets.all(0),
           children: <Widget>[
-            GestureDetector(
-              onTap: () {
-                _launchURL("mailto:khatkarsidhant@gmail.com");
-              },
-              child: const UserAccountsDrawerHeader(
-                decoration: BoxDecoration(color: Colors.black),
-                accountName: Text('For Suggestion/Queries'),
-                accountEmail: Text('khatkarsidhant@gmail.com'),
-              ),
+            const UserAccountsDrawerHeader(
+              decoration: BoxDecoration(color: Colors.black),
+              accountName: Text('For Suggestion/Queries'),
+              accountEmail: Text('khatkarsidhant@gmail.com'),
             ),
             ListTile(
               leading: const Icon(Icons.shopping_basket),
@@ -175,6 +150,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       builder: (context) => const IdentityScreen()),
                 );
               },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.payment),
+              title: const Text('Pay Bills by UPI'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => PayBill()),
+                );
+              },
+            ),
+            const Divider(),
+            const ListTile(
+              leading: Icon(Icons.payments),
+              title: Text('Donate on Githib to Support Project'),
             ),
             const Divider(),
             Lottie.asset("assets/card.json"),
@@ -207,106 +199,132 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               } else {
                 return Expanded(
-                  child: ListView.builder(
+                  child: PageView.builder(
+                    controller: _controller,
+                    scrollDirection: Axis.vertical,
                     itemCount: box.length,
                     itemBuilder: (context, index) {
                       var wallet = box.getAt(index);
 
+                      double deviceHeight =
+                          MediaQuery.of(context).size.height * 0.60;
+
                       String formattedNumber = formatCardNumber(wallet!.number);
+
+                      String masknumber =
+                          wallet.number.substring(wallet.number.length - 4);
 
                       String formattedExpiry =
                           formatExpiryNumber(wallet.expiry);
 
-                      return Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Slidable(
-                          key: ValueKey(index),
-                          endActionPane: ActionPane(
-                            motion: const ScrollMotion(),
-                            children: [
-                              SlidableAction(
-                                onPressed: (BuildContext context) {
-                                  _removeData(context, index);
-                                },
-                                backgroundColor: Colors.black,
-                                foregroundColor: Colors.white,
-                                icon: Icons.delete,
-                                label: 'Delete',
-                              ),
-                            ],
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            height: 200,
-                            decoration: BoxDecoration(
-                              boxShadow: const [
-                                BoxShadow(
-                                    color: Colors.white,
-                                    spreadRadius: 0.25,
-                                    blurRadius: 5,
-                                    blurStyle: BlurStyle.outer),
-                              ],
-                              border: Border.all(color: Colors.white),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                // Card Name
-                                Container(
-                                  alignment: Alignment.topRight,
-                                  margin: const EdgeInsets.all(10.0),
-                                  child: Text(wallet.name,
-                                      style: const TextStyle(
-                                          fontFamily: 'Bebas', fontSize: 28)),
-                                ),
-                                // Card Number
-                                GestureDetector(
-                                  onTap: () {
-                                    copyToClipboard(wallet.number);
-                                  },
-                                  child: Text(
-                                    formattedNumber,
-                                    style: const TextStyle(
-                                        fontFamily: 'ZSpace', fontSize: 20),
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(25),
+                            child: Slidable(
+                              key: ValueKey(index),
+                              endActionPane: ActionPane(
+                                motion: const ScrollMotion(),
+                                children: [
+                                  SlidableAction(
+                                    onPressed: (BuildContext context) {
+                                      _removeData(context, index);
+                                    },
+                                    backgroundColor: Colors.black,
+                                    foregroundColor: Colors.white,
+                                    icon: Icons.delete,
+                                    label: 'Delete',
                                   ),
+                                ],
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                height: deviceHeight,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(20),
+                                  color: Colors.white.withOpacity(0.2),
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color:
+                                            Colors.deepPurple.withOpacity(0.5),
+                                        blurRadius: 125,
+                                        spreadRadius: 30),
+                                  ],
                                 ),
-                                // Expiry and CVV
-                                Row(
+                                child: Column(
                                   mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: <Widget>[
-                                    GestureDetector(
-                                      onTap: () {
-                                        mask = !mask;
-                                        setState(() {});
-                                      },
-                                      child: Text(
-                                        mask ? formattedExpiry : "XX/XX",
-                                        style: const TextStyle(
-                                            fontFamily: 'ZenDots'),
-                                      ),
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    // Card Name
+                                    Container(
+                                      alignment: Alignment.topRight,
+                                      margin: const EdgeInsets.all(10.0),
+                                      child: Text(wallet.name,
+                                          style: const TextStyle(
+                                              fontFamily: 'Bebas',
+                                              fontSize: 35)),
                                     ),
+                                    // Card Number
                                     GestureDetector(
                                       onTap: () {
-                                        mask = !mask;
-                                        setState(() {});
+                                        copyToClipboard(wallet.number);
                                       },
                                       child: Container(
-                                        padding: const EdgeInsets.all(5),
+                                        padding: const EdgeInsets.all(20),
+                                        alignment: Alignment.centerLeft,
                                         child: Text(
-                                          mask ? wallet.cvv : "XXX",
+                                          mask
+                                              ? " XXYY \n XXYY \n XXYY \n $masknumber"
+                                              : formattedNumber,
                                           style: const TextStyle(
-                                              fontFamily: 'ZenDots'),
+                                              fontFamily: 'ZSpace',
+                                              fontSize: 35),
                                         ),
                                       ),
                                     ),
+                                    // Expiry
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(20),
+                                          alignment: Alignment.centerRight,
+                                          child: Text(
+                                            mask ? "MM/YY" : formattedExpiry,
+                                            style: const TextStyle(
+                                                fontFamily: 'ZSpace',
+                                                fontSize: 20),
+                                          ),
+                                        ),
+                                        GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              mask = !mask;
+                                            });
+                                          },
+                                          child: Container(
+                                              padding: const EdgeInsets.all(20),
+                                              child: mask
+                                                  ? const Icon(
+                                                      Icons.visibility,
+                                                      size: 20,
+                                                    )
+                                                  : const Icon(
+                                                      Icons
+                                                          .visibility_off_rounded,
+                                                      size: 20,
+                                                    )),
+                                        )
+                                      ],
+                                    ),
                                   ],
                                 ),
-                              ],
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       );
                     },
                   ),

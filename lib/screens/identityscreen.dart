@@ -124,15 +124,14 @@ class _IdentityScreenState extends State<IdentityScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              boxShadow: const [
-                                BoxShadow(
-                                    color: Colors.deepPurple,
-                                    spreadRadius: 0.25,
-                                    blurRadius: 5,
-                                    blurStyle: BlurStyle.outer),
-                              ],
-                              border: Border.all(color: Colors.deepPurple),
                               borderRadius: BorderRadius.circular(20),
+                              color: Colors.white.withOpacity(0.2),
+                              boxShadow: [
+                                BoxShadow(
+                                    color: Colors.pinkAccent.withOpacity(0.5),
+                                    blurRadius: 125,
+                                    spreadRadius: 10),
+                              ],
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -142,7 +141,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
                                   margin: const EdgeInsets.all(10.0),
                                   child: Text(person_identity!.Identity_name,
                                       style: const TextStyle(
-                                          color: Colors.deepPurpleAccent,
+                                          color: Colors.white,
                                           fontFamily: 'Bebas',
                                           fontSize: 28)),
                                 ),

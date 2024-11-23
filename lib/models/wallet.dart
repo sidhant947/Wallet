@@ -13,14 +13,10 @@ class Wallet {
   @HiveField(2)
   final String expiry;
 
-  @HiveField(3)
-  final String cvv;
-
   Wallet({
     required this.name,
     required this.number,
     required this.expiry,
-    required this.cvv,
   });
 }
 
