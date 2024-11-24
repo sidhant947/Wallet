@@ -3,12 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lottie/lottie.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:wallet/screens/identityscreen.dart';
 import '../pages/paybill.dart';
 import '../models/wallet.dart';
 import '../pages/data.dart';
-import 'loyaltyscreen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -128,18 +126,6 @@ class _HomeScreenState extends State<HomeScreen> {
               accountEmail: Text('khatkarsidhant@gmail.com'),
             ),
             ListTile(
-              leading: const Icon(Icons.shopping_basket),
-              title: const Text('Loyalty Cards'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const LoyaltyScreen()),
-                );
-              },
-            ),
-            ListTile(
               leading: const Icon(Icons.fingerprint),
               title: const Text('Identity Cards'),
               onTap: () {
@@ -166,7 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const Divider(),
             const ListTile(
               leading: Icon(Icons.payments),
-              title: Text('Donate on Githib to Support Project'),
+              title: Text('Donate on Github to Support Project'),
             ),
             const Divider(),
             Lottie.asset("assets/card.json"),
@@ -246,9 +232,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   color: Colors.white.withOpacity(0.2),
                                   boxShadow: [
                                     BoxShadow(
-                                        color:
-                                            Colors.deepPurple.withOpacity(0.5),
-                                        blurRadius: 125,
+                                        color: Colors.cyan.withOpacity(0.4),
+                                        blurRadius: 250,
                                         spreadRadius: 30),
                                   ],
                                 ),

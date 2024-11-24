@@ -11,7 +11,8 @@ class AboutScreen extends StatefulWidget {
 
 class _AboutScreenState extends State<AboutScreen> {
   Future<void> _launchURL() async {
-    final url = Uri.parse('upi://pay?pa=q505609292@ybl');
+    final url =
+        Uri.parse('upi://pay?pa=8920367120@amazonpay&pn=Sidhant&cu=INR');
 
     if (await canLaunchUrl(url)) {
       await launchUrl(url);

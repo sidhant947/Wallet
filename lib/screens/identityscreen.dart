@@ -114,7 +114,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
                                 onPressed: (BuildContext context) {
                                   _removeData(context, index);
                                 },
-                                backgroundColor: Colors.black,
+                                backgroundColor: Colors.transparent,
                                 foregroundColor: Colors.white,
                                 icon: Icons.delete,
                                 label: 'Delete',
@@ -128,7 +128,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
                               color: Colors.white.withOpacity(0.2),
                               boxShadow: [
                                 BoxShadow(
-                                    color: Colors.pinkAccent.withOpacity(0.5),
+                                    color: Colors.cyan.withOpacity(0.5),
                                     blurRadius: 125,
                                     spreadRadius: 10),
                               ],
