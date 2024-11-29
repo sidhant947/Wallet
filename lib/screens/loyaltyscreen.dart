@@ -3,17 +3,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lottie/lottie.dart';
+import 'package:syncfusion_flutter_barcodes/barcodes.dart';
 import 'package:wallet/models/wallet.dart';
 
-class IdentityScreen extends StatefulWidget {
-  const IdentityScreen({super.key});
+class LoyaltyScreen extends StatefulWidget {
+  const LoyaltyScreen({super.key});
 
   @override
-  State<IdentityScreen> createState() => _IdentityScreenState();
+  State<LoyaltyScreen> createState() => _LoyaltyScreenState();
 }
 
-class _IdentityScreenState extends State<IdentityScreen> {
-  Box<Identity>? dataBox;
+class _LoyaltyScreenState extends State<LoyaltyScreen> {
+  Box<Loyalty>? dataBox;
 
   @override
   void initState() {
@@ -22,7 +23,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
   }
 
   Future<void> _openDataBox() async {
-    dataBox = await Hive.openBox<Identity>('identity');
+    dataBox = await Hive.openBox<Loyalty>('loyalty');
     setState(() {});
   }
 
@@ -31,7 +32,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
     setState(() {});
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Identity Card Deleted'),
+        content: Text(' Loyalty Card Deleted'),
       ),
     );
   }
@@ -65,9 +66,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text(
-          "Identity Cards",
-        ),
+        title: const Icon(Icons.shopping_basket),
         centerTitle: true,
         backgroundColor: Colors.transparent,
       ),
@@ -76,24 +75,31 @@ class _IdentityScreenState extends State<IdentityScreen> {
             var result = await Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => const IdentityDataEntryScreen()),
+                  builder: (context) => const LoyaltyDataEntryScreen()),
             );
 
             if (result != null) {
               setState(() {});
             }
           },
-          backgroundColor: Colors.deepPurple,
-          child: const Icon(Icons.fingerprint)),
+          backgroundColor: Colors.deepPurpleAccent.withOpacity(0.5),
+          child: const Icon(Icons.shopping_basket_rounded)),
       body: Column(
         children: [
           ValueListenableBuilder(
             valueListenable: dataBox!.listenable(),
-            builder: (context, Box<Identity> box, _) {
+            builder: (context, Box<Loyalty> box, _) {
               if (box.isEmpty) {
                 return Expanded(
-                  child: Center(
-                    child: Lottie.asset("assets/loading.json"),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        "Add loyalty card , only 1 barcode supported now",
+                        style: TextStyle(fontSize: 25),
+                      ),
+                      Lottie.asset("assets/loading.json"),
+                    ],
                   ),
                 );
               } else {
@@ -101,7 +107,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
                   child: ListView.builder(
                     itemCount: box.length,
                     itemBuilder: (context, index) {
-                      var person_identity = box.getAt(index);
+                      var loyalty_cards = box.getAt(index);
                       return Padding(
                         padding: const EdgeInsets.all(10),
                         child: Slidable(
@@ -127,36 +133,32 @@ class _IdentityScreenState extends State<IdentityScreen> {
                               color: Colors.white.withOpacity(0.2),
                               boxShadow: [
                                 BoxShadow(
-                                    color: Colors.cyan.withOpacity(0.5),
-                                    blurRadius: 125,
-                                    spreadRadius: 10),
+                                    color: Colors.cyan.withOpacity(0.4),
+                                    blurRadius: 250,
+                                    spreadRadius: 30),
                               ],
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Container(
-                                  alignment: Alignment.topLeft,
-                                  margin: const EdgeInsets.all(10.0),
-                                  child: Text(person_identity!.Identity_name,
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontFamily: 'Bebas',
-                                          fontSize: 28)),
-                                ),
                                 GestureDetector(
                                   onTap: () {
-                                    copyToClipboard(
-                                        person_identity.Identity_number);
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => BarCodeScreen(
+                                          name: loyalty_cards.loyalty_name,
+                                          number: loyalty_cards.loyalty_number,
+                                        ),
+                                      ),
+                                    );
                                   },
                                   child: Container(
-                                    alignment: Alignment.centerLeft,
+                                    alignment: Alignment.center,
                                     margin: const EdgeInsets.all(10.0),
-                                    child: Text(
-                                      person_identity.Identity_number,
-                                      style: const TextStyle(
-                                          letterSpacing: 1, fontSize: 20),
-                                    ),
+                                    child: Text(loyalty_cards!.loyalty_name,
+                                        style: const TextStyle(
+                                            fontFamily: 'Bebas', fontSize: 28)),
                                   ),
                                 ),
                               ],
@@ -176,26 +178,48 @@ class _IdentityScreenState extends State<IdentityScreen> {
   }
 }
 
-class IdentityDataEntryScreen extends StatefulWidget {
-  const IdentityDataEntryScreen({super.key});
+class BarCodeScreen extends StatelessWidget {
+  final String name;
+  final String number;
+
+  const BarCodeScreen({super.key, required this.name, required this.number});
 
   @override
-  State<IdentityDataEntryScreen> createState() =>
-      _IdentityDataEntryScreenState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(name),
+        backgroundColor: Colors.black,
+        elevation: 0,
+      ),
+      body: Center(
+        child: SizedBox(
+          height: 200,
+          child: SfBarcodeGenerator(
+            value: number,
+            showValue: true,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _IdentityDataEntryScreenState extends State<IdentityDataEntryScreen> {
+class LoyaltyDataEntryScreen extends StatefulWidget {
+  const LoyaltyDataEntryScreen({super.key});
+  @override
+  State<LoyaltyDataEntryScreen> createState() => _LoyaltyDataEntryScreenState();
+}
+
+class _LoyaltyDataEntryScreenState extends State<LoyaltyDataEntryScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _numberController = TextEditingController();
-
   void _addData() async {
-    var dataBox = await Hive.openBox<Identity>('identity');
-
+    var dataBox = await Hive.openBox<Loyalty>('loyalty');
     String name = _nameController.text;
     String number = _numberController.text;
-
     if (name.isNotEmpty) {
-      await dataBox.add(Identity(Identity_name: name, Identity_number: number));
+      await dataBox.add(Loyalty(loyalty_name: name, loyalty_number: number));
       Navigator.pop(context, true);
     }
   }
@@ -205,7 +229,7 @@ class _IdentityDataEntryScreenState extends State<IdentityDataEntryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Save Your Identity Card',
+          'Save Your Loyalty Card',
           style: TextStyle(fontFamily: 'Bebas', fontSize: 25),
         ),
         backgroundColor: Colors.black,
@@ -218,14 +242,14 @@ class _IdentityDataEntryScreenState extends State<IdentityDataEntryScreen> {
                 maxLength: 20,
                 controller: _nameController,
                 decoration: const InputDecoration(
-                    hintText: 'Aadhar Card / PAN Card',
+                    hintText: 'Brand Name / Starbucks',
                     hintStyle: TextStyle(fontFamily: 'ZSpace'))),
             const SizedBox(height: 10),
             TextField(
               controller: _numberController,
-              maxLength: 20,
+              maxLength: 16,
               decoration: const InputDecoration(
-                  hintText: '12345678 / XXXXX78923X',
+                  hintText: 'Barcode Number / AB84350458',
                   hintStyle: TextStyle(fontFamily: 'ZSpace')),
             ),
             GestureDetector(
@@ -240,8 +264,8 @@ class _IdentityDataEntryScreenState extends State<IdentityDataEntryScreen> {
                       ),
                     ),
                     child: const Text(
-                      "Save Identity Card",
-                      style: TextStyle(fontSize: 20),
+                      "Save Loyalty Card",
+                      style: TextStyle(fontSize: 25),
                     ))),
           ],
         ),

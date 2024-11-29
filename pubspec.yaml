@@ -17,7 +17,7 @@ description: "Wallet is a Flutter project designed to store card information
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.3+3
+version: 1.0.4+4
 
 environment:
   sdk: ^3.5.4
@@ -31,13 +31,18 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   cupertino_icons: ^1.0.8
+  file_picker: ^8.1.4
   flutter:
     sdk: flutter
   flutter_slidable: ^3.1.1
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  json_annotation: ^4.9.0
+  json_serializable: ^6.9.0
   local_auth: ^2.3.0
   lottie: ^3.1.3
+  permission_handler: ^11.3.1
+  syncfusion_flutter_barcodes: ^27.2.4
   url_launcher: ^6.3.1
 
 dev_dependencies:

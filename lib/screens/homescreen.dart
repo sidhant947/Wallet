@@ -4,9 +4,14 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lottie/lottie.dart';
 import 'package:wallet/screens/identityscreen.dart';
+import 'package:wallet/screens/loyaltyscreen.dart';
 import '../pages/paybill.dart';
 import '../models/wallet.dart';
-import '../pages/data.dart';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,8 +35,37 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Function to open the Hive box
   Future<void> _openDataBox() async {
-    dataBox = await Hive.openBox<Wallet>('card');
-    setState(() {}); // Trigger UI update once box is loaded
+    dataBox = await Hive.openBox<Wallet>('walletBox');
+    setState(() {});
+  }
+
+  Future<void> convertHiveBoxToJson() async {
+    var box = Hive.box<Wallet>('walletBox');
+
+    Map<String, dynamic> boxData = {};
+
+    for (var key in box.keys) {
+      var wallet = box.get(key);
+      boxData[key] = {
+        "name": wallet!.name,
+        "number": wallet.number,
+        "expiry": wallet.expiry
+      };
+    }
+
+    String jsonString = jsonEncode(boxData);
+
+    Directory appDocDir = await getApplicationDocumentsDirectory();
+    String filePath = '${appDocDir.path}/wallet_data.json';
+
+    File jsonFile = File(filePath);
+    await jsonFile.writeAsString(jsonString);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content:
+            Text('Hive data has been saved as a JSON file at: App Directory'),
+      ),
+    );
   }
 
   void _removeData(BuildContext context, int index) {
@@ -137,6 +171,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.shopping_basket),
+              title: const Text('Loyalty Cards'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const LoyaltyScreen()),
+                );
+              },
+            ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.payment),
@@ -153,6 +199,12 @@ class _HomeScreenState extends State<HomeScreen> {
             const ListTile(
               leading: Icon(Icons.payments),
               title: Text('Donate on Github to Support Project'),
+            ),
+            GestureDetector(
+              onTap: convertHiveBoxToJson,
+              child: const ListTile(
+                title: Text("Backup"),
+              ),
             ),
             const Divider(),
             Lottie.asset("assets/card.json"),
@@ -179,8 +231,19 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (context, Box<Wallet> box, _) {
               if (box.isEmpty) {
                 return Expanded(
-                  child: Center(
-                    child: Lottie.asset("assets/loading.json"),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Lottie.asset("assets/loading.json"),
+                      ListTile(
+                        onTap: () {},
+                        leading: Lottie.asset("assets/card.json"),
+                        title: const Text("Restore Your data"),
+                        subtitle:
+                            const Text("Get your all previous cards back"),
+                      )
+                    ],
                   ),
                 );
               } else {
@@ -259,19 +322,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                         padding: const EdgeInsets.all(20),
                                         alignment: Alignment.centerLeft,
                                         child: Text(
-                                          mask
-                                              ? " XXYY \n XXYY \n XXYY \n $masknumber"
-                                              : formattedNumber,
+                                          mask ? masknumber : formattedNumber,
                                           style: const TextStyle(
                                               fontFamily: 'ZSpace',
-                                              fontSize: 35),
+                                              fontSize: 30),
                                         ),
                                       ),
                                     ),
                                     // Expiry
                                     Row(
                                       mainAxisAlignment:
-                                          MainAxisAlignment.spaceAround,
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Container(
                                           padding: const EdgeInsets.all(20),
@@ -318,6 +379,116 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class DataEntryScreen extends StatefulWidget {
+  const DataEntryScreen({super.key});
+
+  @override
+  State<DataEntryScreen> createState() => _DataEntryScreenState();
+}
+
+class _DataEntryScreenState extends State<DataEntryScreen> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _numberController = TextEditingController();
+  final TextEditingController _expiryController = TextEditingController();
+
+  final _formKey = GlobalKey<FormState>();
+
+  void _addData() async {
+    String name = _nameController.text;
+    String number = _numberController.text;
+    String expiry = _expiryController.text;
+
+    var box = Hive.box<Wallet>('walletBox');
+
+    if (name.isNotEmpty) {
+      await box.put(
+          "$name$expiry", Wallet(name: name, number: number, expiry: expiry));
+
+      Navigator.pop(context, true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Save Your Card',
+          style: TextStyle(fontFamily: 'Bebas', fontSize: 30),
+        ),
+        backgroundColor: Colors.black,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              TextField(
+                  maxLength: 20,
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                      // labelText: 'Card Name',
+                      hintText: 'Infinia',
+                      hintStyle: TextStyle(fontFamily: 'ZSpace'))),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _numberController,
+                maxLength: 16,
+                decoration: const InputDecoration(
+                    hintText: '1234567891234567',
+                    hintStyle: TextStyle(fontFamily: 'ZSpace')),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.length < 15) {
+                    return 'Please enter at least 15 digits';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                maxLength: 4,
+                controller: _expiryController,
+                decoration: const InputDecoration(
+                    hintText: "MMYY",
+                    hintStyle: TextStyle(fontFamily: 'ZSpace')),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.length < 4) {
+                    return 'Please enter at least 4 digits';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              GestureDetector(
+                  onTap: () {
+                    if (_formKey.currentState?.validate() ?? false) {
+                      _addData();
+                    }
+                  },
+                  child: Container(
+                      padding: const EdgeInsets.all(5),
+                      width: 200,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Colors.white,
+                        ),
+                      ),
+                      child: const Text(
+                        "Save Card",
+                        style: TextStyle(fontSize: 30),
+                      ))),
+            ],
+          ),
+        ),
       ),
     );
   }
