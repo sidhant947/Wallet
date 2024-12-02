@@ -51,10 +51,10 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> security() async {
-    // final auth = LocalAuthentication();
+    final auth = LocalAuthentication();
 
-    // await auth.authenticate(
-    //     localizedReason: 'Touch your finger on the sensor to login');
+    await auth.authenticate(
+        localizedReason: 'Touch your finger on the sensor to login');
 
     Navigator.pushReplacement(
       context,
