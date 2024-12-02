@@ -9,8 +9,6 @@ import '../pages/paybill.dart';
 import '../models/wallet.dart';
 import 'dart:convert';
 import 'dart:io';
-
-import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -203,6 +201,7 @@ class _HomeScreenState extends State<HomeScreen> {
             GestureDetector(
               onTap: convertHiveBoxToJson,
               child: const ListTile(
+                leading: Icon(Icons.import_export),
                 title: Text("Backup"),
               ),
             ),
@@ -222,7 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
               setState(() {});
             }
           },
-          backgroundColor: Colors.deepPurple,
+          backgroundColor: Colors.cyan.shade900,
           child: const Icon(Icons.add_card)),
       body: Column(
         children: [

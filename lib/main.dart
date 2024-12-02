@@ -8,11 +8,6 @@ void main() async {
   // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  final auth = LocalAuthentication();
-
-  await auth.authenticate(
-      localizedReason: 'Touch your finger on the sensor to login');
-
   // Initialize Hive (make sure to call Hive.initFlutter() for Flutter projects)
   await Hive.initFlutter();
 
@@ -37,7 +32,52 @@ class MyApp extends StatelessWidget {
         fontFamily: "Bebas",
         scaffoldBackgroundColor: Colors.black,
       ),
-      home: const HomeScreen(),
+      home: const SplashScreen(),
+    );
+  }
+}
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<void> security() async {
+    // final auth = LocalAuthentication();
+
+    // await auth.authenticate(
+    //     localizedReason: 'Touch your finger on the sensor to login');
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const HomeScreen()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: GestureDetector(
+        onTap: security,
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.all(30),
+            decoration: BoxDecoration(border: Border.all(color: Colors.white)),
+            child: const Text(
+              "Authenticate",
+              style: TextStyle(fontSize: 30),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
