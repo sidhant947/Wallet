@@ -11,8 +11,6 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
-
-
 android {
     namespace = "com.example.wallet"
     compileSdk = flutter.compileSdkVersion
@@ -24,16 +22,10 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17
+        jvmTarget = 17
     }
 
-    dependenciesInfo {
-        // Disables dependency metadata when building APKs.
-        includeInApk = false
-        // Disables dependency metadata when building Android App Bundles.
-        includeInBundle = false
-    }
-
+    
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
@@ -57,9 +49,6 @@ android {
 
     buildTypes {
         release {
-            // Ensure Proguard is not stripping out necessary debug info
-        
-          
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.release
