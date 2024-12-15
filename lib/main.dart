@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:local_auth/local_auth.dart';
+// import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:wallet/models/db_helper.dart';
 import 'screens/homescreen.dart';
-import 'models/wallet.dart'; // Make sure to import the Card model class
 
 void main() async {
   // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Hive (make sure to call Hive.initFlutter() for Flutter projects)
-  await Hive.initFlutter();
+  // databaseFactory = databaseFactoryFfi;
 
-  // Register the generated adapter for Card
-  Hive.registerAdapter(WalletAdapter());
-  Hive.registerAdapter(LoyaltyAdapter());
-  Hive.registerAdapter(IdentityAdapter());
+  // Initialize the database before the app starts
+  await Future.wait([
+    DatabaseHelper.instance.database, // Initialize wallet.db
+    IdentityDatabaseHelper.instance.database, // Initialize identity.db
+    LoyaltyDatabaseHelper.instance.database, // Initialize loyalty.db
+  ]);
 
   runApp(const MyApp());
 }

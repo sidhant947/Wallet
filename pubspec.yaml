@@ -3,80 +3,37 @@ description: "Wallet is a Flutter project designed to store card information
   locally on the device, ensuring that the data is secure and cannot be stolen,
   as the application does not have internet access. The app is optimized for
   efficiency, allowing users to quickly copy card details for transactions."
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
-# The following defines the version and build number for your application.
-# A version number is three numbers separated by dots, like 1.2.43
-# followed by an optional build number separated by a +.
-# Both the version and the builder number may be overridden in flutter
-# build by specifying --build-name and --build-number, respectively.
-# In Android, build-name is used as versionName while build-number used as versionCode.
-# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
-# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
-# Read more about iOS versioning at
-# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-# In Windows, build-name is used as the major, minor, and patch parts
-# of the product and file versions while build-number is used as the build suffix.
-version: 1.0.4+4
+publish_to: 'none'
+version: 1.0.5+6
 
 environment:
-  sdk: ^3.5.4
-  flutter: ^3.24.5
+  sdk: ^3.6.0
+  flutter: ^3.27.0
 
-# Dependencies specify other packages that your package needs in order to work.
-# To automatically upgrade your package dependencies to the latest versions
-# consider running `flutter pub upgrade --major-versions`. Alternatively,
-# dependencies can be manually updated by changing the version numbers below to
-# the latest version available on pub.dev. To see which dependencies have newer
-# versions available, run `flutter pub outdated`.
 dependencies:
-  cupertino_icons: ^1.0.8
-  file_picker: ^8.1.4
   flutter:
     sdk: flutter
-  flutter_slidable: ^3.1.1
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
-  json_annotation: ^4.9.0
-  json_serializable: ^6.9.0
+  flutter_slidable: ^3.1.2
   local_auth: ^2.3.0
-  lottie: ^3.1.3
-  permission_handler: ^11.3.1
-  syncfusion_flutter_barcodes: ^27.2.4
+  lottie: ^3.3.0
+  path: ^1.9.0
+  path_provider: ^2.1.5
+  sqflite: ^2.4.1
+  sqflite_common_ffi: ^2.3.4+4
   url_launcher: ^6.3.1
 
 dev_dependencies:
-  build_runner: ^2.1.0
-
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
-  flutter_lints: ^4.0.0
   flutter_test:
     sdk: flutter
-  hive_generator: any
+  flutter_lints: ^5.0.0
 
 flutter:
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/
-  #   - images/a_dot_ham.jpeg
-  # An image asset can refer to one or more resolution-specific "variants", see
-  # https://flutter.dev/to/resolution-aware-images
-  # For details regarding adding assets from package dependencies, see
-  # https://flutter.dev/to/asset-from-package
-  # To add custom fonts to your application, add a fonts section here,
-  # in this "flutter" section. Each entry in this list should have a
-  # "family" key with the font family name, and a "fonts" key with a
-  # list giving the asset and other descriptors for the font. For
-  # example:
+   - assets/
+
+   
   fonts:
     - family: Bebas
       fonts:
@@ -87,13 +44,3 @@ flutter:
     - family: ZSpace
       fonts:
         - asset: assets/fonts/SpaceGrotesk-VariableFont_wght.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
-  #   - family: Trajan Pro
-  #     fonts:
-  #       - asset: fonts/TrajanPro.ttf
-  #       - asset: fonts/TrajanPro_Bold.ttf
-  #         weight: 700
-  #
-  # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/to/font-from-package

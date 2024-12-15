@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lottie/lottie.dart';
-import 'package:syncfusion_flutter_barcodes/barcodes.dart';
-import 'package:wallet/models/wallet.dart';
+import '../models/db_helper.dart';
 
 class LoyaltyScreen extends StatefulWidget {
   const LoyaltyScreen({super.key});
@@ -14,192 +12,143 @@ class LoyaltyScreen extends StatefulWidget {
 }
 
 class _LoyaltyScreenState extends State<LoyaltyScreen> {
-  Box<Loyalty>? dataBox;
+  List<Loyalty>? loyalties;
 
   @override
   void initState() {
     super.initState();
-    _openDataBox();
+    _loadLoyalties();
   }
 
-  Future<void> _openDataBox() async {
-    dataBox = await Hive.openBox<Loyalty>('loyalty');
+  // Load loyalties from SQLite database
+  Future<void> _loadLoyalties() async {
+    loyalties = (await LoyaltyDatabaseHelper.instance.getAllLoyalties())
+        .cast<Loyalty>();
     setState(() {});
   }
 
-  void _removeData(BuildContext context, int index) {
-    dataBox?.deleteAt(index);
-    setState(() {});
+  void _removeData(BuildContext context, int id) async {
+    await LoyaltyDatabaseHelper.instance.deleteLoyalty(id);
+    _loadLoyalties(); // Reload the list after deletion
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text(' Loyalty Card Deleted'),
+        content: Text('Loyalty Card Deleted'),
       ),
     );
   }
 
   void copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text)).then((_) {
-      // ignore: avoid_print
       print('Text copied to clipboard!');
     }).catchError((e) {
-      // ignore: avoid_print
       print('Error copying to clipboard: $e');
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (dataBox == null) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Icon(
-            Icons.wallet,
-            size: 30,
-          ),
-          centerTitle: true,
-          backgroundColor: Colors.black,
-        ),
-        body: const Center(child: Text("Loading")),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const Icon(Icons.shopping_basket),
+        // automaticallyImplyLeading: false,
+        title: const Text(
+          "Loyalty Cards",
+        ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
       ),
       floatingActionButton: FloatingActionButton(
-          onPressed: () async {
-            var result = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => const LoyaltyDataEntryScreen()),
-            );
-
-            if (result != null) {
-              setState(() {});
-            }
-          },
-          backgroundColor: Colors.deepPurpleAccent.withOpacity(0.5),
-          child: const Icon(Icons.shopping_basket_rounded)),
+        onPressed: () async {
+          var result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => const LoyaltyDataEntryScreen()),
+          );
+          if (result != null) {
+            _loadLoyalties(); // Reload list after new Loyalty is added
+          }
+        },
+        backgroundColor: Colors.deepPurple,
+        child: const Icon(Icons.fingerprint),
+      ),
       body: Column(
         children: [
-          ValueListenableBuilder(
-            valueListenable: dataBox!.listenable(),
-            builder: (context, Box<Loyalty> box, _) {
-              if (box.isEmpty) {
-                return Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Add loyalty card , only 1 barcode supported now",
-                        style: TextStyle(fontSize: 25),
-                      ),
-                      Lottie.asset("assets/loading.json"),
-                    ],
-                  ),
-                );
-              } else {
-                return Expanded(
-                  child: ListView.builder(
-                    itemCount: box.length,
-                    itemBuilder: (context, index) {
-                      var loyalty_cards = box.getAt(index);
-                      return Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Slidable(
-                          key: ValueKey(index),
-                          endActionPane: ActionPane(
-                            motion: const ScrollMotion(),
-                            children: [
-                              SlidableAction(
-                                onPressed: (BuildContext context) {
-                                  _removeData(context, index);
-                                },
-                                backgroundColor: Colors.transparent,
-                                foregroundColor: Colors.white,
-                                icon: Icons.delete,
-                                label: 'Delete',
-                              ),
-                            ],
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              color: Colors.white.withOpacity(0.2),
-                              boxShadow: [
-                                BoxShadow(
-                                    color: Colors.cyan.withOpacity(0.4),
-                                    blurRadius: 250,
-                                    spreadRadius: 30),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => BarCodeScreen(
-                                          name: loyalty_cards.loyalty_name,
-                                          number: loyalty_cards.loyalty_number,
+          loyalties == null
+              ? const Expanded(
+                  child: Center(child: CircularProgressIndicator()))
+              : Expanded(
+                  child: loyalties!.isEmpty
+                      ? Center(
+                          child: Lottie.asset("assets/loading.json"),
+                        )
+                      : ListView.builder(
+                          itemCount: loyalties!.length,
+                          itemBuilder: (context, index) {
+                            var Loyalty = loyalties![index];
+                            return Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: Slidable(
+                                key: ValueKey(index),
+                                endActionPane: ActionPane(
+                                  motion: const ScrollMotion(),
+                                  children: [
+                                    SlidableAction(
+                                      onPressed: (BuildContext context) {
+                                        _removeData(context, Loyalty.id!);
+                                      },
+                                      backgroundColor: Colors.transparent,
+                                      foregroundColor: Colors.white,
+                                      icon: Icons.delete,
+                                      label: 'Delete',
+                                    ),
+                                  ],
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    color: Colors.white.withOpacity(0.2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                          color: Colors.cyan.withOpacity(0.5),
+                                          blurRadius: 125,
+                                          spreadRadius: 10),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Container(
+                                        alignment: Alignment.topLeft,
+                                        margin: const EdgeInsets.all(10.0),
+                                        child: Text(Loyalty.loyaltyName,
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontFamily: 'Bebas',
+                                                fontSize: 28)),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () {
+                                          copyToClipboard(
+                                              Loyalty.loyaltyNumber);
+                                        },
+                                        child: Container(
+                                          alignment: Alignment.centerLeft,
+                                          margin: const EdgeInsets.all(10.0),
+                                          child: Text(
+                                            Loyalty.loyaltyNumber,
+                                            style: const TextStyle(
+                                                letterSpacing: 1, fontSize: 20),
+                                          ),
                                         ),
                                       ),
-                                    );
-                                  },
-                                  child: Container(
-                                    alignment: Alignment.center,
-                                    margin: const EdgeInsets.all(10.0),
-                                    child: Text(loyalty_cards!.loyalty_name,
-                                        style: const TextStyle(
-                                            fontFamily: 'Bebas', fontSize: 28)),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
-                );
-              }
-            },
-          ),
+                ),
         ],
-      ),
-    );
-  }
-}
-
-class BarCodeScreen extends StatelessWidget {
-  final String name;
-  final String number;
-
-  const BarCodeScreen({super.key, required this.name, required this.number});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(name),
-        backgroundColor: Colors.black,
-        elevation: 0,
-      ),
-      body: Center(
-        child: SizedBox(
-          height: 200,
-          child: SfBarcodeGenerator(
-            value: number,
-            showValue: true,
-          ),
-        ),
       ),
     );
   }
@@ -207,6 +156,7 @@ class BarCodeScreen extends StatelessWidget {
 
 class LoyaltyDataEntryScreen extends StatefulWidget {
   const LoyaltyDataEntryScreen({super.key});
+
   @override
   State<LoyaltyDataEntryScreen> createState() => _LoyaltyDataEntryScreenState();
 }
@@ -214,13 +164,47 @@ class LoyaltyDataEntryScreen extends StatefulWidget {
 class _LoyaltyDataEntryScreenState extends State<LoyaltyDataEntryScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _numberController = TextEditingController();
+
   void _addData() async {
-    var dataBox = await Hive.openBox<Loyalty>('loyalty');
-    String name = _nameController.text;
-    String number = _numberController.text;
-    if (name.isNotEmpty) {
-      await dataBox.add(Loyalty(loyalty_name: name, loyalty_number: number));
+    String name = _nameController.text.trim();
+    String number = _numberController.text.trim();
+
+    // Validate input
+    if (name.isEmpty || number.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill out both fields.'),
+        ),
+      );
+      return;
+    }
+
+    try {
+      // Create new Loyalty object
+      Loyalty newLoyalty = Loyalty(loyaltyName: name, loyaltyNumber: number);
+
+      // Insert the new Loyalty into the database
+      int id = await LoyaltyDatabaseHelper.instance.insertLoyalty(newLoyalty);
+      print("Inserted ID: $id");
+
+      // Optionally show a success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Loyalty card saved successfully.'),
+        ),
+      );
+
+      // Pop the screen to go back
       Navigator.pop(context, true);
+    } catch (e) {
+      // Handle any errors during insertion
+      print("Error inserting Loyalty: $e");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error saving Loyalty card.'),
+        ),
+      );
     }
   }
 
@@ -239,34 +223,35 @@ class _LoyaltyDataEntryScreenState extends State<LoyaltyDataEntryScreen> {
         child: Column(
           children: [
             TextField(
-                maxLength: 20,
-                controller: _nameController,
-                decoration: const InputDecoration(
-                    hintText: 'Brand Name / Starbucks',
-                    hintStyle: TextStyle(fontFamily: 'ZSpace'))),
+              controller: _nameController,
+              decoration: const InputDecoration(
+                hintText: 'Starbucks',
+              ),
+            ),
             const SizedBox(height: 10),
             TextField(
               controller: _numberController,
-              maxLength: 16,
               decoration: const InputDecoration(
-                  hintText: 'Barcode Number / AB84350458',
-                  hintStyle: TextStyle(fontFamily: 'ZSpace')),
+                hintText: 'ABS9237498',
+                hintStyle: TextStyle(fontFamily: 'ZSpace'),
+              ),
             ),
+            const SizedBox(height: 20),
             GestureDetector(
-                onTap: _addData,
-                child: Container(
-                    padding: const EdgeInsets.all(5),
-                    width: 200,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Colors.white,
-                      ),
-                    ),
-                    child: const Text(
-                      "Save Loyalty Card",
-                      style: TextStyle(fontSize: 25),
-                    ))),
+              onTap: _addData,
+              child: Container(
+                padding: const EdgeInsets.all(5),
+                width: 200,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white),
+                ),
+                child: const Text(
+                  "Save Loyalty Card",
+                  style: TextStyle(fontSize: 20),
+                ),
+              ),
+            ),
           ],
         ),
       ),

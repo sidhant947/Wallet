@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lottie/lottie.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:wallet/screens/identityscreen.dart';
 import 'package:wallet/screens/loyaltyscreen.dart';
-import '../pages/paybill.dart';
-import '../models/wallet.dart';
-import 'dart:convert';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
+import 'package:wallet/pages/paybill.dart';
+import '../models/db_helper.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,54 +17,31 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _controller = PageController(viewportFraction: 0.8, keepPage: true);
-  Box<Wallet>? dataBox; // Use nullable Box
 
   bool mask = true;
 
   @override
   void initState() {
     super.initState();
-    // Open the Hive box when the screen is initialized
-    _openDataBox();
+    _fetchData();
   }
 
-  // Function to open the Hive box
-  Future<void> _openDataBox() async {
-    dataBox = await Hive.openBox<Wallet>('walletBox');
-    setState(() {});
+  // Fetch Wallets from the database
+  Future<List<Wallet>> _fetchData() async {
+    return await DatabaseHelper.instance.getWallets();
   }
 
-  Future<void> convertHiveBoxToJson() async {
-    var box = Hive.box<Wallet>('walletBox');
-
-    Map<String, dynamic> boxData = {};
-
-    for (var key in box.keys) {
-      var wallet = box.get(key);
-      boxData[key] = {
-        "name": wallet!.name,
-        "number": wallet.number,
-        "expiry": wallet.expiry
-      };
+  Future<void> _launchUrl(Uri url) async {
+    if (!await launchUrl(
+      url,
+      mode: LaunchMode.externalApplication,
+    )) {
+      throw Exception('Could not launch $url');
     }
-
-    String jsonString = jsonEncode(boxData);
-
-    Directory appDocDir = await getApplicationDocumentsDirectory();
-    String filePath = '${appDocDir.path}/wallet_data.json';
-
-    File jsonFile = File(filePath);
-    await jsonFile.writeAsString(jsonString);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content:
-            Text('Hive data has been saved as a JSON file at: App Directory'),
-      ),
-    );
   }
 
-  void _removeData(BuildContext context, int index) {
-    dataBox?.deleteAt(index); // Null-safe access
+  void _removeData(BuildContext context, int id) async {
+    await DatabaseHelper.instance.deleteWallet(id);
     setState(() {});
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -78,10 +52,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text)).then((_) {
-      // ignore: avoid_print
       print('Text copied to clipboard!');
     }).catchError((e) {
-      // ignore: avoid_print
       print('Error copying to clipboard: $e');
     });
   }
@@ -122,21 +94,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (dataBox == null) {
-      // Return a loading indicator while the box is being opened
-      return Scaffold(
-        appBar: AppBar(
-          title: const Icon(
-            Icons.wallet,
-            size: 30,
-          ),
-          centerTitle: true,
-          backgroundColor: Colors.black,
-        ),
-        body: const Center(child: Text("Loading")),
-      );
-    }
-
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -194,15 +151,13 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             const Divider(),
-            const ListTile(
-              leading: Icon(Icons.payments),
-              title: Text('Donate on Github to Support Project'),
-            ),
             GestureDetector(
-              onTap: convertHiveBoxToJson,
+              onTap: () {
+                _launchUrl(Uri.parse("https://github.com/sponsors/sidhant947"));
+              },
               child: const ListTile(
-                leading: Icon(Icons.import_export),
-                title: Text("Backup"),
+                leading: Icon(Icons.payments),
+                title: Text('Donate on Github to Support Project'),
               ),
             ),
             const Divider(),
@@ -221,43 +176,36 @@ class _HomeScreenState extends State<HomeScreen> {
               setState(() {});
             }
           },
-          backgroundColor: Colors.cyan.shade900,
-          child: const Icon(Icons.add_card)),
-      body: Column(
-        children: [
-          ValueListenableBuilder(
-            valueListenable: dataBox!.listenable(),
-            builder: (context, Box<Wallet> box, _) {
-              if (box.isEmpty) {
-                return Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Lottie.asset("assets/loading.json"),
-                      ListTile(
-                        onTap: () {},
-                        leading: Lottie.asset("assets/card.json"),
-                        title: const Text("Restore Your data"),
-                        subtitle:
-                            const Text("Get your all previous cards back"),
-                      )
-                    ],
-                  ),
-                );
-              } else {
-                return Expanded(
+          backgroundColor: Colors.white,
+          child: const Icon(
+            Icons.add_card,
+            color: Colors.black,
+          )),
+      body: FutureBuilder<List<Wallet>>(
+        future: _fetchData(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return const Center(child: Text("Error loading data"));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(child: Lottie.asset("assets/loading.json"));
+          } else {
+            var wallets = snapshot.data!;
+            return Column(
+              children: [
+                Expanded(
                   child: PageView.builder(
                     controller: _controller,
                     scrollDirection: Axis.vertical,
-                    itemCount: box.length,
+                    itemCount: wallets.length,
                     itemBuilder: (context, index) {
-                      var wallet = box.getAt(index);
+                      var wallet = wallets[index];
 
                       double deviceHeight =
                           MediaQuery.of(context).size.height * 0.60;
 
-                      String formattedNumber = formatCardNumber(wallet!.number);
+                      String formattedNumber = formatCardNumber(wallet.number);
 
                       String masknumber =
                           wallet.number.substring(wallet.number.length - 4);
@@ -271,13 +219,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           Padding(
                             padding: const EdgeInsets.all(25),
                             child: Slidable(
-                              key: ValueKey(index),
+                              key: ValueKey(wallet.id),
                               endActionPane: ActionPane(
                                 motion: const ScrollMotion(),
                                 children: [
                                   SlidableAction(
                                     onPressed: (BuildContext context) {
-                                      _removeData(context, index);
+                                      _removeData(context, wallet.id!);
                                     },
                                     backgroundColor: Colors.black,
                                     foregroundColor: Colors.white,
@@ -290,20 +238,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 padding: const EdgeInsets.all(10),
                                 height: deviceHeight,
                                 decoration: BoxDecoration(
+                                  border:
+                                      Border.all(color: Colors.white, width: 2),
                                   borderRadius: BorderRadius.circular(20),
-                                  color: Colors.white.withOpacity(0.2),
-                                  boxShadow: [
-                                    BoxShadow(
-                                        color: Colors.cyan.withOpacity(0.4),
-                                        blurRadius: 250,
-                                        spreadRadius: 30),
-                                  ],
                                 ),
                                 child: Column(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    // Card Name
                                     Container(
                                       alignment: Alignment.topRight,
                                       margin: const EdgeInsets.all(10.0),
@@ -312,7 +254,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                               fontFamily: 'Bebas',
                                               fontSize: 35)),
                                     ),
-                                    // Card Number
                                     GestureDetector(
                                       onTap: () {
                                         copyToClipboard(wallet.number);
@@ -321,14 +262,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                         padding: const EdgeInsets.all(20),
                                         alignment: Alignment.centerLeft,
                                         child: Text(
-                                          mask ? masknumber : formattedNumber,
+                                          mask
+                                              ? "XXXX\nXXXX\nXXXX\n $masknumber"
+                                              : formattedNumber,
                                           style: const TextStyle(
                                               fontFamily: 'ZSpace',
                                               fontSize: 30),
                                         ),
                                       ),
                                     ),
-                                    // Expiry
                                     Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
@@ -373,11 +315,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
                     },
                   ),
-                );
-              }
-            },
-          ),
-        ],
+                ),
+              ],
+            );
+          }
+        },
       ),
     );
   }
@@ -397,18 +339,62 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
 
   final _formKey = GlobalKey<FormState>();
 
+  String formatCardNumber(String input) {
+    StringBuffer result = StringBuffer();
+    int count = 0;
+
+    for (int i = 0; i < input.length; i++) {
+      result.write(input[i]);
+      count++;
+
+      if (count == 4 && i != input.length - 1) {
+        result.write('  ');
+        count = 0;
+      }
+    }
+
+    return result.toString();
+  }
+
+  String formatExpiryNumber(String input) {
+    StringBuffer result = StringBuffer();
+    int count = 0;
+
+    for (int i = 0; i < input.length; i++) {
+      result.write(input[i]);
+      count++;
+
+      if (count == 2 && i != input.length - 1) {
+        result.write(' / ');
+        count = 0;
+      }
+    }
+
+    return result.toString();
+  }
+
   void _addData() async {
     String name = _nameController.text;
     String number = _numberController.text;
     String expiry = _expiryController.text;
 
-    var box = Hive.box<Wallet>('walletBox');
+    // Ensure that card number and expiry are valid
+    if (number.length > 14 && expiry.length == 4) {
+      if (name.isNotEmpty) {
+        Wallet wallet = Wallet(name: name, number: number, expiry: expiry);
+        await DatabaseHelper.instance.insertWallet(
+            wallet); // Assuming you have a database helper to insert the wallet
 
-    if (name.isNotEmpty) {
-      await box.put(
-          "$name$expiry", Wallet(name: name, number: number, expiry: expiry));
-
-      Navigator.pop(context, true);
+        Navigator.pop(context, true);
+      }
+    } else {
+      // Show a message if the card number or expiry is not valid
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content:
+              Text('Card number must be 16 digits and expiry must be 4 digits'),
+        ),
+      );
     }
   }
 
@@ -422,72 +408,141 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
         ),
         backgroundColor: Colors.black,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextField(
-                  maxLength: 20,
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                      // labelText: 'Card Name',
-                      hintText: 'Infinia',
-                      hintStyle: TextStyle(fontFamily: 'ZSpace'))),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _numberController,
-                maxLength: 16,
-                decoration: const InputDecoration(
-                    hintText: '1234567891234567',
-                    hintStyle: TextStyle(fontFamily: 'ZSpace')),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.length < 15) {
-                    return 'Please enter at least 15 digits';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                maxLength: 4,
-                controller: _expiryController,
-                decoration: const InputDecoration(
-                    hintText: "MMYY",
-                    hintStyle: TextStyle(fontFamily: 'ZSpace')),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.length < 4) {
-                    return 'Please enter at least 4 digits';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-              GestureDetector(
-                  onTap: () {
-                    if (_formKey.currentState?.validate() ?? false) {
-                      _addData();
-                    }
-                  },
-                  child: Container(
-                      padding: const EdgeInsets.all(5),
-                      width: 200,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Colors.white,
-                        ),
-                      ),
-                      child: const Text(
-                        "Save Card",
-                        style: TextStyle(fontSize: 30),
-                      ))),
-            ],
+      body: Column(
+        children: [
+          Container(
+            margin: EdgeInsets.all(20),
+            height: 200,
+            width: double.infinity,
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white, width: 2)),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Container(
+                    padding: EdgeInsets.all(10),
+                    alignment: Alignment.topRight,
+                    child: Text(
+                      _nameController.text,
+                      style: TextStyle(fontSize: 18),
+                    )),
+                Container(
+                    padding: EdgeInsets.all(10),
+                    alignment: Alignment.center,
+                    child: Text(
+                      formatCardNumber(_numberController.text),
+                      style: TextStyle(fontSize: 25),
+                    )),
+                Container(
+                    padding: EdgeInsets.only(left: 20),
+                    alignment: Alignment.topLeft,
+                    child: Text(
+                      formatExpiryNumber(_expiryController.text),
+                      style: TextStyle(fontSize: 15),
+                    )),
+              ],
+            ),
           ),
-        ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: <Widget>[
+                  // Card Name Input
+                  TextFormField(
+                    controller: _nameController,
+                    maxLength: 20,
+                    decoration: const InputDecoration(labelText: 'Card Name'),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a name';
+                      }
+                      return null;
+                    },
+                    onChanged: (context) {
+                      setState(() {});
+                    },
+                  ),
+
+                  // Card Number Input (16 digits validation)
+                  TextFormField(
+                    controller: _numberController,
+                    decoration: const InputDecoration(labelText: 'Card Number'),
+                    keyboardType: TextInputType.number,
+                    maxLength: 16,
+                    inputFormatters: [
+                      FilteringTextInputFormatter
+                          .digitsOnly, // Only digits allowed
+                      LengthLimitingTextInputFormatter(
+                          16), // Limit to 16 digits
+                    ],
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a card number';
+                      }
+                      if (value.length < 15) {
+                        return 'Card number must be 16 digits';
+                      }
+                      return null;
+                    },
+                    onChanged: (context) {
+                      setState(() {});
+                    },
+                  ),
+
+                  // Expiry Date Input (4 digits validation)
+                  TextFormField(
+                    controller: _expiryController,
+                    maxLength: 4,
+                    decoration:
+                        const InputDecoration(labelText: 'Expiry Date (MMYY)'),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter
+                          .digitsOnly, // Only digits allowed
+                      LengthLimitingTextInputFormatter(4), // Limit to 4 digits
+                    ],
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter an expiry date';
+                      }
+                      if (value.length != 4) {
+                        return 'Expiry date must be 4 digits (MMYY)';
+                      }
+                      return null;
+                    },
+                    onChanged: (context) {
+                      setState(() {});
+                    },
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Save Button
+                  GestureDetector(
+                    onTap: () {
+                      if (_formKey.currentState!.validate()) {
+                        _addData();
+                      }
+                    },
+                    child: Container(
+                        padding: EdgeInsets.all(10),
+                        width: 200,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                            border: Border.all(color: Colors.white, width: 2)),
+                        child: const Text(
+                          'Save Card',
+                          style: TextStyle(fontSize: 25),
+                        )),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
