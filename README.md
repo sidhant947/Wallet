@@ -5,20 +5,7 @@ Wallet is a Flutter project designed to store card information locally on the de
 ## Download
 
 
-<a href="https://apt.izzysoft.de/fdroid/index/apk/com.sidhant.wallet"><img src="https://github.com/user-attachments/assets/e2ae259d-9d80-4dc2-9c0c-5d96707beeed" width="250"></a>
-
-## Play Store
-
-
-1. **Join The Beta Test Group**:
-
-     <a href="https://groups.google.com/g/beta-testers-sidhant/">Google Beta Test Group</a>
-
-2. **Tap below to download from Play Store**:
-
-    <a href="https://play.google.com/store/apps/details?id=com.sidhant.wallet"><img src="https://github.com/user-attachments/assets/5ff479ee-9c86-47fd-a583-2a4f8f10633e" width="250"></a>
-
-
+<a href="https://apt.izzysoft.de/fdroid/index/apk/com.sidhant.wallet"><img src="https://github.com/user-attachments/assets/e2ae259d-9d80-4dc2-9c0c-5d96707beeed" width="250"></a> <a href="https://play.google.com/store/apps/details?id=com.sidhant.wallet"><img src="https://github.com/user-attachments/assets/5ff479ee-9c86-47fd-a583-2a4f8f10633e" width="250"></a>
 
 
 
