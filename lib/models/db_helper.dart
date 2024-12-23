@@ -57,6 +57,16 @@ class DatabaseHelper {
       whereArgs: [id],
     );
   }
+
+  Future<int> updateWallet(Wallet wallet) async {
+    Database db = await instance.database;
+    return await db.update(
+      'wallets',
+      wallet.toMap(),
+      where: 'id = ?',
+      whereArgs: [wallet.id],
+    );
+  }
 }
 
 class Wallet {

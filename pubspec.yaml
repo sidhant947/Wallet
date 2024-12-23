@@ -18,6 +18,7 @@ dependencies:
   lottie: ^3.3.0
   path: ^1.9.0
   path_provider: ^2.1.5
+  provider: ^6.1.2
   sqflite: ^2.4.1
   sqflite_common_ffi: ^2.3.4+4
   url_launcher: ^6.3.1
