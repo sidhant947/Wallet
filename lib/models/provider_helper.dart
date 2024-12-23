@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wallet/models/db_helper.dart'; // Import your Database Helper and Wallet model
 
-class WalletMaskProvider with ChangeNotifier {
+class WalletProvider with ChangeNotifier {
   Map<int, bool> walletMasks = {}; // key: wallet id, value: mask status
   List<Wallet> wallets = []; // List of wallets
 

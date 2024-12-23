@@ -10,6 +10,7 @@ import 'package:wallet/pages/paybill.dart';
 import '../models/dataentry.dart';
 import '../models/db_helper.dart';
 import '../models/provider_helper.dart';
+import '../pages/walletdetails.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -17,7 +18,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Fetch wallets when the screen is first built
-    context.read<WalletMaskProvider>().fetchWallets();
+    context.read<WalletProvider>().fetchWallets();
 
     Future<void> launchUrlCustom(Uri url) async {
       if (!await launchUrl(
@@ -30,7 +31,7 @@ class HomeScreen extends StatelessWidget {
 
     void removeData(BuildContext context, int id) async {
       await DatabaseHelper.instance.deleteWallet(id);
-      context.read<WalletMaskProvider>().fetchWallets(); // Refresh wallet list
+      context.read<WalletProvider>().fetchWallets(); // Refresh wallet list
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Card Deleted'),
@@ -55,7 +56,7 @@ class HomeScreen extends StatelessWidget {
         count++;
 
         if (count == 4 && i != input.length - 1) {
-          result.write(' ');
+          result.write('\n');
           count = 0;
         }
       }
@@ -83,6 +84,7 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
+        forceMaterialTransparency: true,
         title: const Icon(
           Icons.wallet,
           size: 34,
@@ -162,7 +164,7 @@ class HomeScreen extends StatelessWidget {
             if (result != null) {
               // After adding a card, update the wallet list in the provider
               context
-                  .read<WalletMaskProvider>()
+                  .read<WalletProvider>()
                   .fetchWallets(); // Refresh wallet list
             }
           },
@@ -171,10 +173,10 @@ class HomeScreen extends StatelessWidget {
             Icons.add_card,
             color: Colors.black,
           )),
-      body: Consumer<WalletMaskProvider>(
+      body: Consumer<WalletProvider>(
         builder: (context, provider, child) {
           if (provider.wallets.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(child: Lottie.asset("assets/loading.json"));
           }
 
           return Column(
@@ -234,56 +236,71 @@ class HomeScreen extends StatelessWidget {
                               ),
                             ],
                           ),
-                          child: Container(
-                            margin: const EdgeInsets.all(20),
-                            padding: const EdgeInsets.all(10),
-                            height: deviceHeight,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.white, width: 2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Container(
-                                  alignment: Alignment.topRight,
-                                  margin: const EdgeInsets.all(10.0),
-                                  child: Text(wallet.name,
-                                      style: const TextStyle(
-                                          fontFamily: 'Bebas', fontSize: 35)),
+                          child: GestureDetector(
+                            onTap: () {
+                              // Navigate to WalletDetailScreen and pass the selected wallet
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      WalletDetailScreen(wallet: wallet),
                                 ),
-                                GestureDetector(
-                                  onTap: () {
-                                    copyToClipboard(wallet.number);
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.all(20),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      isMasked
-                                          ? "XXXX XXXX XXXX $masknumber"
-                                          : formattedNumber,
-                                      style: const TextStyle(
-                                          fontFamily: 'ZSpace', fontSize: 20),
-                                    ),
-                                  ),
-                                ),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(20),
-                                      alignment: Alignment.centerRight,
-                                      child: Text(
-                                        isMasked ? "MM/YY" : formattedExpiry,
+                              );
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.all(20),
+                              padding: const EdgeInsets.all(10),
+                              height: deviceHeight,
+                              decoration: BoxDecoration(
+                                border:
+                                    Border.all(color: Colors.white, width: 2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Container(
+                                    alignment: Alignment.topRight,
+                                    margin: const EdgeInsets.all(10.0),
+                                    child: Text(wallet.name,
                                         style: const TextStyle(
-                                            fontFamily: 'ZSpace', fontSize: 20),
+                                            fontFamily: 'Bebas', fontSize: 35)),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () {
+                                      copyToClipboard(wallet.number);
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(20),
+                                      alignment: Alignment.topLeft,
+                                      child: Text(
+                                        isMasked
+                                            ? "XXXX\nXXXX\nXXXX\n$masknumber"
+                                            : formattedNumber,
+                                        style: const TextStyle(
+                                            fontFamily: 'ZSpace', fontSize: 30),
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ],
+                                  ),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(20),
+                                        alignment: Alignment.centerRight,
+                                        child: Text(
+                                          isMasked ? "MM/YY" : formattedExpiry,
+                                          style: const TextStyle(
+                                              fontFamily: 'ZSpace',
+                                              fontSize: 20),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),

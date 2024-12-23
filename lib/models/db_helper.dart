@@ -17,10 +17,10 @@ class DatabaseHelper {
 
   Future<Database> _initDatabase() async {
     final directory = await getApplicationDocumentsDirectory();
-    final path = join(directory.path, 'wallet.db');
+    final path = join(directory.path, 'wallets.db');
     return openDatabase(
       path,
-      version: 1,
+      version: 2, // Incremented version for the database schema update
       onCreate: (db, version) {
         return db.execute(
           '''
@@ -28,10 +28,43 @@ class DatabaseHelper {
             id INTEGER PRIMARY KEY,
             name TEXT,
             number TEXT,
-            expiry TEXT
+            expiry TEXT,
+            spends TEXT,
+            rewards TEXT,
+            annualFeeWaiver TEXT,
+            maxlimit TEXT,
+            cardtype TEXT,
+            billdate TEXT,
+            category TEXT
           )
           ''',
         );
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          // Adding new columns if the version is old (version 1)
+          await db.execute('''
+            ALTER TABLE wallets ADD COLUMN spends TEXT;
+          ''');
+          await db.execute('''
+            ALTER TABLE wallets ADD COLUMN rewards TEXT;
+          ''');
+          await db.execute('''
+            ALTER TABLE wallets ADD COLUMN annualFeeWaiver TEXT;
+          ''');
+          await db.execute('''
+            ALTER TABLE wallets ADD COLUMN maxlimit TEXT;
+          ''');
+          await db.execute('''
+            ALTER TABLE wallets ADD COLUMN cardtype TEXT;
+          ''');
+          await db.execute('''
+            ALTER TABLE wallets ADD COLUMN billdate TEXT;
+          ''');
+          await db.execute('''
+            ALTER TABLE wallets ADD COLUMN category TEXT;
+          ''');
+        }
       },
     );
   }
@@ -71,15 +104,30 @@ class DatabaseHelper {
 
 class Wallet {
   final int? id;
-  final String name;
-  final String number;
-  final String expiry;
+  late final String name;
+  late final String number;
+  late final String expiry;
+  final String? spends; // Optional field
+  final String? rewards; // Optional field
+  final String? annualFeeWaiver; // Optional field
+  final String? maxlimit; // Optional field
+  late final String? cardtype; // Optional field
+  final String? billdate; // Optional field
+  final String? category; // Optional field
 
-  Wallet(
-      {this.id,
-      required this.name,
-      required this.number,
-      required this.expiry});
+  Wallet({
+    this.id,
+    required this.name,
+    required this.number,
+    required this.expiry,
+    this.spends,
+    this.rewards,
+    this.annualFeeWaiver,
+    this.maxlimit,
+    this.cardtype,
+    this.billdate,
+    this.category,
+  });
 
   Map<String, dynamic> toMap() {
     return {
@@ -87,6 +135,13 @@ class Wallet {
       'name': name,
       'number': number,
       'expiry': expiry,
+      'spends': spends,
+      'rewards': rewards,
+      'annualFeeWaiver': annualFeeWaiver,
+      'maxlimit': maxlimit,
+      'cardtype': cardtype,
+      'billdate': billdate,
+      'category': category,
     };
   }
 
@@ -96,6 +151,13 @@ class Wallet {
       name: map['name'],
       number: map['number'],
       expiry: map['expiry'],
+      spends: map['spends'],
+      rewards: map['rewards'],
+      annualFeeWaiver: map['annualFeeWaiver'],
+      maxlimit: map['maxlimit'],
+      cardtype: map['cardtype'],
+      billdate: map['billdate'],
+      category: map['category'],
     );
   }
 }

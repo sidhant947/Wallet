@@ -80,7 +80,7 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Save Your Card',
+          'Save New Card',
           style: TextStyle(fontFamily: 'Bebas', fontSize: 30),
         ),
         backgroundColor: Colors.black,
