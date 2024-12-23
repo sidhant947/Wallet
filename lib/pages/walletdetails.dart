@@ -1,6 +1,3 @@
-import 'dart:ffi';
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -179,8 +176,7 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
                               ),
                               Text(
                                 formatCashback(wallet.spends ?? '0',
-                                        wallet.rewards ?? '0') ??
-                                    'No Cashback',
+                                    wallet.rewards ?? '0'),
                                 style: TextStyle(fontSize: 18),
                               ),
                             ],
@@ -546,6 +542,7 @@ class _WalletEditScreenState extends State<WalletEditScreen> {
                           ),
                           // Annual Fee Waiver Input
                           TextFormField(
+                            keyboardType: TextInputType.number,
                             controller: _annualFeeWaiverController,
                             decoration: const InputDecoration(
                                 labelText: 'Annual Fee Waiver'),
@@ -561,6 +558,7 @@ class _WalletEditScreenState extends State<WalletEditScreen> {
                           ),
                           // Rewards Input
                           TextFormField(
+                            keyboardType: TextInputType.number,
                             controller: _rewardsController,
                             decoration:
                                 const InputDecoration(labelText: 'Cashback %'),
