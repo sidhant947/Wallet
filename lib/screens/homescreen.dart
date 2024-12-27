@@ -56,7 +56,7 @@ class HomeScreen extends StatelessWidget {
         count++;
 
         if (count == 4 && i != input.length - 1) {
-          result.write('\n');
+          result.write(' ');
           count = 0;
         }
       }
@@ -182,14 +182,11 @@ class HomeScreen extends StatelessWidget {
           return Column(
             children: [
               Expanded(
-                child: PageView.builder(
+                child: ListView.builder(
                   itemCount: provider.wallets.length,
                   scrollDirection: Axis.vertical,
                   itemBuilder: (context, index) {
                     var wallet = provider.wallets[index];
-
-                    double deviceHeight =
-                        MediaQuery.of(context).size.height * 0.60;
 
                     String formattedNumber = formatCardNumber(wallet.number);
 
@@ -250,10 +247,11 @@ class HomeScreen extends StatelessWidget {
                             child: Container(
                               margin: const EdgeInsets.all(20),
                               padding: const EdgeInsets.all(10),
-                              height: deviceHeight,
+                              height: MediaQuery.of(context).size.height * 0.30,
                               decoration: BoxDecoration(
+                                color: Colors.black,
                                 border:
-                                    Border.all(color: Colors.white, width: 2),
+                                    Border.all(color: Colors.white, width: 1),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Column(
@@ -263,23 +261,29 @@ class HomeScreen extends StatelessWidget {
                                   Container(
                                     alignment: Alignment.topRight,
                                     margin: const EdgeInsets.all(10.0),
-                                    child: Text(wallet.name,
-                                        style: const TextStyle(
-                                            fontFamily: 'Bebas', fontSize: 35)),
+                                    child: FittedBox(
+                                      child: Text(wallet.name,
+                                          style: const TextStyle(
+                                              fontFamily: 'Bebas',
+                                              fontSize: 30)),
+                                    ),
                                   ),
                                   GestureDetector(
                                     onTap: () {
                                       copyToClipboard(wallet.number);
                                     },
-                                    child: Container(
-                                      padding: const EdgeInsets.all(20),
-                                      alignment: Alignment.topLeft,
-                                      child: Text(
-                                        isMasked
-                                            ? "XXXX\nXXXX\nXXXX\n$masknumber"
-                                            : formattedNumber,
-                                        style: const TextStyle(
-                                            fontFamily: 'ZSpace', fontSize: 30),
+                                    child: FittedBox(
+                                      child: Container(
+                                        padding: const EdgeInsets.all(20),
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          isMasked
+                                              ? "XXXX XXXX XXXX $masknumber"
+                                              : formattedNumber,
+                                          style: const TextStyle(
+                                              fontFamily: 'ZSpace',
+                                              fontSize: 22),
+                                        ),
                                       ),
                                     ),
                                   ),
