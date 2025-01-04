@@ -422,20 +422,6 @@ class _AubankScreenState extends State<AubankScreen> {
   final TextEditingController _firstController = TextEditingController();
   final TextEditingController _secondController = TextEditingController();
 
-  Future<void> _launchURL() async {
-    final firstValue = _firstController.text;
-    final secondValue = _secondController.text;
-
-    final url = Uri.parse(
-        'upi://pay?pa=AUCC$firstValue$secondValue@AUBANK&pn=AU Bank&cu=INR');
-
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
-      throw 'Could not launch $url';
-    }
-  }
-
   Future<void> launchUrlCustom(Uri url) async {
     if (!await launchUrl(
       url,
