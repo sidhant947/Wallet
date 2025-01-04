@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
-// import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'models/provider_helper.dart';
 import 'screens/homescreen.dart';
@@ -10,7 +10,7 @@ void main() async {
   // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // databaseFactory = databaseFactoryFfi;
+  databaseFactory = databaseFactoryFfi;
 
   // Initialize the database before the app starts
   await Future.wait([
@@ -59,10 +59,10 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> security() async {
-    final auth = LocalAuthentication();
+    // final auth = LocalAuthentication();
 
-    await auth.authenticate(
-        localizedReason: 'Touch your finger on the sensor to login');
+    // await auth.authenticate(
+    //     localizedReason: 'Touch your finger on the sensor to login');
 
     Navigator.pushReplacement(
       context,

@@ -13,6 +13,7 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _numberController = TextEditingController();
   final TextEditingController _expiryController = TextEditingController();
+  late String _network;
 
   final _formKey = GlobalKey<FormState>();
 
@@ -58,7 +59,8 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
     // Ensure that card number and expiry are valid
     if (number.length > 14 && expiry.length == 4) {
       if (name.isNotEmpty) {
-        Wallet wallet = Wallet(name: name, number: number, expiry: expiry);
+        Wallet wallet = Wallet(
+            name: name, number: number, expiry: expiry, network: _network);
         await DatabaseHelper.instance.insertWallet(
             wallet); // Assuming you have a database helper to insert the wallet
 
@@ -195,8 +197,40 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
                     },
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
 
+                  DropdownButtonFormField<String>(
+                    focusColor: Colors.black,
+                    dropdownColor: Colors.black,
+                    // padding: EdgeInsets.all(10),
+                    value: "rupay",
+                    decoration: const InputDecoration(
+                        fillColor: Colors.black, border: null),
+                    items: ['rupay', 'visa', 'mastercard', 'amex']
+                        .map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Center(
+                          child: Image.asset(
+                            "assets/network/$value.png",
+                            height: 30,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (newValue) {
+                      setState(() {
+                        _network = newValue!;
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select a card type';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
                   // Save Button
                   GestureDetector(
                     onTap: () {

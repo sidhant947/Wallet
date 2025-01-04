@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -196,135 +198,180 @@ class HomeScreen extends StatelessWidget {
           return Column(
             children: [
               Expanded(
-                child: ListView.builder(
-                  itemCount: provider.wallets.length,
-                  scrollDirection: Axis.vertical,
-                  itemBuilder: (context, index) {
-                    var wallet = provider.wallets[index];
+                child: Container(
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      // BoxShadow(
+                      //   color: Colors.white,
+                      //   blurRadius: 400,
+                      // )
+                    ],
+                  ),
+                  child: ListView.builder(
+                    itemCount: provider.wallets.length,
+                    scrollDirection: Axis.vertical,
+                    itemBuilder: (context, index) {
+                      var wallet = provider.wallets[index];
 
-                    String formattedNumber = formatCardNumber(wallet.number);
+                      String formattedNumber = formatCardNumber(wallet.number);
 
-                    String masknumber =
-                        wallet.number.substring(wallet.number.length - 4);
+                      String masknumber =
+                          wallet.number.substring(wallet.number.length - 4);
 
-                    String formattedExpiry = formatExpiryNumber(wallet.expiry);
+                      String formattedExpiry =
+                          formatExpiryNumber(wallet.expiry);
 
-                    bool isMasked = provider.isMasked(wallet.id!);
+                      bool isMasked = provider.isMasked(wallet.id!);
 
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Slidable(
-                          key: ValueKey(wallet.id),
-                          endActionPane: ActionPane(
-                            motion: const ScrollMotion(),
-                            children: [
-                              SlidableAction(
-                                onPressed: (BuildContext context) {
-                                  removeData(context, wallet.id!);
-                                },
-                                backgroundColor: Colors.black,
-                                foregroundColor: Colors.white,
-                                icon: Icons.delete,
-                                label: 'Delete',
-                              ),
-                            ],
-                          ),
-                          startActionPane: ActionPane(
-                            motion: const ScrollMotion(),
-                            children: [
-                              SlidableAction(
-                                onPressed: (BuildContext context) {
-                                  provider.toggleMask(
-                                      wallet.id!); // Toggle the mask
-                                },
-                                backgroundColor: Colors.black,
-                                foregroundColor: Colors.white,
-                                icon: isMasked
-                                    ? Icons.visibility
-                                    : Icons.visibility_off_rounded,
-                                label: isMasked ? "Show" : "Hide",
-                              ),
-                            ],
-                          ),
-                          child: GestureDetector(
-                            onTap: () {
-                              // Navigate to WalletDetailScreen and pass the selected wallet
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      WalletDetailScreen(wallet: wallet),
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Slidable(
+                            key: ValueKey(wallet.id),
+                            endActionPane: ActionPane(
+                              motion: const ScrollMotion(),
+                              children: [
+                                SlidableAction(
+                                  onPressed: (BuildContext context) {
+                                    removeData(context, wallet.id!);
+                                  },
+                                  backgroundColor: Colors.transparent,
+                                  foregroundColor: Colors.white,
+                                  icon: Icons.delete,
+                                  label: 'Delete',
                                 ),
-                              );
-                            },
-                            child: Container(
-                              margin: const EdgeInsets.all(20),
-                              padding: const EdgeInsets.all(10),
-                              height: MediaQuery.of(context).size.height * 0.30,
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                border:
-                                    Border.all(color: Colors.white, width: 1),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Container(
-                                    alignment: Alignment.topRight,
-                                    margin: const EdgeInsets.all(10.0),
-                                    child: FittedBox(
-                                      child: Text(wallet.name,
-                                          style: const TextStyle(
-                                              fontFamily: 'Bebas',
-                                              fontSize: 30)),
-                                    ),
+                              ],
+                            ),
+                            startActionPane: ActionPane(
+                              motion: const ScrollMotion(),
+                              children: [
+                                SlidableAction(
+                                  onPressed: (BuildContext context) {
+                                    provider.toggleMask(
+                                        wallet.id!); // Toggle the mask
+                                  },
+                                  backgroundColor: Colors.transparent,
+                                  foregroundColor: Colors.white,
+                                  icon: isMasked
+                                      ? Icons.visibility
+                                      : Icons.visibility_off_rounded,
+                                  label: isMasked ? "Show" : "Hide",
+                                ),
+                              ],
+                            ),
+                            child: GestureDetector(
+                              onTap: () {
+                                // Navigate to WalletDetailScreen and pass the selected wallet
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        WalletDetailScreen(wallet: wallet),
                                   ),
-                                  GestureDetector(
-                                    onTap: () {
-                                      copyToClipboard(wallet.number);
-                                    },
-                                    child: FittedBox(
-                                      child: Container(
-                                        padding: const EdgeInsets.all(10),
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          isMasked
-                                              ? "XXXX XXXX XXXX $masknumber"
-                                              : formattedNumber,
-                                          style: const TextStyle(
-                                              fontFamily: 'ZSpace',
-                                              fontSize: 22),
+                                );
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.all(20),
+                                padding: const EdgeInsets.all(10),
+                                height:
+                                    MediaQuery.of(context).size.height * 0.250,
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.white,
+                                      blurRadius: 8,
+                                    ),
+                                  ],
+
+                                  // border:
+                                  //     Border.all(color: Colors.white, width: 1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Container(
+                                          margin: const EdgeInsets.all(10.0),
+                                          child: FittedBox(
+                                            child: Text(wallet.name,
+                                                style: const TextStyle(
+                                                    fontFamily: 'Bebas',
+                                                    fontSize: 18)),
+                                          ),
+                                        ),
+                                        Transform.rotate(
+                                          angle: 90 * pi / 180,
+                                          child: IconButton(
+                                            icon: Icon(
+                                              Icons.wifi,
+                                              color: Colors.grey,
+                                              size: 30,
+                                            ),
+                                            onPressed: null,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        copyToClipboard(wallet.number);
+                                      },
+                                      child: FittedBox(
+                                        child: Container(
+                                          padding: const EdgeInsets.all(10),
+                                          alignment: Alignment.center,
+                                          child: Text(
+                                            isMasked
+                                                ? "XXXX XXXX XXXX $masknumber"
+                                                : formattedNumber,
+                                            style: const TextStyle(
+                                                fontFamily: 'ZSpace',
+                                                fontSize: 20),
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(10),
-                                        alignment: Alignment.centerRight,
-                                        child: Text(
-                                          isMasked ? "MM/YY" : formattedExpiry,
-                                          style: const TextStyle(
-                                              fontFamily: 'ZSpace',
-                                              fontSize: 20),
-                                        ),
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 10),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(10),
+                                            alignment: Alignment.centerRight,
+                                            child: Text(
+                                              isMasked
+                                                  ? "MM/YY"
+                                                  : formattedExpiry,
+                                              style: const TextStyle(
+                                                  fontFamily: 'ZSpace',
+                                                  fontSize: 15),
+                                            ),
+                                          ),
+                                          Image.asset(
+                                            "assets/network/${wallet.network}.png",
+                                            height: 30,
+                                          )
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    );
-                  },
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
             ],

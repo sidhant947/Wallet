@@ -82,17 +82,12 @@ class _AxisScreenState extends State<AxisScreen> {
   final TextEditingController _firstController = TextEditingController();
   final TextEditingController _secondController = TextEditingController();
 
-  Future<void> _launchURL() async {
-    final firstValue = _firstController.text;
-    final secondValue = _secondController.text;
-
-    final url = Uri.parse(
-        'upi://pay?pa=CC.91$firstValue$secondValue@axisbank&pn=Axis&cu=INR');
-
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
-      throw 'Could not launch $url';
+  Future<void> launchUrlCustom(Uri url) async {
+    if (!await launchUrl(
+      url,
+      mode: LaunchMode.externalApplication,
+    )) {
+      throw Exception('Could not launch $url');
     }
   }
 
@@ -127,7 +122,11 @@ class _AxisScreenState extends State<AxisScreen> {
             const SizedBox(height: 16.0),
             GestureDetector(
               onTap: () {
-                _launchURL();
+                final firstValue = _firstController.text;
+                final secondValue = _secondController.text;
+
+                launchUrlCustom(Uri.parse(
+                    'upi://pay?pa=CC.91$firstValue$secondValue@axisbank&pn=Axis&cu=INR'));
               },
               child: Container(
                 width: 150,
@@ -173,16 +172,12 @@ class AmexScreen extends StatefulWidget {
 
 class _AmexScreenState extends State<AmexScreen> {
   final TextEditingController _firstController = TextEditingController();
-
-  Future<void> _launchURL() async {
-    final firstValue = _firstController.text;
-
-    final url = Uri.parse('upi://pay?pa=AEBC$firstValue@SC&pn=AMEX&cu=INR');
-
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
-      throw 'Could not launch $url';
+  Future<void> launchUrlCustom(Uri url) async {
+    if (!await launchUrl(
+      url,
+      mode: LaunchMode.externalApplication,
+    )) {
+      throw Exception('Could not launch $url');
     }
   }
 
@@ -209,7 +204,9 @@ class _AmexScreenState extends State<AmexScreen> {
             const SizedBox(height: 16.0),
             GestureDetector(
               onTap: () {
-                _launchURL();
+                final firstValue = _firstController.text;
+                launchUrlCustom(Uri.parse(
+                    'upi://pay?pa=AEBC$firstValue@SC&pn=AMEX&cu=INR'));
               },
               child: Container(
                 width: 150,
@@ -257,16 +254,12 @@ class IciciScreen extends StatefulWidget {
 class _IciciScreenState extends State<IciciScreen> {
   final TextEditingController _firstController = TextEditingController();
 
-  Future<void> _launchURL() async {
-    final firstValue = _firstController.text;
-
-    final url =
-        Uri.parse('upi://pay?pa=ccpay.$firstValue@icici&pn=ICICI&cu=INR');
-
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
-      throw 'Could not launch $url';
+  Future<void> launchUrlCustom(Uri url) async {
+    if (!await launchUrl(
+      url,
+      mode: LaunchMode.externalApplication,
+    )) {
+      throw Exception('Could not launch $url');
     }
   }
 
@@ -294,7 +287,9 @@ class _IciciScreenState extends State<IciciScreen> {
             const SizedBox(height: 16.0),
             GestureDetector(
               onTap: () {
-                _launchURL();
+                final firstValue = _firstController.text;
+                launchUrlCustom(Uri.parse(
+                    'upi://pay?pa=ccpay.$firstValue@icici&pn=ICICI&cu=INR'));
               },
               child: Container(
                 width: 150,
@@ -342,16 +337,12 @@ class IdfcScreen extends StatefulWidget {
 class _IdfcScreenState extends State<IdfcScreen> {
   final TextEditingController _firstController = TextEditingController();
 
-  Future<void> _launchURL() async {
-    final firstValue = _firstController.text;
-
-    final url =
-        Uri.parse('upi://pay?pa=$firstValue.cc@idfcbank&pn=IDFC&cu=INR');
-
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
-      throw 'Could not launch $url';
+  Future<void> launchUrlCustom(Uri url) async {
+    if (!await launchUrl(
+      url,
+      mode: LaunchMode.externalApplication,
+    )) {
+      throw Exception('Could not launch $url');
     }
   }
 
@@ -379,7 +370,10 @@ class _IdfcScreenState extends State<IdfcScreen> {
             const SizedBox(height: 16.0),
             GestureDetector(
               onTap: () {
-                _launchURL();
+                final firstValue = _firstController.text;
+
+                launchUrlCustom(Uri.parse(
+                    'upi://pay?pa=$firstValue.cc@idfcbank&pn=IDFC&cu=INR'));
               },
               child: Container(
                 width: 150,
@@ -442,6 +436,15 @@ class _AubankScreenState extends State<AubankScreen> {
     }
   }
 
+  Future<void> launchUrlCustom(Uri url) async {
+    if (!await launchUrl(
+      url,
+      mode: LaunchMode.externalApplication,
+    )) {
+      throw Exception('Could not launch $url');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -474,7 +477,11 @@ class _AubankScreenState extends State<AubankScreen> {
             const SizedBox(height: 16.0),
             GestureDetector(
               onTap: () {
-                _launchURL();
+                final firstValue = _firstController.text;
+                final secondValue = _secondController.text;
+
+                launchUrlCustom(Uri.parse(
+                    'upi://pay?pa=AUCC$firstValue$secondValue@AUBANK&pn=AU Bank&cu=INR'));
               },
               child: Container(
                 width: 150,

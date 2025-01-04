@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-
 import '../models/db_helper.dart';
 import '../models/provider_helper.dart';
 
@@ -118,13 +117,26 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
                           formatCardNumber(wallet.number),
                           style: TextStyle(fontSize: 25),
                         )),
-                    Container(
-                        padding: EdgeInsets.only(left: 20),
-                        alignment: Alignment.topLeft,
-                        child: Text(
-                          formatExpiryNumber(wallet.expiry),
-                          style: TextStyle(fontSize: 15),
-                        )),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                            padding: EdgeInsets.only(left: 20),
+                            alignment: Alignment.topLeft,
+                            child: Text(
+                              formatExpiryNumber(wallet.expiry),
+                              style: TextStyle(fontSize: 15),
+                            )),
+                        Container(
+                          padding: EdgeInsets.only(right: 20),
+                          alignment: Alignment.topLeft,
+                          child: Image.asset(
+                            "assets/network/${wallet.network}.png",
+                            height: 25,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -280,6 +292,7 @@ class _WalletEditScreenState extends State<WalletEditScreen> {
   late TextEditingController _nameController;
   late TextEditingController _numberController;
   late TextEditingController _expiryController;
+  late String _network;
   late TextEditingController _maxlimitController;
   late TextEditingController _spendsController;
   late TextEditingController _cardtypeController;
@@ -297,6 +310,7 @@ class _WalletEditScreenState extends State<WalletEditScreen> {
     _nameController = TextEditingController(text: widget.wallet.name);
     _numberController = TextEditingController(text: widget.wallet.number);
     _expiryController = TextEditingController(text: widget.wallet.expiry);
+    _network = widget.wallet.network!;
     _maxlimitController = TextEditingController(text: widget.wallet.maxlimit);
     _spendsController = TextEditingController(text: widget.wallet.spends);
     _cardtypeController = TextEditingController(text: widget.wallet.cardtype);
@@ -319,7 +333,6 @@ class _WalletEditScreenState extends State<WalletEditScreen> {
     _categoryController.dispose();
     _annualFeeWaiverController.dispose();
     _rewardsController.dispose();
-
     super.dispose();
   }
 
@@ -330,6 +343,7 @@ class _WalletEditScreenState extends State<WalletEditScreen> {
       name: _nameController.text,
       number: _numberController.text,
       expiry: _expiryController.text,
+      network: _network, // Updated network
       maxlimit: _maxlimitController.text,
       spends: _spendsController.text,
       cardtype: _cardtypeController.text,
@@ -453,6 +467,41 @@ class _WalletEditScreenState extends State<WalletEditScreen> {
                             },
                           ),
                         ],
+                      ),
+                    ),
+
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: DropdownButtonFormField<String>(
+                        value: _network,
+                        focusColor: Colors.black,
+                        dropdownColor: Colors.black,
+                        // padding: EdgeInsets.all(10),
+                        decoration: const InputDecoration(
+                            fillColor: Colors.black, border: null),
+                        items: ['rupay', 'visa', 'mastercard', 'amex']
+                            .map((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Center(
+                              child: Image.asset(
+                                "assets/network/$value.png",
+                                height: 30,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (newValue) {
+                          setState(() {
+                            _network = newValue!;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please select a card type';
+                          }
+                          return null;
+                        },
                       ),
                     ),
 

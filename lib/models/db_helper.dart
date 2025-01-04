@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -17,7 +18,7 @@ class DatabaseHelper {
 
   Future<Database> _initDatabase() async {
     final directory = await getApplicationDocumentsDirectory();
-    final path = join(directory.path, 'wallets.db');
+    final path = join(directory.path, 'walletbox.db');
     return openDatabase(
       path,
       version: 2, // Incremented version for the database schema update
@@ -29,6 +30,7 @@ class DatabaseHelper {
             name TEXT,
             number TEXT,
             expiry TEXT,
+            network TEXT,
             spends TEXT,
             rewards TEXT,
             annualFeeWaiver TEXT,
@@ -63,6 +65,9 @@ class DatabaseHelper {
           ''');
           await db.execute('''
             ALTER TABLE wallets ADD COLUMN category TEXT;
+          ''');
+          await db.execute('''
+            ALTER TABLE wallets ADD COLUMN network TEXT;
           ''');
         }
       },
@@ -107,6 +112,7 @@ class Wallet {
   late final String name;
   late final String number;
   late final String expiry;
+  final String? network;
   final String? spends; // Optional field
   final String? rewards; // Optional field
   final String? annualFeeWaiver; // Optional field
@@ -120,6 +126,7 @@ class Wallet {
     required this.name,
     required this.number,
     required this.expiry,
+    this.network,
     this.spends,
     this.rewards,
     this.annualFeeWaiver,
@@ -135,6 +142,7 @@ class Wallet {
       'name': name,
       'number': number,
       'expiry': expiry,
+      'network': network,
       'spends': spends,
       'rewards': rewards,
       'annualFeeWaiver': annualFeeWaiver,
@@ -151,6 +159,7 @@ class Wallet {
       name: map['name'],
       number: map['number'],
       expiry: map['expiry'],
+      network: map['network'],
       spends: map['spends'],
       rewards: map['rewards'],
       annualFeeWaiver: map['annualFeeWaiver'],
