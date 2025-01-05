@@ -54,8 +54,9 @@ class _IdentityScreenState extends State<IdentityScreen> {
         title: const Text(
           "Identity Cards",
         ),
+        forceMaterialTransparency: true,
         centerTitle: true,
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.black,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
@@ -106,19 +107,14 @@ class _IdentityScreenState extends State<IdentityScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
+                                    border: Border.all(
+                                        color: Colors.white, width: 2),
                                     borderRadius: BorderRadius.circular(20),
-                                    color: Colors.white.withOpacity(0.2),
-                                    boxShadow: [
-                                      BoxShadow(
-                                          color: Colors.cyan.withOpacity(0.5),
-                                          blurRadius: 125,
-                                          spreadRadius: 10),
-                                    ],
                                   ),
                                   child: Column(
                                     children: [
                                       Container(
-                                        alignment: Alignment.topLeft,
+                                        alignment: Alignment.center,
                                         margin: const EdgeInsets.all(10.0),
                                         child: Text(identity.identityName,
                                             style: const TextStyle(
@@ -132,7 +128,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
                                               identity.identityNumber);
                                         },
                                         child: Container(
-                                          alignment: Alignment.centerLeft,
+                                          alignment: Alignment.center,
                                           margin: const EdgeInsets.all(10.0),
                                           child: Text(
                                             identity.identityNumber,

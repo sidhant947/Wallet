@@ -87,14 +87,14 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
         ),
         backgroundColor: Colors.black,
       ),
-      body: Column(
+      body: ListView(
         children: [
           Container(
             margin: EdgeInsets.all(20),
             height: 200,
             width: double.infinity,
             decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.white, width: 2)),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -129,6 +129,38 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
               key: _formKey,
               child: Column(
                 children: <Widget>[
+                  DropdownButtonFormField<String>(
+                    focusColor: Colors.black,
+                    dropdownColor: Colors.black,
+                    // padding: EdgeInsets.all(10),
+                    value: "rupay",
+                    decoration: const InputDecoration(
+                        fillColor: Colors.black, border: null),
+                    items: ['rupay', 'visa', 'mastercard', 'amex']
+                        .map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Center(
+                          child: Image.asset(
+                            "assets/network/$value.png",
+                            height: 30,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (newValue) {
+                      setState(() {
+                        _network = newValue!;
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select a card type';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 10),
                   // Card Name Input
                   TextFormField(
                     controller: _nameController,
@@ -197,39 +229,6 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
                     },
                   ),
 
-                  const SizedBox(height: 10),
-
-                  DropdownButtonFormField<String>(
-                    focusColor: Colors.black,
-                    dropdownColor: Colors.black,
-                    // padding: EdgeInsets.all(10),
-                    value: "rupay",
-                    decoration: const InputDecoration(
-                        fillColor: Colors.black, border: null),
-                    items: ['rupay', 'visa', 'mastercard', 'amex']
-                        .map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Center(
-                          child: Image.asset(
-                            "assets/network/$value.png",
-                            height: 30,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) {
-                      setState(() {
-                        _network = newValue!;
-                      });
-                    },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please select a card type';
-                      }
-                      return null;
-                    },
-                  ),
                   const SizedBox(height: 20),
                   // Save Button
                   GestureDetector(

@@ -84,7 +84,7 @@ class HomeScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      // extendBodyBehindAppBar: true,
       appBar: AppBar(
         forceMaterialTransparency: true,
         title: const Icon(

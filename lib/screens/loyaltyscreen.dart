@@ -55,7 +55,8 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
           "Loyalty Cards",
         ),
         centerTitle: true,
-        backgroundColor: Colors.transparent,
+        forceMaterialTransparency: true,
+        backgroundColor: Colors.black,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
@@ -69,7 +70,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
           }
         },
         backgroundColor: Colors.deepPurple,
-        child: const Icon(Icons.fingerprint),
+        child: const Icon(Icons.add),
       ),
       body: Column(
         children: [
@@ -106,19 +107,14 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
+                                    border: Border.all(
+                                        color: Colors.white, width: 2),
                                     borderRadius: BorderRadius.circular(20),
-                                    color: Colors.white.withOpacity(0.2),
-                                    boxShadow: [
-                                      BoxShadow(
-                                          color: Colors.cyan.withOpacity(0.5),
-                                          blurRadius: 125,
-                                          spreadRadius: 10),
-                                    ],
                                   ),
                                   child: Column(
                                     children: [
                                       Container(
-                                        alignment: Alignment.topLeft,
+                                        alignment: Alignment.center,
                                         margin: const EdgeInsets.all(10.0),
                                         child: Text(Loyalty.loyaltyName,
                                             style: const TextStyle(
@@ -132,7 +128,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
                                               Loyalty.loyaltyNumber);
                                         },
                                         child: Container(
-                                          alignment: Alignment.centerLeft,
+                                          alignment: Alignment.center,
                                           margin: const EdgeInsets.all(10.0),
                                           child: Text(
                                             Loyalty.loyaltyNumber,
