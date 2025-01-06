@@ -8,6 +8,10 @@ Wallet is a Flutter project designed to store card information locally on the de
 <a href="https://apt.izzysoft.de/fdroid/index/apk/com.sidhant.wallet"><img src="https://github.com/user-attachments/assets/e2ae259d-9d80-4dc2-9c0c-5d96707beeed" width="250"></a> <a href="https://play.google.com/store/apps/details?id=com.sidhant.wallet"><img src="https://github.com/user-attachments/assets/5ff479ee-9c86-47fd-a583-2a4f8f10633e" width="250"></a>
 
 
+## Screenshots
+ <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" alt="App Info" height="300"> <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" alt="App Info" height="300"> <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" alt="App Info" height="300"> <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" alt="App Info" height="300"> 
+ <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.png" alt="App Info" height="300">  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6.png" alt="App Info" height="300"> <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7.png" alt="App Info" height="300"> 
+
 
 ## Features
 
@@ -15,6 +19,7 @@ Wallet is a Flutter project designed to store card information locally on the de
 - **Security**: The app is designed to be fully proofed against data theft.
 - **Efficiency**: Users can quickly copy card details for transactions.
 
+  
 ## Installation
 
 1. **Clone the repository**:
@@ -39,13 +44,6 @@ Wallet is a Flutter project designed to store card information locally on the de
 1. **Add a Card**: Click on the "Add Card" button to add a new card.
 2. **View Card Details**: The card details will be displayed, including the card name, number, expiration date, and CVV.
 3. **Copy Card Details**: Click on the card details to quickly copy them for transactions.
-
-## Screenshots
- <img src="https://github.com/user-attachments/assets/bd07ecaa-484e-4aab-a189-21daf5c13386" alt="App Info" height="300"> 
- <img src="https://github.com/user-attachments/assets/e00c7f5c-047e-4dac-a7d2-f472b56cc110" alt="App Info" height="300">
- <img src="https://github.com/user-attachments/assets/f247843b-e516-498c-ae91-1fc4527c9a3f" alt="App Info" height="300">
- <img src="https://github.com/user-attachments/assets/60ff0d68-52e0-4e9c-8bfe-292a14643e99" alt="App Info" height="300">
-
 
  
 
