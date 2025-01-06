@@ -292,16 +292,7 @@ class _IdentityDataEntryScreenState extends State<IdentityDataEntryScreen> {
           Identity(identityName: name, identityNumber: number);
 
       // Insert the new identity into the database
-      int id =
-          await IdentityDatabaseHelper.instance.insertIdentity(newIdentity);
-      print("Inserted ID: $id");
-
-      // Optionally show a success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Identity card saved successfully.'),
-        ),
-      );
+      await IdentityDatabaseHelper.instance.insertIdentity(newIdentity);
 
       // Pop the screen to go back
       Navigator.pop(context, true);
@@ -401,15 +392,7 @@ class _LoyaltyDataEntryScreenState extends State<LoyaltyDataEntryScreen> {
       Loyalty newLoyalty = Loyalty(loyaltyName: name, loyaltyNumber: number);
 
       // Insert the new Loyalty into the database
-      int id = await LoyaltyDatabaseHelper.instance.insertLoyalty(newLoyalty);
-      print("Inserted ID: $id");
-
-      // Optionally show a success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Loyalty card saved successfully.'),
-        ),
-      );
+      await LoyaltyDatabaseHelper.instance.insertLoyalty(newLoyalty);
 
       // Pop the screen to go back
       Navigator.pop(context, true);
@@ -449,7 +432,7 @@ class _LoyaltyDataEntryScreenState extends State<LoyaltyDataEntryScreen> {
             TextField(
               controller: _numberController,
               decoration: const InputDecoration(
-                hintText: 'ABS9237498',
+                hintText: '87989237498',
                 hintStyle: TextStyle(fontFamily: 'ZSpace'),
               ),
             ),

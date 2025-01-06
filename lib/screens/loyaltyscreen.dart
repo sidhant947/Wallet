@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -13,6 +15,7 @@ class LoyaltyScreen extends StatefulWidget {
 }
 
 class _LoyaltyScreenState extends State<LoyaltyScreen> {
+  final PageController _controller = PageController(viewportFraction: 0.8);
   List<Loyalty>? loyalties;
 
   @override
@@ -82,7 +85,9 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
                       ? Center(
                           child: Lottie.asset("assets/loading.json"),
                         )
-                      : ListView.builder(
+                      : PageView.builder(
+                          controller: _controller,
+                          scrollDirection: Axis.vertical,
                           itemCount: loyalties!.length,
                           itemBuilder: (context, index) {
                             var Loyalty = loyalties![index];
@@ -105,13 +110,11 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
                                   ],
                                 ),
                                 child: Container(
-                                  padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    border: Border.all(
-                                        color: Colors.white, width: 2),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Column(
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: Colors.white)),
+                                  padding: const EdgeInsets.all(10),
+                                  child: ListView(
                                     children: [
                                       Container(
                                         alignment: Alignment.center,
@@ -122,20 +125,19 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
                                                 fontFamily: 'Bebas',
                                                 fontSize: 28)),
                                       ),
-                                      GestureDetector(
-                                        onTap: () {
-                                          copyToClipboard(
-                                              Loyalty.loyaltyNumber);
-                                        },
-                                        child: Container(
-                                          alignment: Alignment.center,
-                                          margin: const EdgeInsets.all(10.0),
-                                          child: Text(
-                                            Loyalty.loyaltyNumber,
-                                            style: const TextStyle(
-                                                letterSpacing: 1, fontSize: 20),
-                                          ),
-                                        ),
+                                      BarcodeWidget(
+                                        barcode: Barcode.code128(),
+                                        data: Loyalty.loyaltyNumber, // Content
+                                        width: 200,
+                                        height: 200,
+                                        color: Colors.white,
+                                      ),
+                                      BarcodeWidget(
+                                        barcode: Barcode.code39(),
+                                        data: Loyalty.loyaltyNumber, // Content
+                                        width: 200,
+                                        height: 200,
+                                        color: Colors.white,
                                       ),
                                     ],
                                   ),

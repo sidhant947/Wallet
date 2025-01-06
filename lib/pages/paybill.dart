@@ -1,3 +1,4 @@
+import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -140,6 +141,32 @@ class _AxisScreenState extends State<AxisScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 16.0),
+            GestureDetector(
+              onTap: () {
+                final firstValue = _firstController.text;
+                final secondValue = _secondController.text;
+
+                String qrurl =
+                    'upi://pay?pa=CC.91$firstValue$secondValue@axisbank&pn=Axis&cu=INR';
+
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => GetQR(qrurl: qrurl)));
+              },
+              child: Container(
+                width: 150,
+                alignment: Alignment.center,
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                    border: Border.all(color: Colors.white, width: 1)),
+                child: const Text(
+                  'Get QR Code',
+                  style: TextStyle(fontSize: 24),
+                ),
+              ),
+            ),
             const SizedBox(height: 16),
             const Text(
               "Please Check Name on Payment Page before Paying, We are not Liable for any Wrong Payments",
@@ -216,6 +243,32 @@ class _AmexScreenState extends State<AmexScreen> {
                     border: Border.all(color: Colors.white, width: 1)),
                 child: const Text(
                   'Pay Now',
+                  style: TextStyle(fontSize: 24),
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 10,
+            ),
+            GestureDetector(
+              onTap: () {
+                final firstValue = _firstController.text;
+
+                String qrurl = 'upi://pay?pa=AEBC$firstValue@SC&pn=AMEX&cu=INR';
+
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => GetQR(qrurl: qrurl)));
+              },
+              child: Container(
+                width: 150,
+                alignment: Alignment.center,
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                    border: Border.all(color: Colors.white, width: 1)),
+                child: const Text(
+                  'Get QR Code',
                   style: TextStyle(fontSize: 24),
                 ),
               ),
@@ -303,6 +356,33 @@ class _IciciScreenState extends State<IciciScreen> {
                 ),
               ),
             ),
+            SizedBox(
+              height: 10,
+            ),
+            GestureDetector(
+              onTap: () {
+                final firstValue = _firstController.text;
+
+                String qrurl =
+                    'upi://pay?pa=ccpay.$firstValue@icici&pn=ICICI&cu=INR';
+
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => GetQR(qrurl: qrurl)));
+              },
+              child: Container(
+                width: 150,
+                alignment: Alignment.center,
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                    border: Border.all(color: Colors.white, width: 1)),
+                child: const Text(
+                  'Get QR Code',
+                  style: TextStyle(fontSize: 24),
+                ),
+              ),
+            ),
             const SizedBox(
               height: 15,
             ),
@@ -383,6 +463,33 @@ class _IdfcScreenState extends State<IdfcScreen> {
                     border: Border.all(color: Colors.white, width: 1)),
                 child: const Text(
                   'Pay Now',
+                  style: TextStyle(fontSize: 24),
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 10,
+            ),
+            GestureDetector(
+              onTap: () {
+                final firstValue = _firstController.text;
+
+                String qrurl =
+                    'upi://pay?pa=$firstValue.cc@idfcbank&pn=IDFC&cu=INR';
+
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => GetQR(qrurl: qrurl)));
+              },
+              child: Container(
+                width: 150,
+                alignment: Alignment.center,
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                    border: Border.all(color: Colors.white, width: 1)),
+                child: const Text(
+                  'Get QR Code',
                   style: TextStyle(fontSize: 24),
                 ),
               ),
@@ -481,6 +588,34 @@ class _AubankScreenState extends State<AubankScreen> {
                 ),
               ),
             ),
+            SizedBox(
+              height: 10,
+            ),
+            GestureDetector(
+              onTap: () {
+                final firstValue = _firstController.text;
+                final secondValue = _secondController.text;
+
+                String qrurl =
+                    'upi://pay?pa=AUCC$firstValue$secondValue@AUBANK&pn=AU Bank&cu=INR';
+
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => GetQR(qrurl: qrurl)));
+              },
+              child: Container(
+                width: 150,
+                alignment: Alignment.center,
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                    border: Border.all(color: Colors.white, width: 1)),
+                child: const Text(
+                  'Get QR Code',
+                  style: TextStyle(fontSize: 24),
+                ),
+              ),
+            ),
             const SizedBox(
               height: 15,
             ),
@@ -536,6 +671,29 @@ class _AboutScreenState extends State<AboutScreen> {
           ),
         ],
       )),
+    );
+  }
+}
+
+class GetQR extends StatelessWidget {
+  const GetQR({super.key, required this.qrurl});
+  final String qrurl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Pay By QR"),
+      ),
+      body: Center(
+        child: BarcodeWidget(
+          data: qrurl,
+          barcode: Barcode.qrCode(),
+          width: 250,
+          height: 250,
+          color: Colors.white,
+        ),
+      ),
     );
   }
 }
