@@ -8,7 +8,7 @@ version: 1.0.9+11
 
 environment:
   sdk: ^3.6.0
-  flutter: ^3.27.0
+  flutter: ^3.27.1
 
 dependencies:
   barcode_widget: ^2.0.4
