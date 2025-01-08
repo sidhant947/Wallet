@@ -72,16 +72,19 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: GestureDetector(
-        onTap: security,
-        child: Center(
-          child: Container(
-            padding: const EdgeInsets.all(30),
-            decoration: BoxDecoration(border: Border.all(color: Colors.white)),
-            child: const Text(
-              "Authenticate",
-              style: TextStyle(fontSize: 30),
+    return SafeArea(
+      child: Scaffold(
+        body: GestureDetector(
+          onTap: security,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.all(30),
+              decoration:
+                  BoxDecoration(border: Border.all(color: Colors.white)),
+              child: const Text(
+                "Authenticate",
+                style: TextStyle(fontSize: 30),
+              ),
             ),
           ),
         ),
