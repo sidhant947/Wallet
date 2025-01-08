@@ -60,9 +60,19 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> security() async {
     final auth = LocalAuthentication();
+    bool isBiometricSupported = await auth.isDeviceSupported();
+    bool canCheckBiometrics = await auth.canCheckBiometrics;
 
-    await auth.authenticate(
-        localizedReason: 'Touch your finger on the sensor to login');
+    if (isBiometricSupported && canCheckBiometrics) {
+      await auth.authenticate(
+          localizedReason: 'Touch your finger on the sensor to login');
+    } else {
+      // Handle the case where biometrics are not available
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Biometric authentication is not available')),
+      );
+    }
 
     Navigator.pushReplacement(
       context,
