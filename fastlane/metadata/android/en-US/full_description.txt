@@ -1,7 +1,11 @@
-Wallet is a Flutter project designed to store card information locally on the device, ensuring that the data is secure and cannot be stolen, as the application does not have internet access. The app is optimized for efficiency, allowing users to quickly copy card details for transactions. Pay Bills using UPI for Supported Banks.
+<i>Wallet</i> is a Flutter project designed to store card information locally on the device, ensuring that the data is secure and cannot be stolen, as the application does not have internet access. The app is optimized for efficiency, allowing users to quickly copy card details for transactions. Additionally, it offers support for bill payments using UPI for some Indian banks, and allows users to store loyalty and identity cards securely. Users can also export their data as a PDF for easy summary and record-keeping of their credit card information.
 
-Features
+<b>Features:</b>
 
-    Local Storage: All card information is stored locally on the device, ensuring that data is not exposed to the internet.
-    Security: The app is designed to be fully proofed against data theft.
-    Efficiency: Users can quickly copy card details for transactions.
+* <b>Local Storage:</b> All card information, including brand loyalty and identity cards, is stored locally on the device, ensuring that data is not exposed to the internet.
+* <b>Security:</b> The app is designed to be fully proofed against data theft, safeguarding sensitive information.
+* <b>Efficiency:</b> Users can quickly copy card details for transactions.
+* <b>UPI Bill Payment:</b> Supports bill payments via UPI for select Indian banks, providing a convenient and secure payment method.
+* <b>Brand Loyalty Cards:</b> Users can store their brand loyalty cards within the app for easy access and management.
+* <b>Identity Card Storage:</b> Securely store and manage identity cards, ensuring that sensitive information remains protected.
+* <b>Credit Cards Summary:</b> The app allows users to export a summary of their credit card data as a PDF, offering a quick overview of their financial information for personal tracking or record-keeping.

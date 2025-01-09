@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lottie/lottie.dart';
 import 'db_helper.dart';
 
 class DataEntryScreen extends StatefulWidget {
@@ -13,7 +14,7 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _numberController = TextEditingController();
   final TextEditingController _expiryController = TextEditingController();
-  late String _network;
+  String _network = "rupay";
 
   final _formKey = GlobalKey<FormState>();
 
@@ -85,44 +86,56 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
           'Save New Card',
           style: TextStyle(fontFamily: 'Bebas', fontSize: 30),
         ),
-        backgroundColor: Colors.black,
+        centerTitle: true,
+        forceMaterialTransparency: true,
       ),
       body: ListView(
         children: [
-          Container(
-            margin: EdgeInsets.all(20),
-            height: 200,
-            width: double.infinity,
-            decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white, width: 2)),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Container(
-                    padding: EdgeInsets.all(10),
-                    alignment: Alignment.topRight,
-                    child: Text(
-                      _nameController.text,
-                      style: TextStyle(fontSize: 18),
-                    )),
-                Container(
-                    padding: EdgeInsets.all(10),
-                    alignment: Alignment.center,
-                    child: Text(
-                      formatCardNumber(_numberController.text),
-                      style: TextStyle(fontSize: 25),
-                    )),
-                Container(
-                    padding: EdgeInsets.only(left: 20),
-                    alignment: Alignment.topLeft,
-                    child: Text(
-                      formatExpiryNumber(_expiryController.text),
-                      style: TextStyle(fontSize: 15),
-                    )),
-              ],
-            ),
-          ),
+          _nameController.text.isEmpty &&
+                  _expiryController.text.isEmpty &&
+                  _numberController.text.isEmpty
+              ? Container(
+                  margin: EdgeInsets.all(20),
+                  height: 200,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.deepPurple, width: 2)),
+                  child: Lottie.asset("assets/card.json"))
+              : Container(
+                  margin: EdgeInsets.all(20),
+                  height: 200,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.deepPurple, width: 2)),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Container(
+                          padding: EdgeInsets.all(10),
+                          alignment: Alignment.topRight,
+                          child: Text(
+                            _nameController.text,
+                            style: TextStyle(fontSize: 18),
+                          )),
+                      Container(
+                          padding: EdgeInsets.all(10),
+                          alignment: Alignment.center,
+                          child: Text(
+                            formatCardNumber(_numberController.text),
+                            style: TextStyle(fontSize: 25),
+                          )),
+                      Container(
+                          padding: EdgeInsets.only(left: 20),
+                          alignment: Alignment.topLeft,
+                          child: Text(
+                            formatExpiryNumber(_expiryController.text),
+                            style: TextStyle(fontSize: 15),
+                          )),
+                    ],
+                  ),
+                ),
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Form(
@@ -131,7 +144,7 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
                 children: <Widget>[
                   DropdownButtonFormField<String>(
                     focusColor: Colors.black,
-                    dropdownColor: Colors.black,
+                    dropdownColor: Colors.black54,
                     // padding: EdgeInsets.all(10),
                     value: "rupay",
                     decoration: const InputDecoration(

@@ -14,7 +14,6 @@ class LoyaltyScreen extends StatefulWidget {
 }
 
 class _LoyaltyScreenState extends State<LoyaltyScreen> {
-  final PageController _controller = PageController(viewportFraction: 0.8);
   List<Loyalty>? loyalties;
 
   @override
@@ -84,8 +83,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
                       ? Center(
                           child: Lottie.asset("assets/loading.json"),
                         )
-                      : PageView.builder(
-                          controller: _controller,
+                      : ListView.builder(
                           scrollDirection: Axis.vertical,
                           itemCount: loyalties!.length,
                           itemBuilder: (context, index) {
@@ -108,37 +106,51 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
                                     ),
                                   ],
                                 ),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(color: Colors.white)),
-                                  padding: const EdgeInsets.all(10),
-                                  child: ListView(
-                                    children: [
-                                      Container(
-                                        alignment: Alignment.center,
-                                        margin: const EdgeInsets.all(10.0),
-                                        child: Text(Loyalty.loyaltyName,
-                                            style: const TextStyle(
-                                                color: Colors.white,
-                                                fontFamily: 'Bebas',
-                                                fontSize: 28)),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                loyaltyBarCode(
+                                                    qrnumber: Loyalty
+                                                        .loyaltyNumber)));
+                                  },
+                                  child: Container(
+                                    height: 150,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(5),
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.deepPurpleAccent,
+                                          Colors.deepPurple
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        tileMode: TileMode
+                                            .repeated, // This repeats the gradient
                                       ),
-                                      BarcodeWidget(
-                                        barcode: Barcode.code128(),
-                                        data: Loyalty.loyaltyNumber, // Content
-                                        width: 200,
-                                        height: 200,
-                                        color: Colors.white,
+                                    ),
+                                    padding: const EdgeInsets.all(10),
+                                    child: Container(
+                                      alignment: Alignment.center,
+                                      margin: const EdgeInsets.all(10.0),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceEvenly,
+                                        children: [
+                                          Text(Loyalty.loyaltyName,
+                                              style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontFamily: 'Bebas',
+                                                  fontSize: 28)),
+                                          Divider(
+                                            thickness: 5,
+                                            color: Colors.white,
+                                          )
+                                        ],
                                       ),
-                                      BarcodeWidget(
-                                        barcode: Barcode.code39(),
-                                        data: Loyalty.loyaltyNumber, // Content
-                                        width: 200,
-                                        height: 200,
-                                        color: Colors.white,
-                                      ),
-                                    ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -147,6 +159,46 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
                         ),
                 ),
         ],
+      ),
+    );
+  }
+}
+
+class loyaltyBarCode extends StatelessWidget {
+  const loyaltyBarCode({super.key, required this.qrnumber});
+  final String qrnumber;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("BarCode"),
+        centerTitle: true,
+        forceMaterialTransparency: true,
+      ),
+      body: Center(
+        child: SizedBox(
+          height: 300,
+          width: 300,
+          child: PageView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              BarcodeWidget(
+                barcode: Barcode.code128(),
+                data: qrnumber, // Content
+                width: 200,
+                height: 200,
+                color: Colors.white,
+              ),
+              BarcodeWidget(
+                barcode: Barcode.code39(),
+                data: qrnumber, // Content
+                width: 200,
+                height: 200,
+                color: Colors.white,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

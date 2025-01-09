@@ -1,15 +1,19 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
-// import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'models/provider_helper.dart';
 import 'screens/homescreen.dart';
 import 'package:provider/provider.dart';
+// This is for testing Only
+// import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'dart:io' show Platform;
 
 void main() async {
   // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
 
+  // This is for testing Only
   // databaseFactory = databaseFactoryFfi;
 
   // Initialize the database before the app starts
@@ -59,6 +63,15 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> security() async {
+    // This is for testing Only
+    if (Platform.isLinux || kIsWeb) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+      return;
+    }
+    // Auth Check
     final auth = LocalAuthentication();
     bool isBiometricSupported = await auth.isDeviceSupported();
     bool canCheckBiometrics = await auth.canCheckBiometrics;
@@ -70,7 +83,8 @@ class _SplashScreenState extends State<SplashScreen> {
       // Handle the case where biometrics are not available
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Biometric authentication is not available')),
+            content: Text(
+                'We Recommend Using A Screen Lock for Better Security, If you keep using Without lock anyone can access your cards if they have your phone')),
       );
     }
 
@@ -82,20 +96,36 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        body: GestureDetector(
-          onTap: security,
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.all(30),
-              decoration:
-                  BoxDecoration(border: Border.all(color: Colors.white)),
-              child: const Text(
-                "Authenticate",
-                style: TextStyle(fontSize: 30),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Security"),
+        centerTitle: true,
+        forceMaterialTransparency: true,
+      ),
+      body: GestureDetector(
+        onTap: security,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(30),
+                decoration:
+                    BoxDecoration(border: Border.all(color: Colors.white)),
+                child: const Text(
+                  "Authenticate",
+                  style: TextStyle(fontSize: 30),
+                ),
               ),
-            ),
+              SizedBox(
+                height: 30,
+              ),
+              ListTile(
+                leading: Icon(Icons.lock),
+                subtitle: Text(
+                    "Recommended to use a Device Screen/Biometric Lock for Security"),
+              )
+            ],
           ),
         ),
       ),

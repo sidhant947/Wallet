@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:lottie/lottie.dart';
 import 'package:wallet/models/db_helper.dart';
-
 import '../models/dataentry.dart';
 
 class IdentityScreen extends StatefulWidget {
@@ -75,8 +74,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
       body: Column(
         children: [
           identities == null
-              ? const Expanded(
-                  child: Center(child: CircularProgressIndicator()))
+              ? Center(child: Lottie.asset("assets/loading.json"))
               : Expanded(
                   child: identities!.isEmpty
                       ? Center(
@@ -104,31 +102,49 @@ class _IdentityScreenState extends State<IdentityScreen> {
                                     ),
                                   ],
                                 ),
-                                child: Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                        color: Colors.white, width: 2),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      Container(
-                                        alignment: Alignment.center,
-                                        margin: const EdgeInsets.all(10.0),
-                                        child: Text(identity.identityName,
-                                            style: const TextStyle(
-                                                color: Colors.white,
-                                                fontFamily: 'Bebas',
-                                                fontSize: 28)),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    copyToClipboard(identity.identityNumber);
+                                  },
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(5),
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.deepPurpleAccent,
+                                          Colors.deepPurple
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        tileMode: TileMode
+                                            .repeated, // This repeats the gradient
                                       ),
-                                      GestureDetector(
-                                        onTap: () {
-                                          copyToClipboard(
-                                              identity.identityNumber);
-                                        },
-                                        child: Container(
-                                          alignment: Alignment.center,
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Divider(
+                                          color: Colors.white,
+                                          thickness: 5,
+                                        ),
+                                        Container(
+                                          alignment: Alignment.topRight,
+                                          margin: const EdgeInsets.all(10.0),
+                                          child: Text(identity.identityName,
+                                              style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontFamily: 'Bebas',
+                                                  fontSize: 28)),
+                                        ),
+                                        CircleAvatar(
+                                          radius: 30,
+                                          backgroundColor: Colors.white,
+                                          child:
+                                              Lottie.asset("assets/card.json"),
+                                        ),
+                                        Container(
+                                          alignment: Alignment.topLeft,
                                           margin: const EdgeInsets.all(10.0),
                                           child: Text(
                                             identity.identityNumber,
@@ -136,8 +152,8 @@ class _IdentityScreenState extends State<IdentityScreen> {
                                                 letterSpacing: 1, fontSize: 20),
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),

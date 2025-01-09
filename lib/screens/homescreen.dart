@@ -1,11 +1,11 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wallet/screens/summary.dart';
 import 'package:wallet/screens/identityscreen.dart';
 import 'package:wallet/screens/loyaltyscreen.dart';
 import 'package:wallet/pages/paybill.dart';
@@ -152,6 +152,17 @@ class HomeScreen extends StatelessWidget {
                 );
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.list),
+              title: const Text('Summary'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => Summary()),
+                );
+              },
+            ),
             const Divider(),
             GestureDetector(
                 onTap: () {
@@ -165,8 +176,11 @@ class HomeScreen extends StatelessWidget {
                     height: 50,
                   ),
                 )),
+            ListTile(
+              subtitle: Text(
+                  "Please Consider Donating to make app available on Apple App Store"),
+            ),
             const Divider(),
-            Lottie.asset("assets/card.json"),
           ],
         ),
       ),
@@ -275,20 +289,61 @@ class HomeScreen extends StatelessWidget {
                                 padding: const EdgeInsets.all(10),
                                 height:
                                     MediaQuery.of(context).size.height * 0.250,
-                                decoration: BoxDecoration(
-                                  color: Colors.black,
-
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.white,
-                                      blurRadius: 8,
-                                    ),
-                                  ],
-
-                                  // border:
-                                  //     Border.all(color: Colors.white, width: 1),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
+                                decoration: wallet.network == "rupay"
+                                    ? BoxDecoration(
+                                        color: Colors.black,
+                                        borderRadius: BorderRadius.circular(15),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.pink,
+                                            blurRadius: 8,
+                                          ),
+                                        ],
+                                      )
+                                    : wallet.network == "visa"
+                                        ? BoxDecoration(
+                                            color: Colors.blue[900],
+                                            borderRadius:
+                                                BorderRadius.circular(15),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.blue[700]!,
+                                                blurRadius: 8,
+                                              ),
+                                            ],
+                                          )
+                                        : wallet.network == "mastercard"
+                                            ? BoxDecoration(
+                                                color: Colors.orange[900],
+                                                borderRadius:
+                                                    BorderRadius.circular(15),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.orange[200]!,
+                                                    blurRadius: 8,
+                                                  ),
+                                                ],
+                                              )
+                                            : BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  colors: [
+                                                    Colors.grey[900]!,
+                                                    Colors.blueGrey[800]!
+                                                  ],
+                                                  begin: Alignment.topLeft,
+                                                  end: Alignment.bottomRight,
+                                                  tileMode: TileMode
+                                                      .repeated, // This repeats the gradient
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(15),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.white24,
+                                                    blurRadius: 30,
+                                                  ),
+                                                ],
+                                              ),
                                 child: Column(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
@@ -311,7 +366,7 @@ class HomeScreen extends StatelessWidget {
                                           child: IconButton(
                                             icon: Icon(
                                               Icons.wifi,
-                                              color: Colors.grey,
+                                              color: Colors.white,
                                               size: 30,
                                             ),
                                             onPressed: null,

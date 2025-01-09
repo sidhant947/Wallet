@@ -52,9 +52,10 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
     if (spends.isEmpty || rewards.isEmpty) {
       return '0';
     }
-    int spendsInt = int.parse(spends);
-    int rewardsInt = int.parse(rewards);
-    int result = (spendsInt * rewardsInt) ~/ 100;
+    double spendsInt = double.parse(spends);
+    double rewardsInt = double.parse(rewards);
+    double result =
+        double.parse(((spendsInt * rewardsInt) / 100).toStringAsFixed(2));
 
     return result.toString();
   }
@@ -174,7 +175,8 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
                                 style: TextStyle(fontSize: 18),
                               ),
                               Text(
-                                wallet.spends ?? 'No Spends',
+                                double.parse(wallet.spends ?? "0")
+                                    .toStringAsFixed(2),
                                 style: TextStyle(fontSize: 18),
                               ),
                             ],
@@ -243,7 +245,14 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
                           Column(
                             children: [
                               Text(
-                                wallet.annualFeeWaiver ?? 'No Spends',
+                                wallet.annualFeeWaiver != null &&
+                                        wallet.spends != null
+                                    ? (double.parse(
+                                                wallet.annualFeeWaiver ?? "0") <
+                                            double.parse(wallet.spends ?? "0")
+                                        ? "waived off"
+                                        : wallet.annualFeeWaiver!)
+                                    : "N/A",
                                 style: TextStyle(fontSize: 18),
                               ),
                             ],
@@ -382,13 +391,13 @@ class _WalletEditScreenState extends State<WalletEditScreen> {
           _nameController.text = wallet.name;
           _numberController.text = wallet.number;
           _expiryController.text = wallet.expiry;
-          _maxlimitController.text = wallet.maxlimit ?? '';
-          _spendsController.text = wallet.spends ?? '';
-          _cardtypeController.text = wallet.cardtype ?? '';
-          _billdateController.text = wallet.billdate ?? '';
-          _categoryController.text = wallet.category ?? '';
-          _annualFeeWaiverController.text = wallet.annualFeeWaiver ?? '';
-          _rewardsController.text = wallet.rewards ?? '';
+          _maxlimitController.text = wallet.maxlimit ?? '0';
+          _spendsController.text = wallet.spends ?? '0';
+          _cardtypeController.text = wallet.cardtype ?? 'Paid';
+          _billdateController.text = wallet.billdate ?? '10';
+          _categoryController.text = wallet.category ?? 'Amazon';
+          _annualFeeWaiverController.text = wallet.annualFeeWaiver ?? '0';
+          _rewardsController.text = wallet.rewards ?? '0';
 
           return ListView(
             children: [
