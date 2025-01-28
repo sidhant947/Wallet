@@ -1,3 +1,4 @@
+import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -69,7 +70,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
           }
         },
         backgroundColor: Colors.deepPurple,
-        child: const Icon(Icons.fingerprint),
+        child: const Icon(Icons.add),
       ),
       body: Column(
         children: [
@@ -143,14 +144,39 @@ class _IdentityScreenState extends State<IdentityScreen> {
                                           child:
                                               Lottie.asset("assets/card.json"),
                                         ),
-                                        Container(
-                                          alignment: Alignment.topLeft,
-                                          margin: const EdgeInsets.all(10.0),
-                                          child: Text(
-                                            identity.identityNumber,
-                                            style: const TextStyle(
-                                                letterSpacing: 1, fontSize: 20),
-                                          ),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Container(
+                                              margin:
+                                                  const EdgeInsets.all(10.0),
+                                              child: Text(
+                                                identity.identityNumber,
+                                                style: const TextStyle(
+                                                    letterSpacing: 1,
+                                                    fontSize: 20),
+                                              ),
+                                            ),
+                                            GestureDetector(
+                                              onTap: () {
+                                                Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            identityBarCode(
+                                                                qrnumber: identity
+                                                                    .identityNumber)));
+                                              },
+                                              child: Container(
+                                                  margin: const EdgeInsets.all(
+                                                      10.0),
+                                                  child: Icon(
+                                                    Icons.qr_code,
+                                                    size: 30,
+                                                  )),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
@@ -162,6 +188,53 @@ class _IdentityScreenState extends State<IdentityScreen> {
                         ),
                 ),
         ],
+      ),
+    );
+  }
+}
+
+class identityBarCode extends StatelessWidget {
+  const identityBarCode({super.key, required this.qrnumber});
+  final String qrnumber;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("BarCode"),
+        centerTitle: true,
+        forceMaterialTransparency: true,
+      ),
+      body: Center(
+        child: SizedBox(
+          height: 300,
+          width: 300,
+          child: PageView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              BarcodeWidget(
+                barcode: Barcode.qrCode(),
+                data: qrnumber, // Content
+                width: 200,
+                height: 200,
+                color: Colors.white,
+              ),
+              BarcodeWidget(
+                barcode: Barcode.code128(),
+                data: qrnumber, // Content
+                width: 200,
+                height: 200,
+                color: Colors.white,
+              ),
+              BarcodeWidget(
+                barcode: Barcode.code39(),
+                data: qrnumber, // Content
+                width: 200,
+                height: 200,
+                color: Colors.white,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

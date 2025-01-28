@@ -63,15 +63,14 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
         onPressed: () async {
           var result = await Navigator.push(
             context,
-            MaterialPageRoute(
-                builder: (context) => const LoyaltyDataEntryScreen()),
+            MaterialPageRoute(builder: (context) => LoyaltyDataEntryScreen()),
           );
           if (result != null) {
             _loadLoyalties(); // Reload list after new Loyalty is added
           }
         },
         backgroundColor: Colors.deepPurple,
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.card_giftcard),
       ),
       body: Column(
         children: [

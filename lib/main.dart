@@ -98,7 +98,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Security"),
+        title: Text("Secure Check"),
         centerTitle: true,
         forceMaterialTransparency: true,
       ),
@@ -117,14 +117,8 @@ class _SplashScreenState extends State<SplashScreen> {
                   style: TextStyle(fontSize: 30),
                 ),
               ),
-              SizedBox(
-                height: 30,
-              ),
-              ListTile(
-                leading: Icon(Icons.lock),
-                subtitle: Text(
-                    "Recommended to use a Device Screen/Biometric Lock for Security"),
-              )
+              SizedBox(height: 40),
+              Icon(Icons.lock, size: 50),
             ],
           ),
         ),

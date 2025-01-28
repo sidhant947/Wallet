@@ -4,13 +4,14 @@ description: "Wallet is a Flutter project designed to store card information
   as the application does not have internet access. The app is optimized for
   efficiency, allowing users to quickly copy card details for transactions."
 publish_to: 'none'
-version: 1.0.10+12
+version: 1.0.11+13
 
 environment:
-  sdk: ^3.6.0
-  flutter: ^3.27.1
+  sdk: ^3.6.1
+  flutter: ^3.27.3
 
 dependencies:
+  barcode_scan2: ^4.4.0
   barcode_widget: ^2.0.4
   flutter:
     sdk: flutter

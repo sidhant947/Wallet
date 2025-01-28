@@ -1,3 +1,4 @@
+import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
@@ -144,7 +145,7 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
                 children: <Widget>[
                   DropdownButtonFormField<String>(
                     focusColor: Colors.black,
-                    dropdownColor: Colors.black54,
+                    dropdownColor: Colors.black,
                     // padding: EdgeInsets.all(10),
                     value: "rupay",
                     decoration: const InputDecoration(
@@ -251,11 +252,13 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
                       }
                     },
                     child: Container(
-                        padding: EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(15),
                         width: 200,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                            border: Border.all(color: Colors.white, width: 2)),
+                          color: Colors.deepPurple,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
                         child: const Text(
                           'Save Card',
                           style: TextStyle(fontSize: 25),
@@ -321,6 +324,18 @@ class _IdentityDataEntryScreenState extends State<IdentityDataEntryScreen> {
     }
   }
 
+  static final _possibleFormats = BarcodeFormat.values.toList()
+    ..removeWhere((e) => e == BarcodeFormat.unknown);
+
+  List<BarcodeFormat> selectedFormats = [..._possibleFormats];
+
+  Future<void> _scan() async {
+    final result = await BarcodeScanner.scan(
+      options: ScanOptions(restrictFormat: selectedFormats),
+    );
+    setState(() => _numberController.text = result.rawContent);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -334,34 +349,54 @@ class _IdentityDataEntryScreenState extends State<IdentityDataEntryScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                hintText: 'Aadhar Card / PAN Card',
-                hintStyle: TextStyle(fontFamily: 'ZSpace'),
-              ),
+            Column(
+              children: [
+                TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    hintText: 'Identity',
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _numberController,
+                  decoration: const InputDecoration(
+                    hintText: '12345678 / XXXXX78923X',
+                    hintStyle: TextStyle(fontFamily: 'ZSpace'),
+                  ),
+                ),
+                SizedBox(height: 20),
+                GestureDetector(
+                  onTap: _scan,
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    width: 200,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white),
+                    ),
+                    child: const Text(
+                      "Scan Barcode",
+                      style: TextStyle(fontSize: 20),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _numberController,
-              decoration: const InputDecoration(
-                hintText: '12345678 / XXXXX78923X',
-                hintStyle: TextStyle(fontFamily: 'ZSpace'),
-              ),
-            ),
-            const SizedBox(height: 20),
             GestureDetector(
               onTap: _addData,
               child: Container(
-                padding: const EdgeInsets.all(5),
+                padding: const EdgeInsets.all(15),
                 width: 200,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white),
+                  color: Colors.deepPurple,
+                  borderRadius: BorderRadius.circular(5),
                 ),
                 child: const Text(
-                  "Save Identity Card",
+                  "Save Loyalty Card",
                   style: TextStyle(fontSize: 20),
                 ),
               ),
@@ -375,8 +410,9 @@ class _IdentityDataEntryScreenState extends State<IdentityDataEntryScreen> {
 
 // Loyalty
 
+// ignore: must_be_immutable
 class LoyaltyDataEntryScreen extends StatefulWidget {
-  const LoyaltyDataEntryScreen({super.key});
+  LoyaltyDataEntryScreen({super.key});
 
   @override
   State<LoyaltyDataEntryScreen> createState() => _LoyaltyDataEntryScreenState();
@@ -421,6 +457,18 @@ class _LoyaltyDataEntryScreenState extends State<LoyaltyDataEntryScreen> {
     }
   }
 
+  static final _possibleFormats = BarcodeFormat.values.toList()
+    ..removeWhere((e) => e == BarcodeFormat.unknown);
+
+  List<BarcodeFormat> selectedFormats = [..._possibleFormats];
+
+  Future<void> _scan() async {
+    final result = await BarcodeScanner.scan(
+      options: ScanOptions(restrictFormat: selectedFormats),
+    );
+    setState(() => _numberController.text = result.rawContent);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -434,30 +482,51 @@ class _LoyaltyDataEntryScreenState extends State<LoyaltyDataEntryScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                hintText: 'Starbucks',
-              ),
+            Column(
+              children: [
+                TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    hintText: 'Starbucks',
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _numberController,
+                  decoration: const InputDecoration(
+                    hintText: '87989237498',
+                    hintStyle: TextStyle(fontFamily: 'ZSpace'),
+                  ),
+                ),
+                SizedBox(height: 20),
+                GestureDetector(
+                  onTap: _scan,
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    width: 200,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white),
+                    ),
+                    child: const Text(
+                      "Scan Barcode",
+                      style: TextStyle(fontSize: 20),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _numberController,
-              decoration: const InputDecoration(
-                hintText: '87989237498',
-                hintStyle: TextStyle(fontFamily: 'ZSpace'),
-              ),
-            ),
-            const SizedBox(height: 20),
             GestureDetector(
               onTap: _addData,
               child: Container(
-                padding: const EdgeInsets.all(5),
+                padding: const EdgeInsets.all(15),
                 width: 200,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white),
+                  color: Colors.deepPurple,
+                  borderRadius: BorderRadius.circular(5),
                 ),
                 child: const Text(
                   "Save Loyalty Card",
