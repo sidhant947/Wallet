@@ -43,7 +43,7 @@ class PayBill extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(5),
                     gradient: LinearGradient(
-                      colors: [Colors.deepPurpleAccent, Colors.deepPurple],
+                      colors: [Colors.cyan, Colors.deepPurple],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       tileMode: TileMode.repeated, // This repeats the gradient

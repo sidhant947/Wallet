@@ -396,7 +396,7 @@ class _IdentityDataEntryScreenState extends State<IdentityDataEntryScreen> {
                   borderRadius: BorderRadius.circular(5),
                 ),
                 child: const Text(
-                  "Save Loyalty Card",
+                  "Save Identity Card",
                   style: TextStyle(fontSize: 20),
                 ),
               ),

@@ -98,9 +98,76 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
                 margin: EdgeInsets.all(20),
                 height: 200,
                 width: double.infinity,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white, width: 2)),
+                decoration: wallet.network == "rupay"
+                    ? BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.blueGrey,
+                            Colors.black,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          tileMode:
+                              TileMode.repeated, // This repeats the gradient
+                        ),
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.white24,
+                            blurRadius: 8,
+                          ),
+                        ],
+                      )
+                    : wallet.network == "visa"
+                        ? BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Colors.indigo, Colors.cyan],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              tileMode: TileMode
+                                  .repeated, // This repeats the gradient
+                            ),
+                            borderRadius: BorderRadius.circular(15),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.blue[700]!,
+                                blurRadius: 8,
+                              ),
+                            ],
+                          )
+                        : wallet.network == "mastercard"
+                            ? BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [Colors.orange, Colors.deepOrange],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  tileMode: TileMode
+                                      .repeated, // This repeats the gradient
+                                ),
+                                borderRadius: BorderRadius.circular(15),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.orange[200]!,
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                              )
+                            : BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [Colors.black87, Colors.black],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  tileMode: TileMode
+                                      .repeated, // This repeats the gradient
+                                ),
+                                borderRadius: BorderRadius.circular(15),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.white24,
+                                    blurRadius: 20,
+                                  ),
+                                ],
+                              ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [

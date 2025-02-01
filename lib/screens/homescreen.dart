@@ -96,13 +96,14 @@ class HomeScreen extends StatelessWidget {
         actions: [
           GestureDetector(
             onTap: () {
-              launchUrlCustom(Uri.parse("https://buymeacoffee.com/sidhant947"));
+              launchUrlCustom(
+                  Uri.parse("https://www.instagram.com/wallet.947/"));
             },
             child: Container(
                 padding: EdgeInsets.all(10),
                 child: ClipRRect(
                     borderRadius: BorderRadius.circular(10),
-                    child: Image.asset("assets/bmcLogo.png"))),
+                    child: Image.asset("assets/instaIcon.png"))),
           ),
         ],
       ),
@@ -111,10 +112,8 @@ class HomeScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(0),
           children: <Widget>[
-            const UserAccountsDrawerHeader(
-              decoration: BoxDecoration(color: Colors.black),
-              accountName: Text('For Suggestion/Queries'),
-              accountEmail: Text('khatkarsidhant@gmail.com'),
+            SizedBox(
+              height: 100,
             ),
             ListTile(
               leading: const Icon(Icons.fingerprint),
@@ -164,23 +163,25 @@ class HomeScreen extends StatelessWidget {
               },
             ),
             const Divider(),
-            GestureDetector(
-                onTap: () {
-                  launchUrlCustom(
-                      Uri.parse("https://buymeacoffee.com/sidhant947"));
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  child: Image.asset(
-                    "assets/btn.png",
-                    height: 50,
-                  ),
-                )),
             ListTile(
-              subtitle: Text(
-                  "Please Consider Donating to make app available on Apple App Store"),
+              title: Text("Follow on Instagram"),
+              subtitle: Text("Send Your Sugesstions & Feedback"),
+              leading: Image.asset("assets/instaIcon.png", height: 30),
+              onTap: () {
+                launchUrlCustom(
+                    Uri.parse("https://www.instagram.com/wallet.947/"));
+              },
             ),
             const Divider(),
+            ListTile(
+              title: Text("Donate Project"),
+              subtitle: Text("Send Your donations to support the project"),
+              leading: Icon(Icons.coffee),
+              onTap: () {
+                launchUrlCustom(
+                    Uri.parse("https://buymeacoffee.com/sidhant947"));
+              },
+            ),
           ],
         ),
       ),
@@ -198,7 +199,7 @@ class HomeScreen extends StatelessWidget {
                   .fetchWallets(); // Refresh wallet list
             }
           },
-          backgroundColor: Colors.white,
+          backgroundColor: Colors.white.withOpacity(0.8),
           child: const Icon(
             Icons.add_card,
             color: Colors.black,
@@ -291,18 +292,36 @@ class HomeScreen extends StatelessWidget {
                                     MediaQuery.of(context).size.height * 0.250,
                                 decoration: wallet.network == "rupay"
                                     ? BoxDecoration(
-                                        color: Colors.black,
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            Colors.blueGrey,
+                                            Colors.black,
+                                          ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          tileMode: TileMode
+                                              .repeated, // This repeats the gradient
+                                        ),
                                         borderRadius: BorderRadius.circular(15),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.pink,
+                                            color: Colors.white24,
                                             blurRadius: 8,
                                           ),
                                         ],
                                       )
                                     : wallet.network == "visa"
                                         ? BoxDecoration(
-                                            color: Colors.blue[900],
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                Colors.indigo,
+                                                Colors.cyan
+                                              ],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                              tileMode: TileMode
+                                                  .repeated, // This repeats the gradient
+                                            ),
                                             borderRadius:
                                                 BorderRadius.circular(15),
                                             boxShadow: [
@@ -314,7 +333,16 @@ class HomeScreen extends StatelessWidget {
                                           )
                                         : wallet.network == "mastercard"
                                             ? BoxDecoration(
-                                                color: Colors.orange[900],
+                                                gradient: LinearGradient(
+                                                  colors: [
+                                                    Colors.orange,
+                                                    Colors.deepOrange
+                                                  ],
+                                                  begin: Alignment.topLeft,
+                                                  end: Alignment.bottomRight,
+                                                  tileMode: TileMode
+                                                      .repeated, // This repeats the gradient
+                                                ),
                                                 borderRadius:
                                                     BorderRadius.circular(15),
                                                 boxShadow: [
@@ -327,8 +355,8 @@ class HomeScreen extends StatelessWidget {
                                             : BoxDecoration(
                                                 gradient: LinearGradient(
                                                   colors: [
-                                                    Colors.grey[900]!,
-                                                    Colors.blueGrey[800]!
+                                                    Colors.black87,
+                                                    Colors.black
                                                   ],
                                                   begin: Alignment.topLeft,
                                                   end: Alignment.bottomRight,
@@ -340,7 +368,7 @@ class HomeScreen extends StatelessWidget {
                                                 boxShadow: [
                                                   BoxShadow(
                                                     color: Colors.white24,
-                                                    blurRadius: 30,
+                                                    blurRadius: 20,
                                                   ),
                                                 ],
                                               ),

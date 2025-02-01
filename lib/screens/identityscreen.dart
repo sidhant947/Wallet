@@ -114,8 +114,8 @@ class _IdentityScreenState extends State<IdentityScreen> {
                                       borderRadius: BorderRadius.circular(5),
                                       gradient: LinearGradient(
                                         colors: [
-                                          Colors.deepPurpleAccent,
-                                          Colors.deepPurple
+                                          Colors.blueGrey,
+                                          Colors.black,
                                         ],
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,

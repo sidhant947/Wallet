@@ -118,10 +118,11 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
                                   child: Container(
                                     height: 150,
                                     decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(5),
+                                      borderRadius: BorderRadius.circular(10),
                                       gradient: LinearGradient(
                                         colors: [
-                                          Colors.deepPurpleAccent,
+                                          Colors.cyan.shade700,
+                                          Colors.black,
                                           Colors.deepPurple
                                         ],
                                         begin: Alignment.topLeft,
