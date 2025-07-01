@@ -6,7 +6,7 @@ import 'models/provider_helper.dart';
 import 'screens/homescreen.dart';
 import 'package:provider/provider.dart';
 // This is for testing Only
-// import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:io' show Platform;
 
 void main() async {
@@ -14,7 +14,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // This is for testing Only
-  // databaseFactory = databaseFactoryFfi;
+  databaseFactory = databaseFactoryFfi;
 
   // Initialize the database before the app starts
   await Future.wait([
@@ -78,13 +78,16 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (isBiometricSupported && canCheckBiometrics) {
       await auth.authenticate(
-          localizedReason: 'Touch your finger on the sensor to login');
+        localizedReason: 'Touch your finger on the sensor to login',
+      );
     } else {
       // Handle the case where biometrics are not available
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text(
-                'We Recommend Using A Screen Lock for Better Security, If you keep using Without lock anyone can access your cards if they have your phone')),
+          content: Text(
+            'We Recommend Using A Screen Lock for Better Security, If you keep using Without lock anyone can access your cards if they have your phone',
+          ),
+        ),
       );
     }
 
@@ -110,8 +113,9 @@ class _SplashScreenState extends State<SplashScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(30),
-                decoration:
-                    BoxDecoration(border: Border.all(color: Colors.white)),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white),
+                ),
                 child: const Text(
                   "Authenticate",
                   style: TextStyle(fontSize: 30),

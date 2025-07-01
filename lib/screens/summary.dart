@@ -29,107 +29,121 @@ class _SummaryState extends State<Summary> {
           }
 
           return Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(10.0),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  // Table headers as a row of text widgets
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.black),
-                      color:
-                          Colors.grey[200], // Light grey background for header
-                    ),
-                    child: Row(
+                  SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _tableHeaderCell("Card Name", 150),
-                        _tableHeaderCell("Number", 150),
-                        _tableHeaderCell("Expiry", 100),
-                        _tableHeaderCell("Network", 100),
-                        _tableHeaderCell("Spends", 100),
-                        _tableHeaderCell("Rewards", 100),
-                        _tableHeaderCell("Annual Fee Waiver", 150),
-                        _tableHeaderCell("Max Limit", 150),
-                        _tableHeaderCell("Card Type", 100),
-                        _tableHeaderCell("Bill Date", 120),
-                        _tableHeaderCell("Category", 120),
+                        // Table headers as a row of text widgets
+                        Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.black),
+                            color: Colors
+                                .grey[200], // Light grey background for header
+                          ),
+                          child: Row(
+                            children: [
+                              _tableHeaderCell("Card Name", 150),
+                              _tableHeaderCell("Number", 150),
+                              _tableHeaderCell("Expiry", 100),
+                              _tableHeaderCell("Network", 100),
+                              _tableHeaderCell("Spends", 100),
+                              _tableHeaderCell("Rewards", 100),
+                              _tableHeaderCell("Annual Fee Waiver", 150),
+                              _tableHeaderCell("Max Limit", 150),
+                              _tableHeaderCell("Card Type", 100),
+                              _tableHeaderCell("Bill Date", 120),
+                              _tableHeaderCell("Category", 120),
+                            ],
+                          ),
+                        ),
+                        Divider(),
+                        for (var wallet in provider.wallets)
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.white),
+                            ),
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 8.0),
+                              child: Row(
+                                children: [
+                                  _tableCell(wallet.name, 150),
+                                  _tableCell(
+                                      wallet.number
+                                          .substring(wallet.number.length - 4),
+                                      150),
+                                  _tableCell(wallet.expiry, 100),
+                                  _tableCell(wallet.network ?? "N/A", 100),
+                                  _tableCell(
+                                      double.parse(wallet.spends ?? "0")
+                                          .toStringAsFixed(2),
+                                      100),
+                                  _tableCell(
+                                      wallet.spends != null &&
+                                              wallet.rewards != null
+                                          ? calculateRewards(
+                                                  double.parse(
+                                                      wallet.spends ?? "0"),
+                                                  double.parse(
+                                                      wallet.rewards ?? "0"))
+                                              .toStringAsFixed(2)
+                                          : "N/A",
+                                      100),
+                                  _tableCell(
+                                      wallet.annualFeeWaiver != null &&
+                                              wallet.spends != null
+                                          ? (double.parse(
+                                                      wallet.annualFeeWaiver ??
+                                                          "0") <
+                                                  double.parse(
+                                                      wallet.spends ?? "0")
+                                              ? "waived off"
+                                              : wallet.annualFeeWaiver!)
+                                          : "N/A",
+                                      150),
+                                  _tableCell(wallet.maxlimit ?? "N/A", 150),
+                                  _tableCell(wallet.cardtype ?? "N/A", 100),
+                                  _tableCell(wallet.billdate ?? "N/A", 120),
+                                  _tableCell(wallet.category ?? "N/A", 120),
+                                ],
+                              ),
+                            ),
+                          ),
+                        SizedBox(height: 30),
+                        GestureDetector(
+                          onTap: () async {
+                            final doc = pw.Document();
+
+                            doc.addPage(pw.Page(
+                                pageFormat: PdfPageFormat.a4,
+                                build: (pw.Context context) {
+                                  return buildPrintableData(provider);
+                                }));
+
+                            await Printing.layoutPdf(
+                                onLayout: (PdfPageFormat format) async =>
+                                    doc.save());
+                          },
+                          child: Container(
+                            padding: EdgeInsets.all(30),
+                            width: 200,
+                            color: Colors.deepPurple,
+                            child: Center(
+                                child: Text(
+                              "Download PDF",
+                              style: TextStyle(fontSize: 25),
+                            )),
+                          ),
+                        )
                       ],
                     ),
                   ),
-                  Divider(),
-                  for (var wallet in provider.wallets)
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.white),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Row(
-                          children: [
-                            _tableCell(wallet.name, 150),
-                            _tableCell(
-                                wallet.number
-                                    .substring(wallet.number.length - 4),
-                                150),
-                            _tableCell(wallet.expiry, 100),
-                            _tableCell(wallet.network ?? "N/A", 100),
-                            _tableCell(
-                                double.parse(wallet.spends ?? "0")
-                                    .toStringAsFixed(2),
-                                100),
-                            _tableCell(
-                                wallet.spends != null && wallet.rewards != null
-                                    ? calculateRewards(
-                                            double.parse(wallet.spends ?? "0"),
-                                            double.parse(wallet.rewards ?? "0"))
-                                        .toStringAsFixed(2)
-                                    : "N/A",
-                                100),
-                            _tableCell(
-                                wallet.annualFeeWaiver != null &&
-                                        wallet.spends != null
-                                    ? (double.parse(
-                                                wallet.annualFeeWaiver ?? "0") <
-                                            double.parse(wallet.spends ?? "0")
-                                        ? "waived off"
-                                        : wallet.annualFeeWaiver!)
-                                    : "N/A",
-                                150),
-                            _tableCell(wallet.maxlimit ?? "N/A", 150),
-                            _tableCell(wallet.cardtype ?? "N/A", 100),
-                            _tableCell(wallet.billdate ?? "N/A", 120),
-                            _tableCell(wallet.category ?? "N/A", 120),
-                          ],
-                        ),
-                      ),
-                    ),
-                  SizedBox(height: 30),
-                  GestureDetector(
-                    onTap: () async {
-                      final doc = pw.Document();
-
-                      doc.addPage(pw.Page(
-                          pageFormat: PdfPageFormat.a4,
-                          build: (pw.Context context) {
-                            return buildPrintableData(provider);
-                          }));
-
-                      await Printing.layoutPdf(
-                          onLayout: (PdfPageFormat format) async => doc.save());
-                    },
-                    child: Container(
-                      padding: EdgeInsets.all(30),
-                      width: 200,
-                      color: Colors.deepPurple,
-                      child: Center(
-                          child: Text(
-                        "Download PDF",
-                        style: TextStyle(fontSize: 25),
-                      )),
-                    ),
-                  )
                 ],
               ),
             ),
