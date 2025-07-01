@@ -6,7 +6,7 @@ import 'models/provider_helper.dart';
 import 'screens/homescreen.dart';
 import 'package:provider/provider.dart';
 // This is for testing Only
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+// import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:io' show Platform;
 
 void main() async {
@@ -14,7 +14,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // This is for testing Only
-  databaseFactory = databaseFactoryFfi;
+  // databaseFactory = databaseFactoryFfi;
 
   // Initialize the database before the app starts
   await Future.wait([
