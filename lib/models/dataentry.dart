@@ -15,9 +15,13 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _numberController = TextEditingController();
   final TextEditingController _expiryController = TextEditingController();
+  final TextEditingController _issuerController = TextEditingController();
   String _network = "rupay";
 
   final _formKey = GlobalKey<FormState>();
+
+  final List<TextEditingController> _customFieldNameControllers = [];
+  final List<TextEditingController> _customFieldValueControllers = [];
 
   String formatCardNumber(String input) {
     StringBuffer result = StringBuffer();
@@ -57,14 +61,31 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
     String name = _nameController.text;
     String number = _numberController.text;
     String expiry = _expiryController.text;
+    String issuer = _issuerController.text;
+
+    Map<String, String> customFields = {};
+    for (int i = 0; i < _customFieldNameControllers.length; i++) {
+      String fieldName = _customFieldNameControllers[i].text;
+      String fieldValue = _customFieldValueControllers[i].text;
+      if (fieldName.isNotEmpty && fieldValue.isNotEmpty) {
+        customFields[fieldName] = fieldValue;
+      }
+    }
 
     // Ensure that card number and expiry are valid
     if (number.length > 14 && expiry.length == 4) {
       if (name.isNotEmpty) {
         Wallet wallet = Wallet(
-            name: name, number: number, expiry: expiry, network: _network);
+          name: name,
+          number: number,
+          expiry: expiry,
+          network: _network,
+          issuer: issuer,
+          customFields: customFields,
+        );
         await DatabaseHelper.instance.insertWallet(
-            wallet); // Assuming you have a database helper to insert the wallet
+          wallet,
+        ); // Assuming you have a database helper to insert the wallet
 
         Navigator.pop(context, true);
       }
@@ -72,11 +93,26 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
       // Show a message if the card number or expiry is not valid
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content:
-              Text('Card number must be 16 digits and expiry must be 4 digits'),
+          content: Text(
+            'Card number must be 16 digits and expiry must be 4 digits',
+          ),
         ),
       );
     }
+  }
+
+  void _addCustomField() {
+    setState(() {
+      _customFieldNameControllers.add(TextEditingController());
+      _customFieldValueControllers.add(TextEditingController());
+    });
+  }
+
+  void _removeCustomField(int index) {
+    setState(() {
+      _customFieldNameControllers.removeAt(index);
+      _customFieldValueControllers.removeAt(index);
+    });
   }
 
   @override
@@ -100,40 +136,46 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
                   height: 200,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.deepPurple, width: 2)),
-                  child: Lottie.asset("assets/card.json"))
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.deepPurple, width: 2),
+                  ),
+                  child: Lottie.asset("assets/card.json"),
+                )
               : Container(
                   margin: EdgeInsets.all(20),
                   height: 200,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.deepPurple, width: 2)),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.deepPurple, width: 2),
+                  ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       Container(
-                          padding: EdgeInsets.all(10),
-                          alignment: Alignment.topRight,
-                          child: Text(
-                            _nameController.text,
-                            style: TextStyle(fontSize: 18),
-                          )),
+                        padding: EdgeInsets.all(10),
+                        alignment: Alignment.topRight,
+                        child: Text(
+                          _nameController.text,
+                          style: TextStyle(fontSize: 18),
+                        ),
+                      ),
                       Container(
-                          padding: EdgeInsets.all(10),
-                          alignment: Alignment.center,
-                          child: Text(
-                            formatCardNumber(_numberController.text),
-                            style: TextStyle(fontSize: 25),
-                          )),
+                        padding: EdgeInsets.all(10),
+                        alignment: Alignment.center,
+                        child: Text(
+                          formatCardNumber(_numberController.text),
+                          style: TextStyle(fontSize: 25),
+                        ),
+                      ),
                       Container(
-                          padding: EdgeInsets.only(left: 20),
-                          alignment: Alignment.topLeft,
-                          child: Text(
-                            formatExpiryNumber(_expiryController.text),
-                            style: TextStyle(fontSize: 15),
-                          )),
+                        padding: EdgeInsets.only(left: 20),
+                        alignment: Alignment.topLeft,
+                        child: Text(
+                          formatExpiryNumber(_expiryController.text),
+                          style: TextStyle(fontSize: 15),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -144,24 +186,22 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
               child: Column(
                 children: <Widget>[
                   DropdownButtonFormField<String>(
-                    focusColor: Colors.black,
-                    dropdownColor: Colors.black,
-                    // padding: EdgeInsets.all(10),
-                    value: "rupay",
+                    initialValue: "rupay",
                     decoration: const InputDecoration(
-                        fillColor: Colors.black, border: null),
-                    items: ['rupay', 'visa', 'mastercard', 'amex']
+                      labelText: 'Card Network',
+                      // border: OutlineInputBorder(),
+                    ),
+                    items: ['rupay', 'visa', 'mastercard', 'amex', 'discover']
                         .map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Center(
-                          child: Image.asset(
-                            "assets/network/$value.png",
-                            height: 30,
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(
+                              value.toUpperCase(),
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          );
+                        })
+                        .toList(),
                     onChanged: (newValue) {
                       setState(() {
                         _network = newValue!;
@@ -201,7 +241,8 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
                       FilteringTextInputFormatter
                           .digitsOnly, // Only digits allowed
                       LengthLimitingTextInputFormatter(
-                          16), // Limit to 16 digits
+                        16,
+                      ), // Limit to 16 digits
                     ],
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -221,8 +262,9 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
                   TextFormField(
                     controller: _expiryController,
                     maxLength: 4,
-                    decoration:
-                        const InputDecoration(labelText: 'Expiry Date (MMYY)'),
+                    decoration: const InputDecoration(
+                      labelText: 'Expiry Date (MMYY)',
+                    ),
                     keyboardType: TextInputType.number,
                     inputFormatters: [
                       FilteringTextInputFormatter
@@ -242,6 +284,60 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
                       setState(() {});
                     },
                   ),
+                  TextFormField(
+                    controller: _issuerController,
+                    decoration: const InputDecoration(
+                      labelText: 'Card Issuer (e.g., Chase, Barclays)',
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a card issuer';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _customFieldNameControllers.length,
+                    itemBuilder: (context, index) {
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _customFieldNameControllers[index],
+                              decoration: const InputDecoration(
+                                labelText: 'Field Name',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _customFieldValueControllers[index],
+                              decoration: const InputDecoration(
+                                labelText: 'Field Value',
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle),
+                            onPressed: () => _removeCustomField(index),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  TextButton.icon(
+                    onPressed: _addCustomField,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Custom Field'),
+                  ),
 
                   const SizedBox(height: 20),
                   // Save Button
@@ -252,17 +348,18 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
                       }
                     },
                     child: Container(
-                        padding: const EdgeInsets.all(15),
-                        width: 200,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.deepPurple,
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        child: const Text(
-                          'Save Card',
-                          style: TextStyle(fontSize: 25),
-                        )),
+                      padding: const EdgeInsets.all(15),
+                      width: 200,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple,
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: const Text(
+                        'Save Card',
+                        style: TextStyle(fontSize: 25),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -295,17 +392,17 @@ class _IdentityDataEntryScreenState extends State<IdentityDataEntryScreen> {
     // Validate input
     if (name.isEmpty || number.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill out both fields.'),
-        ),
+        const SnackBar(content: Text('Please fill out both fields.')),
       );
       return;
     }
 
     try {
       // Create new Identity object
-      Identity newIdentity =
-          Identity(identityName: name, identityNumber: number);
+      Identity newIdentity = Identity(
+        identityName: name,
+        identityNumber: number,
+      );
 
       // Insert the new identity into the database
       await IdentityDatabaseHelper.instance.insertIdentity(newIdentity);
@@ -317,9 +414,7 @@ class _IdentityDataEntryScreenState extends State<IdentityDataEntryScreen> {
       print("Error inserting identity: $e");
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error saving identity card.'),
-        ),
+        const SnackBar(content: Text('Error saving identity card.')),
       );
     }
   }
@@ -344,7 +439,7 @@ class _IdentityDataEntryScreenState extends State<IdentityDataEntryScreen> {
           'Save Your Identity Card',
           style: TextStyle(fontFamily: 'Bebas', fontSize: 25),
         ),
-        backgroundColor: Colors.black,
+        // backgroundColor: Colors.black,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -355,9 +450,7 @@ class _IdentityDataEntryScreenState extends State<IdentityDataEntryScreen> {
               children: [
                 TextField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    hintText: 'Identity',
-                  ),
+                  decoration: const InputDecoration(hintText: 'Identity'),
                 ),
                 const SizedBox(height: 20),
                 TextField(
@@ -412,7 +505,7 @@ class _IdentityDataEntryScreenState extends State<IdentityDataEntryScreen> {
 
 // ignore: must_be_immutable
 class LoyaltyDataEntryScreen extends StatefulWidget {
-  LoyaltyDataEntryScreen({super.key});
+  const LoyaltyDataEntryScreen({super.key});
 
   @override
   State<LoyaltyDataEntryScreen> createState() => _LoyaltyDataEntryScreenState();
@@ -429,9 +522,7 @@ class _LoyaltyDataEntryScreenState extends State<LoyaltyDataEntryScreen> {
     // Validate input
     if (name.isEmpty || number.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill out both fields.'),
-        ),
+        const SnackBar(content: Text('Please fill out both fields.')),
       );
       return;
     }
@@ -450,9 +541,7 @@ class _LoyaltyDataEntryScreenState extends State<LoyaltyDataEntryScreen> {
       print("Error inserting Loyalty: $e");
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error saving Loyalty card.'),
-        ),
+        const SnackBar(content: Text('Error saving Loyalty card.')),
       );
     }
   }
@@ -477,7 +566,7 @@ class _LoyaltyDataEntryScreenState extends State<LoyaltyDataEntryScreen> {
           'Save Your Loyalty Card',
           style: TextStyle(fontFamily: 'Bebas', fontSize: 25),
         ),
-        backgroundColor: Colors.black,
+        // backgroundColor: Colors.black,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -488,9 +577,7 @@ class _LoyaltyDataEntryScreenState extends State<LoyaltyDataEntryScreen> {
               children: [
                 TextField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    hintText: 'Starbucks',
-                  ),
+                  decoration: const InputDecoration(hintText: 'Starbucks'),
                 ),
                 const SizedBox(height: 20),
                 TextField(

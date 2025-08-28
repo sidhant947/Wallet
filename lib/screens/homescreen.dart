@@ -1,18 +1,17 @@
-import 'dart:math';
-import 'dart:ui'; // Required for ImageFilter - still needed for some potential future use, or can be removed if not used by any other component
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wallet/pages/settings_page.dart';
 import 'package:wallet/screens/summary.dart';
 import 'package:wallet/screens/identityscreen.dart';
 import 'package:wallet/screens/loyaltyscreen.dart';
 import '../models/dataentry.dart';
 import '../models/db_helper.dart';
 import '../models/provider_helper.dart';
+import '../models/theme_provider.dart';
 import '../pages/walletdetails.dart';
 
 // -----------------------------------------------------------------------------
@@ -29,7 +28,7 @@ class SimpleCard extends StatelessWidget {
   final VoidCallback onCopy;
 
   const SimpleCard({
-    Key? key,
+    super.key,
     required this.cardHolderName,
     required this.cardNumber,
     required this.expiryDate,
@@ -38,25 +37,26 @@ class SimpleCard extends StatelessWidget {
     required this.lastFourDigits,
     required this.onTap,
     required this.onCopy,
-  }) : super(key: key);
+  });
 
   // Helper to determine a basic background color based on network
   Color _getCardColor(String networkType) {
     switch (networkType.toLowerCase()) {
       case 'rupay':
-        return Colors.blueGrey.shade700;
+        return Colors.pinkAccent.shade700;
       case 'visa':
-        return Colors.indigo.shade700;
+        return Colors.cyan.shade700;
       case 'mastercard':
         return Colors.deepOrange.shade700;
       default:
-        return Colors.grey.shade800; // Default dark color
+        return Colors.black; // Default dark color
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final cardColor = _getCardColor(network);
+    final themeProvider = Provider.of<ThemeProvider>(context);
 
     return GestureDetector(
       onTap: onTap,
@@ -69,9 +69,11 @@ class SimpleCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12), // Slightly rounded corners
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: themeProvider.isDarkMode
+                  ? Colors.black.withValues(alpha: 0.3)
+                  : Colors.grey.withValues(alpha: 0.3),
               blurRadius: 8,
-              offset: Offset(0, 4),
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -85,18 +87,16 @@ class SimpleCard extends StatelessWidget {
                 Flexible(
                   child: Text(
                     cardHolderName,
-                    style: TextStyle(
-                      fontFamily: 'Bebas', // Assuming Bebas is a simpler font
+                    style: themeProvider.getTextStyle(
                       fontSize: 20,
                       color: Colors.white,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                Icon(
+                const Icon(
                   Icons.wifi, // Generic card icon
                   color: Colors.white,
-
                   size: 30,
                 ),
               ],
@@ -119,21 +119,24 @@ class SimpleCard extends StatelessWidget {
               children: [
                 Text(
                   isMasked ? "MM/YY" : expiryDate,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: 'ZSpace',
                     fontSize: 16,
                     color: Colors.white70,
                   ),
                 ),
                 Image.asset(
-                  "assets/network/${network}.png",
+                  "assets/network/$network.png",
                   height: 35,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) {
                     // Fallback for missing network images
                     return Text(
                       network.toUpperCase(),
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
                     );
                   },
                 ),
@@ -163,6 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     // Fetch wallets when the screen is first built
     context.read<WalletProvider>().fetchWallets();
+    final themeProvider = Provider.of<ThemeProvider>(context);
 
     Future<void> launchUrlCustom(Uri url) async {
       if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
@@ -172,25 +176,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
     void removeData(BuildContext context, int id) async {
       await DatabaseHelper.instance.deleteWallet(id);
-      context.read<WalletProvider>().fetchWallets(); // Refresh wallet list
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Card Deleted')));
+      if (mounted) {
+        context.read<WalletProvider>().fetchWallets(); // Refresh wallet list
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Card Deleted')));
+      }
     }
 
     void copyToClipboard(String text) {
       Clipboard.setData(ClipboardData(text: text))
           .then((_) {
-            print('Text copied to clipboard!');
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Copied Card Details'),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Copied Card Details'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
           })
           .catchError((e) {
-            print('Error copying to clipboard: $e');
+            // Handle error silently or use a proper logging framework
           });
     }
 
@@ -231,26 +238,24 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         forceMaterialTransparency: true,
-        title: const Icon(
-          Icons.wallet,
-          size: 34,
-          color: Colors
-              .white, // Ensure app bar icons are visible on dark background
-        ),
+        title: Icon(Icons.wallet, size: 34, color: themeProvider.primaryColor),
         centerTitle: true,
         backgroundColor: Colors.transparent,
       ),
       drawer: Drawer(
-        backgroundColor: Colors.black,
+        backgroundColor: themeProvider.backgroundColor,
         child: ListView(
           padding: const EdgeInsets.all(0),
           children: <Widget>[
             const SizedBox(height: 100),
             ListTile(
-              leading: const Icon(Icons.fingerprint, color: Colors.white70),
-              title: const Text(
+              leading: Icon(
+                Icons.fingerprint,
+                color: themeProvider.secondaryColor,
+              ),
+              title: Text(
                 'Identity Cards',
-                style: TextStyle(color: Colors.white),
+                style: themeProvider.getTextStyle(),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -263,11 +268,11 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.shopping_basket, color: Colors.white70),
-              title: const Text(
-                'Loyalty Cards',
-                style: TextStyle(color: Colors.white),
+              leading: Icon(
+                Icons.shopping_basket,
+                color: themeProvider.secondaryColor,
               ),
+              title: Text('Loyalty Cards', style: themeProvider.getTextStyle()),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -278,14 +283,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-            const Divider(color: Colors.white30),
+            Divider(color: themeProvider.borderColor),
 
             ListTile(
-              leading: const Icon(Icons.list, color: Colors.white70),
-              title: const Text(
-                'Summary',
-                style: TextStyle(color: Colors.white),
-              ),
+              leading: Icon(Icons.list, color: themeProvider.secondaryColor),
+              title: Text('Summary', style: themeProvider.getTextStyle()),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -294,23 +296,42 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-            const Divider(color: Colors.white30),
+            Divider(color: themeProvider.borderColor),
             ListTile(
-              title: const Text(
-                "Follow on Instagram",
-                style: TextStyle(color: Colors.white),
+              leading: Icon(
+                Icons.settings,
+                color: themeProvider.secondaryColor,
               ),
-              subtitle: const Text(
-                "Send Your Suggestions & Feedback",
-                style: TextStyle(color: Colors.white70),
-              ),
-              leading: Image.asset("assets/instaIcon.png", height: 30),
+              title: Text('Settings', style: themeProvider.getTextStyle()),
               onTap: () {
-                launchUrlCustom(
-                  Uri.parse("https://www.instagram.com/wallet.947/"),
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
                 );
               },
             ),
+
+            Divider(color: themeProvider.borderColor),
+            // ListTile(
+            //   title: Text(
+            //     "Follow on Instagram",
+            //     style: themeProvider.getTextStyle(),
+            //   ),
+            //   subtitle: Text(
+            //     "Send Your Suggestions & Feedback",
+            //     style: themeProvider.getTextStyle(
+            //       fontSize: 14,
+            //       color: themeProvider.secondaryColor,
+            //     ),
+            //   ),
+            //   leading: Image.asset("assets/instaIcon.png", height: 30),
+            //   onTap: () {
+            //     launchUrlCustom(
+            //       Uri.parse("https://www.instagram.com/wallet.947/"),
+            //     );
+            //   },
+            // ),
           ],
         ),
       ),
@@ -323,13 +344,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
           if (result != null) {
             // After adding a card, update the wallet list in the provider
-            context
-                .read<WalletProvider>()
-                .fetchWallets(); // Refresh wallet list
+            if (mounted) {
+              context
+                  .read<WalletProvider>()
+                  .fetchWallets(); // Refresh wallet list
+            }
           }
         },
-        backgroundColor: Colors.white.withOpacity(0.8),
-        child: const Icon(Icons.add_card, color: Colors.black),
+        backgroundColor: themeProvider.accentColor,
+        child: Icon(
+          Icons.add_card,
+          color: themeProvider.isDarkMode ? Colors.white : Colors.white,
+        ),
       ),
       body: Consumer<WalletProvider>(
         builder: (context, provider, child) {
@@ -342,6 +368,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 'visa',
                 'mastercard',
                 'rupay',
+                'amex',
+                'discover',
               ].contains(wallet.network?.toLowerCase());
             } else {
               return wallet.network?.toLowerCase() == _selectedFilter;
@@ -390,9 +418,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         ), // Prevent wrapping
                       ),
                       ButtonSegment<String>(
-                        value: 'other',
+                        value: 'amex',
                         label: Text(
                           'Amex',
+                          softWrap: false,
+                        ), // Prevent wrapping
+                      ),
+                      ButtonSegment<String>(
+                        value: 'discover',
+                        label: Text(
+                          'Discover',
                           softWrap: false,
                         ), // Prevent wrapping
                       ),
@@ -405,10 +440,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                     showSelectedIcon: false,
                     style: SegmentedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      selectedForegroundColor: Colors.black,
-                      selectedBackgroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white30, width: 0.8),
+                      foregroundColor: themeProvider.primaryColor,
+                      selectedForegroundColor: themeProvider.isDarkMode
+                          ? Colors.black
+                          : Colors.white,
+                      selectedBackgroundColor: themeProvider.primaryColor,
+                      side: BorderSide(
+                        color: themeProvider.borderColor,
+                        width: 0.8,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -427,7 +467,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ? Center(
                         child: Text(
                           'No ${_selectedFilter == 'all' ? '' : _selectedFilter} cards found.',
-                          style: TextStyle(color: Colors.white70, fontSize: 16),
+                          style: themeProvider.getTextStyle(
+                            fontSize: 16,
+                            color: themeProvider.secondaryColor,
+                          ),
                         ),
                       )
                     : ListView.builder(
@@ -459,7 +502,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     removeData(context, wallet.id!);
                                   },
                                   backgroundColor: Colors.transparent,
-                                  foregroundColor: Colors.white,
+                                  foregroundColor: themeProvider.primaryColor,
                                   icon: Icons.delete,
                                   label: 'Delete',
                                 ),
@@ -475,7 +518,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ); // Toggle the mask
                                   },
                                   backgroundColor: Colors.transparent,
-                                  foregroundColor: Colors.white,
+                                  foregroundColor: themeProvider.primaryColor,
                                   icon: provider.isMasked(wallet.id!)
                                       ? Icons.visibility
                                       : Icons.visibility_off_rounded,

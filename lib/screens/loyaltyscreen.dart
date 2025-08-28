@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:lottie/lottie.dart';
+import 'package:provider/provider.dart';
 import '../models/dataentry.dart';
 import '../models/db_helper.dart';
+import '../models/theme_provider.dart';
 
 class LoyaltyScreen extends StatefulWidget {
   const LoyaltyScreen({super.key});
@@ -26,8 +28,8 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
   /// Loads loyalty cards from the SQLite database.
   Future<void> _loadLoyalties() async {
     try {
-      final loadedLoyalties =
-          await LoyaltyDatabaseHelper.instance.getAllLoyalties();
+      final loadedLoyalties = await LoyaltyDatabaseHelper.instance
+          .getAllLoyalties();
       setState(() {
         _loyalties = loadedLoyalties.cast<Loyalty>();
         _isLoading = false;
@@ -52,9 +54,9 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
       await LoyaltyDatabaseHelper.instance.deleteLoyalty(id);
       await _loadLoyalties();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Loyalty card deleted!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Loyalty card deleted!')));
       }
     } catch (e) {
       print('Error deleting loyalty card: $e');
@@ -68,35 +70,42 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
 
   /// Copies text to the clipboard.
   void _copyToClipboard(String text) {
-    Clipboard.setData(ClipboardData(text: text)).then((_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Loyalty number copied!')),
-        );
-      }
-    }).catchError((e) {
-      print('Error copying to clipboard: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to copy loyalty number.')),
-        );
-      }
-    });
+    Clipboard.setData(ClipboardData(text: text))
+        .then((_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Loyalty number copied!')),
+            );
+          }
+        })
+        .catchError((e) {
+          print('Error copying to clipboard: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to copy loyalty number.')),
+            );
+          }
+        });
   }
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
-      backgroundColor: Colors.black, // Set Scaffold background to black
+      backgroundColor: themeProvider.backgroundColor,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           "Loyalty Cards",
-          style: TextStyle(color: Colors.white),
+          style: themeProvider.getTextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.black,
+        backgroundColor: themeProvider.backgroundColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: themeProvider.primaryColor),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
@@ -108,8 +117,8 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
             _loadLoyalties();
           }
         },
-        backgroundColor: Colors.blueAccent.shade400, // Consistent FAB color
-        child: const Icon(Icons.add_card, color: Colors.white),
+        backgroundColor: themeProvider.accentColor,
+        child: Icon(Icons.add_card, color: themeProvider.backgroundColor),
       ),
       body: _isLoading
           ? Center(
@@ -121,72 +130,77 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
               ),
             )
           : _loyalties!.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Lottie.asset(
-                        "assets/empty.json",
-                        width: 200,
-                        height: 200,
-                        fit: BoxFit.contain,
-                      ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        "No loyalty cards yet!",
-                        style: TextStyle(fontSize: 18, color: Colors.white70),
-                      ),
-                      const Text(
-                        "Tap '+' to add a new one.",
-                        style: TextStyle(fontSize: 14, color: Colors.white54),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Lottie.asset(
+                    "assets/empty.json",
+                    width: 200,
+                    height: 200,
+                    fit: BoxFit.contain,
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(10),
-                  itemCount: _loyalties!.length,
-                  itemBuilder: (context, index) {
-                    final loyalty = _loyalties![index];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Slidable(
-                        key: ValueKey(loyalty.id),
-                        endActionPane: ActionPane(
-                          motion: const ScrollMotion(),
-                          children: [
-                            SlidableAction(
-                              onPressed: (BuildContext context) =>
-                                  _removeData(context, loyalty.id!),
-                              backgroundColor: Colors.redAccent
-                                  .shade700, // Consistent delete color
-                              foregroundColor: Colors.white,
-                              icon: Icons.delete_forever,
-                              label: 'Delete',
-                              borderRadius: BorderRadius.circular(10),
+                  const SizedBox(height: 20),
+                  Text(
+                    "No loyalty cards yet!",
+                    style: themeProvider.getTextStyle(
+                      fontSize: 18,
+                      color: themeProvider.secondaryColor,
+                    ),
+                  ),
+                  Text(
+                    "Tap '+' to add a new one.",
+                    style: themeProvider.getTextStyle(
+                      fontSize: 14,
+                      color: themeProvider.secondaryColor,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(10),
+              itemCount: _loyalties!.length,
+              itemBuilder: (context, index) {
+                final loyalty = _loyalties![index];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Slidable(
+                    key: ValueKey(loyalty.id),
+                    endActionPane: ActionPane(
+                      motion: const ScrollMotion(),
+                      children: [
+                        SlidableAction(
+                          onPressed: (BuildContext context) =>
+                              _removeData(context, loyalty.id!),
+                          backgroundColor: Colors.redAccent.shade700,
+                          foregroundColor: Colors.white,
+                          icon: Icons.delete_forever,
+                          label: 'Delete',
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ],
+                    ),
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LoyaltyBarCodeScreen(
+                              qrNumber: loyalty.loyaltyNumber,
+                              loyaltyName: loyalty.loyaltyName,
                             ),
-                          ],
-                        ),
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => LoyaltyBarCodeScreen(
-                                  qrNumber: loyalty.loyaltyNumber,
-                                  loyaltyName: loyalty.loyaltyName,
-                                ),
-                              ),
-                            );
-                          },
-                          onLongPress: () =>
-                              _copyToClipboard(loyalty.loyaltyNumber),
-                          child: LoyaltyCard(loyalty: loyalty),
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                          ),
+                        );
+                      },
+                      onLongPress: () =>
+                          _copyToClipboard(loyalty.loyaltyNumber),
+                      child: LoyaltyCard(loyalty: loyalty),
+                    ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }
@@ -202,6 +216,8 @@ class LoyaltyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Container(
       width: double.infinity,
       height: 180,
@@ -209,17 +225,17 @@ class LoyaltyCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15),
         gradient: LinearGradient(
-          // Deep Indigo to Black gradient
-          colors: [
-            Colors.indigo.shade900, // Deep Indigo
-            Colors.black, // Black
-          ],
+          colors: themeProvider.isDarkMode
+              ? [Colors.indigo.shade900, Colors.black]
+              : [Colors.indigo.shade100, Colors.white],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: themeProvider.isDarkMode
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.grey.withValues(alpha: 0.3),
             spreadRadius: 2,
             blurRadius: 10,
             offset: const Offset(0, 5),
@@ -236,13 +252,11 @@ class LoyaltyCard extends StatelessWidget {
               Flexible(
                 child: Text(
                   loyalty.loyaltyName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontFamily: 'Bebas',
+                  style: themeProvider.getTextStyle(
                     fontSize: 32,
-                    letterSpacing: 1.5,
-                    overflow: TextOverflow.ellipsis,
+                    fontWeight: FontWeight.bold,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               GestureDetector(
@@ -257,36 +271,30 @@ class LoyaltyCard extends StatelessWidget {
                     ),
                   );
                 },
-                child: const Icon(
+                child: Icon(
                   Icons.barcode_reader,
                   size: 35,
-                  color: Colors.white70,
+                  color: themeProvider.secondaryColor,
                 ),
               ),
             ],
           ),
-          const Divider(
-            color: Colors.white38, // Softer divider color
-            thickness: 0.8,
-            height: 1,
-          ),
+          Divider(color: themeProvider.borderColor, thickness: 0.8, height: 1),
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
               loyalty.loyaltyNumber,
-              style: const TextStyle(
-                color: Colors.white,
-                letterSpacing: 2,
+              style: themeProvider.getTextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
-          const Text(
+          Text(
             "Tap to view barcode, Long press to copy number",
-            style: TextStyle(
-              color: Colors.white54,
+            style: themeProvider.getTextStyle(
               fontSize: 12,
+              color: themeProvider.secondaryColor,
             ),
           ),
         ],
@@ -311,17 +319,22 @@ class LoyaltyBarCodeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
-      backgroundColor: Colors.black, // Consistent background
+      backgroundColor: themeProvider.backgroundColor,
       appBar: AppBar(
         title: Text(
           "$loyaltyName Barcode",
-          style: const TextStyle(color: Colors.white),
+          style: themeProvider.getTextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.black,
+        backgroundColor: themeProvider.backgroundColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: themeProvider.primaryColor),
       ),
       body: Center(
         child: Column(
@@ -329,9 +342,9 @@ class LoyaltyBarCodeScreen extends StatelessWidget {
           children: [
             Text(
               "Scan to use $loyaltyName",
-              style: const TextStyle(
-                color: Colors.white70,
+              style: themeProvider.getTextStyle(
                 fontSize: 16,
+                color: themeProvider.secondaryColor,
               ),
             ),
             const SizedBox(height: 20),
@@ -340,30 +353,18 @@ class LoyaltyBarCodeScreen extends StatelessWidget {
               child: PageView(
                 scrollDirection: Axis.horizontal,
                 children: [
-                  _buildBarcodeWidget(
-                    Barcode.code128(),
-                    qrNumber,
-                    "Code 128",
-                  ),
-                  _buildBarcodeWidget(
-                    Barcode.code39(),
-                    qrNumber,
-                    "Code 39",
-                  ),
-                  _buildBarcodeWidget(
-                    Barcode.qrCode(),
-                    qrNumber,
-                    "QR Code",
-                  ),
+                  _buildBarcodeWidget(Barcode.code128(), qrNumber, "Code 128"),
+                  _buildBarcodeWidget(Barcode.code39(), qrNumber, "Code 39"),
+                  _buildBarcodeWidget(Barcode.qrCode(), qrNumber, "QR Code"),
                 ],
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               "Swipe for different formats",
-              style: TextStyle(
-                color: Colors.white54,
+              style: themeProvider.getTextStyle(
                 fontSize: 12,
+                color: themeProvider.secondaryColor,
               ),
             ),
           ],
@@ -373,25 +374,35 @@ class LoyaltyBarCodeScreen extends StatelessWidget {
   }
 
   Widget _buildBarcodeWidget(Barcode barcode, String data, String title) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        BarcodeWidget(
-          barcode: barcode,
-          data: data,
-          width: 200,
-          height: 150,
-          color: Colors.white, // Barcode color is white on black background
-          errorBuilder: (context, error) => Center(
-              child: Text('Error: $error',
-                  style: const TextStyle(color: Colors.red))),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          title,
-          style: const TextStyle(color: Colors.white70, fontSize: 14),
-        ),
-      ],
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            BarcodeWidget(
+              barcode: barcode,
+              data: data,
+              width: 200,
+              height: 150,
+              color: themeProvider.primaryColor,
+              errorBuilder: (context, error) => Center(
+                child: Text(
+                  'Error: $error',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: themeProvider.getTextStyle(
+                fontSize: 14,
+                color: themeProvider.secondaryColor,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

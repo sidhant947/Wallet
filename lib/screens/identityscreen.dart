@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:lottie/lottie.dart';
+import 'package:provider/provider.dart';
 import 'package:wallet/models/db_helper.dart';
-import '../models/dataentry.dart'; // Assuming this imports IdentityDataEntryScreen
+import '../models/dataentry.dart';
+import '../models/theme_provider.dart';
 
 class IdentityScreen extends StatefulWidget {
   const IdentityScreen({super.key});
@@ -26,8 +28,8 @@ class _IdentityScreenState extends State<IdentityScreen> {
   /// Loads identities from the SQLite database.
   Future<void> _loadIdentities() async {
     try {
-      final loadedIdentities =
-          await IdentityDatabaseHelper.instance.getAllIdentities();
+      final loadedIdentities = await IdentityDatabaseHelper.instance
+          .getAllIdentities();
       setState(() {
         _identities = loadedIdentities;
         _isLoading = false;
@@ -52,9 +54,9 @@ class _IdentityScreenState extends State<IdentityScreen> {
       await IdentityDatabaseHelper.instance.deleteIdentity(id);
       await _loadIdentities();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Identity card deleted!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Identity card deleted!')));
       }
     } catch (e) {
       print('Error deleting identity: $e');
@@ -68,35 +70,42 @@ class _IdentityScreenState extends State<IdentityScreen> {
 
   /// Copies text to the clipboard.
   void _copyToClipboard(String text) {
-    Clipboard.setData(ClipboardData(text: text)).then((_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Identity number copied!')),
-        );
-      }
-    }).catchError((e) {
-      print('Error copying to clipboard: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to copy identity number.')),
-        );
-      }
-    });
+    Clipboard.setData(ClipboardData(text: text))
+        .then((_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Identity number copied!')),
+            );
+          }
+        })
+        .catchError((e) {
+          print('Error copying to clipboard: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to copy identity number.')),
+            );
+          }
+        });
   }
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
-      backgroundColor: Colors.black, // Set Scaffold background to black
+      backgroundColor: themeProvider.backgroundColor,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           "Identity Cards",
-          style: TextStyle(color: Colors.white),
+          style: themeProvider.getTextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.black,
+        backgroundColor: themeProvider.backgroundColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: themeProvider.primaryColor),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
@@ -110,8 +119,8 @@ class _IdentityScreenState extends State<IdentityScreen> {
             _loadIdentities();
           }
         },
-        backgroundColor: Colors.blueAccent.shade400, // Vibrant blue for FAB
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: themeProvider.accentColor,
+        child: Icon(Icons.add, color: themeProvider.backgroundColor),
       ),
       body: _isLoading
           ? Center(
@@ -123,61 +132,65 @@ class _IdentityScreenState extends State<IdentityScreen> {
               ),
             )
           : _identities!.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Lottie.asset(
-                        "assets/loading.json",
-                        width: 200,
-                        height: 200,
-                        fit: BoxFit.contain,
-                      ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        "No identity cards yet!",
-                        style: TextStyle(fontSize: 18, color: Colors.white70),
-                      ),
-                      const Text(
-                        "Tap '+' to add a new one.",
-                        style: TextStyle(fontSize: 14, color: Colors.white54),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Lottie.asset(
+                    "assets/loading.json",
+                    width: 200,
+                    height: 200,
+                    fit: BoxFit.contain,
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(10),
-                  itemCount: _identities!.length,
-                  itemBuilder: (context, index) {
-                    final identity = _identities![index];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Slidable(
-                        key: ValueKey(identity.id),
-                        endActionPane: ActionPane(
-                          motion: const ScrollMotion(),
-                          children: [
-                            SlidableAction(
-                              onPressed: (BuildContext context) =>
-                                  _removeData(context, identity.id!),
-                              backgroundColor: Colors.redAccent
-                                  .shade700, // Stronger red for delete
-                              foregroundColor: Colors.white,
-                              icon: Icons.delete_forever,
-                              label: 'Delete',
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ],
+                  const SizedBox(height: 20),
+                  Text(
+                    "No identity cards yet!",
+                    style: themeProvider.getTextStyle(
+                      fontSize: 18,
+                      color: themeProvider.secondaryColor,
+                    ),
+                  ),
+                  Text(
+                    "Tap '+' to add a new one.",
+                    style: themeProvider.getTextStyle(
+                      fontSize: 14,
+                      color: themeProvider.secondaryColor,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(10),
+              itemCount: _identities!.length,
+              itemBuilder: (context, index) {
+                final identity = _identities![index];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Slidable(
+                    key: ValueKey(identity.id),
+                    endActionPane: ActionPane(
+                      motion: const ScrollMotion(),
+                      children: [
+                        SlidableAction(
+                          onPressed: (BuildContext context) =>
+                              _removeData(context, identity.id!),
+                          backgroundColor: Colors.redAccent.shade700,
+                          foregroundColor: Colors.white,
+                          icon: Icons.delete_forever,
+                          label: 'Delete',
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: GestureDetector(
-                          onTap: () =>
-                              _copyToClipboard(identity.identityNumber),
-                          child: IdentityCard(identity: identity),
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                      ],
+                    ),
+                    child: GestureDetector(
+                      onTap: () => _copyToClipboard(identity.identityNumber),
+                      child: IdentityCard(identity: identity),
+                    ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }
@@ -193,23 +206,25 @@ class IdentityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15),
         gradient: LinearGradient(
-          // Dark Grey to Black gradient
-          colors: [
-            Colors.grey.shade900, // Dark Grey
-            Colors.black, // Black
-          ],
+          colors: themeProvider.isDarkMode
+              ? [Colors.grey.shade900, Colors.black]
+              : [Colors.grey.shade100, Colors.white],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: themeProvider.isDarkMode
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.grey.withValues(alpha: 0.3),
             spreadRadius: 2,
             blurRadius: 10,
             offset: const Offset(0, 5),
@@ -224,11 +239,9 @@ class IdentityCard extends StatelessWidget {
             children: [
               Text(
                 identity.identityName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontFamily: 'Bebas',
+                style: themeProvider.getTextStyle(
                   fontSize: 32,
-                  letterSpacing: 1.5,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               GestureDetector(
@@ -243,26 +256,24 @@ class IdentityCard extends StatelessWidget {
                     ),
                   );
                 },
-                child: const Icon(
+                child: Icon(
                   Icons.qr_code_scanner_rounded,
                   size: 35,
-                  color: Colors.white70,
+                  color: themeProvider.secondaryColor,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 15),
-          const Divider(
-            color: Colors.white38, // Softer divider color
-            thickness: 0.8,
-            height: 1,
-          ),
+          Divider(color: themeProvider.borderColor, thickness: 0.8, height: 1),
           const SizedBox(height: 15),
           Align(
             alignment: Alignment.center,
             child: CircleAvatar(
               radius: 40,
-              backgroundColor: Colors.white, // Retain white for Lottie contrast
+              backgroundColor: themeProvider.isDarkMode
+                  ? Colors.white
+                  : Colors.grey.shade200,
               child: Lottie.asset(
                 "assets/card.json",
                 width: 70,
@@ -274,19 +285,17 @@ class IdentityCard extends StatelessWidget {
           const SizedBox(height: 20),
           Text(
             identity.identityNumber,
-            style: const TextStyle(
-              color: Colors.white,
-              letterSpacing: 2,
+            style: themeProvider.getTextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             "Tap to copy number",
-            style: TextStyle(
-              color: Colors.white54,
+            style: themeProvider.getTextStyle(
               fontSize: 12,
+              color: themeProvider.secondaryColor,
             ),
           ),
         ],
@@ -311,17 +320,22 @@ class IdentityBarCodeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
-      backgroundColor: Colors.black, // Consistent background
+      backgroundColor: themeProvider.backgroundColor,
       appBar: AppBar(
         title: Text(
           "$identityName Barcode",
-          style: const TextStyle(color: Colors.white),
+          style: themeProvider.getTextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.black,
+        backgroundColor: themeProvider.backgroundColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: themeProvider.primaryColor),
       ),
       body: Center(
         child: Column(
@@ -329,9 +343,9 @@ class IdentityBarCodeScreen extends StatelessWidget {
           children: [
             Text(
               "Scan to view $identityName",
-              style: const TextStyle(
-                color: Colors.white70,
+              style: themeProvider.getTextStyle(
                 fontSize: 16,
+                color: themeProvider.secondaryColor,
               ),
             ),
             const SizedBox(height: 20),
@@ -340,30 +354,18 @@ class IdentityBarCodeScreen extends StatelessWidget {
               child: PageView(
                 scrollDirection: Axis.horizontal,
                 children: [
-                  _buildBarcodeWidget(
-                    Barcode.qrCode(),
-                    qrNumber,
-                    "QR Code",
-                  ),
-                  _buildBarcodeWidget(
-                    Barcode.code128(),
-                    qrNumber,
-                    "Code 128",
-                  ),
-                  _buildBarcodeWidget(
-                    Barcode.code39(),
-                    qrNumber,
-                    "Code 39",
-                  ),
+                  _buildBarcodeWidget(Barcode.qrCode(), qrNumber, "QR Code"),
+                  _buildBarcodeWidget(Barcode.code128(), qrNumber, "Code 128"),
+                  _buildBarcodeWidget(Barcode.code39(), qrNumber, "Code 39"),
                 ],
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               "Swipe for different formats",
-              style: TextStyle(
-                color: Colors.white54,
+              style: themeProvider.getTextStyle(
                 fontSize: 12,
+                color: themeProvider.secondaryColor,
               ),
             ),
           ],
@@ -373,25 +375,35 @@ class IdentityBarCodeScreen extends StatelessWidget {
   }
 
   Widget _buildBarcodeWidget(Barcode barcode, String data, String title) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        BarcodeWidget(
-          barcode: barcode,
-          data: data,
-          width: 200,
-          height: 150,
-          color: Colors.white, // Barcode color is white on black background
-          errorBuilder: (context, error) => Center(
-              child: Text('Error: $error',
-                  style: const TextStyle(color: Colors.red))),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          title,
-          style: const TextStyle(color: Colors.white70, fontSize: 14),
-        ),
-      ],
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            BarcodeWidget(
+              barcode: barcode,
+              data: data,
+              width: 200,
+              height: 150,
+              color: themeProvider.primaryColor,
+              errorBuilder: (context, error) => Center(
+                child: Text(
+                  'Error: $error',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: themeProvider.getTextStyle(
+                fontSize: 14,
+                color: themeProvider.secondaryColor,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

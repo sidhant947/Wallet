@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:wallet/models/db_helper.dart';
+import 'package:wallet/models/theme_provider.dart';
 import 'models/provider_helper.dart';
 import 'screens/homescreen.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +17,10 @@ void main() async {
   // This is for testing Only
   // databaseFactory = databaseFactoryFfi;
 
+  // Initialize theme provider and load saved preferences
+  final themeProvider = ThemeProvider();
+  await themeProvider.loadThemePreference();
+
   // Initialize the database before the app starts
   await Future.wait([
     DatabaseHelper.instance.database, // Initialize wallet.db
@@ -24,8 +29,11 @@ void main() async {
   ]);
 
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => WalletProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => WalletProvider()),
+        ChangeNotifierProvider.value(value: themeProvider),
+      ],
       child: const MyApp(),
     ),
   );
@@ -36,14 +44,74 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return MaterialApp(
       title: 'Wallet',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        brightness: Brightness.dark,
-        fontFamily: "Bebas",
-        scaffoldBackgroundColor: Colors.black,
+        brightness: Brightness.light,
+        fontFamily: themeProvider.useSystemFont ? null : "Bebas",
+        scaffoldBackgroundColor: Colors.white,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0,
+          centerTitle: true,
+        ),
+        // cardTheme: CardTheme(color: Colors.grey.shade100, elevation: 2),
+        drawerTheme: const DrawerThemeData(backgroundColor: Colors.white),
+        textTheme: TextTheme(
+          bodyLarge: TextStyle(
+            color: Colors.black,
+            fontFamily: themeProvider.useSystemFont ? null : "Bebas",
+          ),
+          bodyMedium: TextStyle(
+            color: Colors.black87,
+            fontFamily: themeProvider.useSystemFont ? null : "Bebas",
+          ),
+        ),
+        colorScheme: ColorScheme.light(
+          primary: Colors.blue.shade600,
+          secondary: Colors.blueAccent.shade400,
+          surface: Colors.white,
+          onPrimary: Colors.white,
+          onSecondary: Colors.white,
+          onSurface: Colors.black,
+        ),
       ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        fontFamily: themeProvider.useSystemFont ? null : "Bebas",
+        scaffoldBackgroundColor: Colors.black,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+        ),
+        // cardTheme: CardTheme(color: Colors.grey.shade900, elevation: 2),
+        drawerTheme: const DrawerThemeData(backgroundColor: Colors.black),
+        textTheme: TextTheme(
+          bodyLarge: TextStyle(
+            color: Colors.white,
+            fontFamily: themeProvider.useSystemFont ? null : "Bebas",
+          ),
+          bodyMedium: TextStyle(
+            color: Colors.white70,
+            fontFamily: themeProvider.useSystemFont ? null : "Bebas",
+          ),
+        ),
+        colorScheme: ColorScheme.dark(
+          primary: Colors.white,
+          secondary: Colors.blueAccent.shade400,
+          surface: Colors.grey.shade900,
+          onPrimary: Colors.black,
+          onSecondary: Colors.white,
+          onSurface: Colors.white,
+        ),
+      ),
+      themeMode: themeProvider.currentTheme,
       home: const SplashScreen(),
     );
   }
@@ -65,10 +133,12 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> security() async {
     // This is for testing Only
     if (Platform.isLinux || kIsWeb) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
       return;
     }
     // Auth Check
@@ -82,26 +152,30 @@ class _SplashScreenState extends State<SplashScreen> {
       );
     } else {
       // Handle the case where biometrics are not available
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'We Recommend Using A Screen Lock for Better Security, If you keep using Without lock anyone can access your cards if they have your phone',
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'We Recommend Using A Screen Lock for Better Security, If you keep using Without lock anyone can access your cards if they have your phone',
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const HomeScreen()),
-    );
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Secure Check"),
+        title: const Text("Secure Check"),
         centerTitle: true,
         forceMaterialTransparency: true,
       ),
@@ -114,15 +188,15 @@ class _SplashScreenState extends State<SplashScreen> {
               Container(
                 padding: const EdgeInsets.all(30),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white),
+                  border: Border.all(color: Colors.purpleAccent),
                 ),
                 child: const Text(
                   "Authenticate",
                   style: TextStyle(fontSize: 30),
                 ),
               ),
-              SizedBox(height: 40),
-              Icon(Icons.lock, size: 50),
+              const SizedBox(height: 40),
+              const Icon(Icons.lock, size: 50),
             ],
           ),
         ),

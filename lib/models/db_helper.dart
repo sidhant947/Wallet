@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -20,16 +21,17 @@ class DatabaseHelper {
     final path = join(directory.path, 'walletbox.db');
     return openDatabase(
       path,
-      version: 2, // Incremented version for the database schema update
+      version: 3, // Incremented version for the database schema update
       onCreate: (db, version) {
-        return db.execute(
-          '''
+        return db.execute('''
           CREATE TABLE wallets(
             id INTEGER PRIMARY KEY,
             name TEXT,
             number TEXT,
             expiry TEXT,
             network TEXT,
+            issuer TEXT,
+            customFields TEXT,
             spends TEXT,
             rewards TEXT,
             annualFeeWaiver TEXT,
@@ -38,36 +40,24 @@ class DatabaseHelper {
             billdate TEXT,
             category TEXT
           )
-          ''',
-        );
+          ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
-          // Adding new columns if the version is old (version 1)
-          await db.execute('''
-            ALTER TABLE wallets ADD COLUMN spends TEXT;
-          ''');
-          await db.execute('''
-            ALTER TABLE wallets ADD COLUMN rewards TEXT;
-          ''');
-          await db.execute('''
-            ALTER TABLE wallets ADD COLUMN annualFeeWaiver TEXT;
-          ''');
-          await db.execute('''
-            ALTER TABLE wallets ADD COLUMN maxlimit TEXT;
-          ''');
-          await db.execute('''
-            ALTER TABLE wallets ADD COLUMN cardtype TEXT;
-          ''');
-          await db.execute('''
-            ALTER TABLE wallets ADD COLUMN billdate TEXT;
-          ''');
-          await db.execute('''
-            ALTER TABLE wallets ADD COLUMN category TEXT;
-          ''');
-          await db.execute('''
-            ALTER TABLE wallets ADD COLUMN network TEXT;
-          ''');
+          await db.execute('ALTER TABLE wallets ADD COLUMN spends TEXT;');
+          await db.execute('ALTER TABLE wallets ADD COLUMN rewards TEXT;');
+          await db.execute(
+            'ALTER TABLE wallets ADD COLUMN annualFeeWaiver TEXT;',
+          );
+          await db.execute('ALTER TABLE wallets ADD COLUMN maxlimit TEXT;');
+          await db.execute('ALTER TABLE wallets ADD COLUMN cardtype TEXT;');
+          await db.execute('ALTER TABLE wallets ADD COLUMN billdate TEXT;');
+          await db.execute('ALTER TABLE wallets ADD COLUMN category TEXT;');
+          await db.execute('ALTER TABLE wallets ADD COLUMN network TEXT;');
+        }
+        if (oldVersion < 3) {
+          await db.execute('ALTER TABLE wallets ADD COLUMN issuer TEXT;');
+          await db.execute('ALTER TABLE wallets ADD COLUMN customFields TEXT;');
         }
       },
     );
@@ -88,11 +78,7 @@ class DatabaseHelper {
 
   Future<int> deleteWallet(int id) async {
     Database db = await instance.database;
-    return await db.delete(
-      'wallets',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('wallets', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<int> updateWallet(Wallet wallet) async {
@@ -112,6 +98,8 @@ class Wallet {
   late final String number;
   late final String expiry;
   final String? network;
+  final String? issuer;
+  final Map<String, String>? customFields;
   final String? spends; // Optional field
   final String? rewards; // Optional field
   final String? annualFeeWaiver; // Optional field
@@ -126,6 +114,8 @@ class Wallet {
     required this.number,
     required this.expiry,
     this.network,
+    this.issuer,
+    this.customFields,
     this.spends,
     this.rewards,
     this.annualFeeWaiver,
@@ -142,6 +132,8 @@ class Wallet {
       'number': number,
       'expiry': expiry,
       'network': network,
+      'issuer': issuer,
+      'customFields': customFields != null ? jsonEncode(customFields) : null,
       'spends': spends,
       'rewards': rewards,
       'annualFeeWaiver': annualFeeWaiver,
@@ -159,6 +151,10 @@ class Wallet {
       number: map['number'],
       expiry: map['expiry'],
       network: map['network'],
+      issuer: map['issuer'],
+      customFields: map['customFields'] != null
+          ? Map<String, String>.from(jsonDecode(map['customFields']))
+          : null,
       spends: map['spends'],
       rewards: map['rewards'],
       annualFeeWaiver: map['annualFeeWaiver'],
