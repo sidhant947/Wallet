@@ -313,25 +313,25 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
 
             Divider(color: themeProvider.borderColor),
-            // ListTile(
-            //   title: Text(
-            //     "Follow on Instagram",
-            //     style: themeProvider.getTextStyle(),
-            //   ),
-            //   subtitle: Text(
-            //     "Send Your Suggestions & Feedback",
-            //     style: themeProvider.getTextStyle(
-            //       fontSize: 14,
-            //       color: themeProvider.secondaryColor,
-            //     ),
-            //   ),
-            //   leading: Image.asset("assets/instaIcon.png", height: 30),
-            //   onTap: () {
-            //     launchUrlCustom(
-            //       Uri.parse("https://www.instagram.com/wallet.947/"),
-            //     );
-            //   },
-            // ),
+            ListTile(
+              title: Text(
+                "Donate on Github",
+                style: themeProvider.getTextStyle(),
+              ),
+              subtitle: Text(
+                "Leave a Star on Repo",
+                style: themeProvider.getTextStyle(
+                  fontSize: 14,
+                  color: themeProvider.secondaryColor,
+                ),
+              ),
+              leading: Icon(Icons.star),
+              onTap: () {
+                launchUrlCustom(
+                  Uri.parse("https://github.com/sidhant947/Wallet"),
+                );
+              },
+            ),
           ],
         ),
       ),
