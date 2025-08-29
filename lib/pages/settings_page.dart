@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/theme_provider.dart';
+import 'package:wallet/models/startup_settings_provider.dart';
 import 'package:wallet/services/backup_service.dart';
 import 'package:wallet/models/provider_helper.dart';
 
@@ -11,6 +12,7 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final walletProvider = Provider.of<WalletProvider>(context);
+    final startupProvider = Provider.of<StartupSettingsProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -21,7 +23,76 @@ class SettingsPage extends StatelessWidget {
       ),
       body: ListView(
         children: [
-          // Theme Settings
+          // Startup Settings Section
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Startup Settings',
+              style: themeProvider.getTextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+
+          SwitchListTile(
+            title: Text(
+              'Show Authentication Screen',
+              style: themeProvider.getTextStyle(fontSize: 16),
+            ),
+            subtitle: Text(
+              'Require authentication when app starts',
+              style: themeProvider.getTextStyle(
+                fontSize: 14,
+                color: themeProvider.secondaryColor,
+              ),
+            ),
+            value: startupProvider.showAuthenticationScreen,
+            activeThumbColor: themeProvider.accentColor,
+            onChanged: (value) {
+              startupProvider.toggleAuthenticationScreen();
+            },
+          ),
+
+          ListTile(
+            title: Text(
+              'Default Screen',
+              style: themeProvider.getTextStyle(fontSize: 16),
+            ),
+            subtitle: Text(
+              'Choose which screen to show after startup: ${startupProvider.getScreenDisplayName(startupProvider.defaultScreen)}',
+              style: themeProvider.getTextStyle(
+                fontSize: 14,
+                color: themeProvider.secondaryColor,
+              ),
+            ),
+            trailing: Icon(
+              Icons.arrow_forward_ios,
+              color: themeProvider.secondaryColor,
+              size: 16,
+            ),
+            onTap: () => _showDefaultScreenDialog(
+              context,
+              themeProvider,
+              startupProvider,
+            ),
+          ),
+
+          // Divider
+          Divider(color: themeProvider.borderColor),
+
+          // Theme Settings Section
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Theme Settings',
+              style: themeProvider.getTextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+
           SwitchListTile(
             title: Text(
               'Dark Mode',
@@ -105,6 +176,64 @@ class SettingsPage extends StatelessWidget {
             ),
             onTap: () =>
                 _showRestoreDialog(context, themeProvider, walletProvider),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDefaultScreenDialog(
+    BuildContext context,
+    ThemeProvider themeProvider,
+    StartupSettingsProvider startupProvider,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: themeProvider.backgroundColor,
+        title: Text(
+          'Choose Default Screen',
+          style: themeProvider.getTextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: StartupScreen.values.map((screen) {
+            return ListTile(
+              title: Text(
+                startupProvider.getScreenDisplayName(screen),
+                style: themeProvider.getTextStyle(fontSize: 16),
+              ),
+              leading: Radio<StartupScreen>(
+                value: screen,
+                groupValue: startupProvider.defaultScreen,
+                activeColor: themeProvider.accentColor,
+                onChanged: (StartupScreen? value) {
+                  if (value != null) {
+                    startupProvider.setDefaultScreen(value);
+                    Navigator.pop(context);
+                  }
+                },
+              ),
+              onTap: () {
+                startupProvider.setDefaultScreen(screen);
+                Navigator.pop(context);
+              },
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: themeProvider.getTextStyle(
+                fontSize: 14,
+                color: themeProvider.secondaryColor,
+              ),
+            ),
           ),
         ],
       ),

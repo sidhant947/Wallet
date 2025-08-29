@@ -4,6 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:wallet/pages/settings_page.dart';
+import 'package:wallet/screens/homescreen.dart';
+import 'package:wallet/screens/identityscreen.dart';
 import '../models/dataentry.dart';
 import '../models/db_helper.dart';
 import '../models/theme_provider.dart';
@@ -68,6 +72,12 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
     }
   }
 
+  Future<void> launchUrlCustom(Uri url) async {
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $url');
+    }
+  }
+
   /// Copies text to the clipboard.
   void _copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text))
@@ -107,6 +117,86 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
         elevation: 0,
         iconTheme: IconThemeData(color: themeProvider.primaryColor),
       ),
+      drawer: Drawer(
+        backgroundColor: themeProvider.backgroundColor,
+        child: ListView(
+          padding: const EdgeInsets.all(0),
+          children: <Widget>[
+            const SizedBox(height: 100),
+            ListTile(
+              leading: Icon(
+                Icons.fingerprint,
+                color: themeProvider.secondaryColor,
+              ),
+              title: Text(
+                'Identity Cards',
+                style: themeProvider.getTextStyle(),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const IdentityScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.credit_card,
+                color: themeProvider.secondaryColor,
+              ),
+              title: Text('Credit Cards', style: themeProvider.getTextStyle()),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HomeScreen()),
+                );
+              },
+            ),
+
+            Divider(color: themeProvider.borderColor),
+            ListTile(
+              leading: Icon(
+                Icons.settings,
+                color: themeProvider.secondaryColor,
+              ),
+              title: Text('Settings', style: themeProvider.getTextStyle()),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
+                );
+              },
+            ),
+
+            Divider(color: themeProvider.borderColor),
+            ListTile(
+              title: Text(
+                "Donate on Github",
+                style: themeProvider.getTextStyle(),
+              ),
+              subtitle: Text(
+                "Leave a Star on Repo",
+                style: themeProvider.getTextStyle(
+                  fontSize: 14,
+                  color: themeProvider.secondaryColor,
+                ),
+              ),
+              leading: Icon(Icons.star),
+              onTap: () {
+                launchUrlCustom(
+                  Uri.parse("https://github.com/sidhant947/Wallet"),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.push(

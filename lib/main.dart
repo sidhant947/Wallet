@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/theme_provider.dart';
+import 'package:wallet/models/startup_settings_provider.dart';
 import 'models/provider_helper.dart';
 import 'screens/homescreen.dart';
+import 'screens/identityscreen.dart';
+import 'screens/loyaltyscreen.dart';
 import 'package:provider/provider.dart';
 // This is for testing Only
 // import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -17,9 +20,14 @@ void main() async {
   // This is for testing Only
   // databaseFactory = databaseFactoryFfi;
 
-  // Initialize theme provider and load saved preferences
+  // Initialize providers and load saved preferences
   final themeProvider = ThemeProvider();
-  await themeProvider.loadThemePreference();
+  final startupProvider = StartupSettingsProvider();
+
+  await Future.wait([
+    themeProvider.loadThemePreference(),
+    startupProvider.loadStartupSettings(),
+  ]);
 
   // Initialize the database before the app starts
   await Future.wait([
@@ -33,6 +41,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (context) => WalletProvider()),
         ChangeNotifierProvider.value(value: themeProvider),
+        ChangeNotifierProvider.value(value: startupProvider),
       ],
       child: const MyApp(),
     ),
@@ -128,28 +137,71 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    // Use addPostFrameCallback to avoid calling navigation during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkStartupSettings();
+    });
+  }
+
+  Future<void> _checkStartupSettings() async {
+    final startupProvider = Provider.of<StartupSettingsProvider>(
+      context,
+      listen: false,
+    );
+
+    if (!startupProvider.showAuthenticationScreen) {
+      // Skip authentication and go directly to the default screen
+      _navigateToDefaultScreen();
+    }
+  }
+
+  void _navigateToDefaultScreen() {
+    final startupProvider = Provider.of<StartupSettingsProvider>(
+      context,
+      listen: false,
+    );
+    Widget targetScreen;
+
+    switch (startupProvider.defaultScreen) {
+      case StartupScreen.home:
+        targetScreen = const HomeScreen();
+        break;
+      case StartupScreen.loyalty:
+        targetScreen = const LoyaltyScreen();
+        break;
+      case StartupScreen.identity:
+        targetScreen = const IdentityScreen();
+        break;
+    }
+
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => targetScreen),
+      );
+    }
   }
 
   Future<void> security() async {
     // This is for testing Only
     if (Platform.isLinux || kIsWeb) {
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      }
+      _navigateToDefaultScreen();
       return;
     }
+
     // Auth Check
     final auth = LocalAuthentication();
     bool isBiometricSupported = await auth.isDeviceSupported();
     bool canCheckBiometrics = await auth.canCheckBiometrics;
 
     if (isBiometricSupported && canCheckBiometrics) {
-      await auth.authenticate(
+      bool authenticated = await auth.authenticate(
         localizedReason: 'Touch your finger on the sensor to login',
       );
+
+      if (authenticated) {
+        _navigateToDefaultScreen();
+      }
     } else {
       // Handle the case where biometrics are not available
       if (mounted) {
@@ -161,18 +213,26 @@ class _SplashScreenState extends State<SplashScreen> {
           ),
         );
       }
-    }
-
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
+      _navigateToDefaultScreen();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final startupProvider = Provider.of<StartupSettingsProvider>(context);
+
+    // If authentication is disabled, show loading screen while navigating
+    if (!startupProvider.showAuthenticationScreen) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [SizedBox(height: 20), Text('Loading...')],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Secure Check"),
