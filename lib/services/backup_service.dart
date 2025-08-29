@@ -3,28 +3,14 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:wallet/models/db_helper.dart';
 
 class BackupService {
   static const String _backupVersion = '1.0';
 
-  // Create encrypted backup
+  // Create encrypted backup using Storage Access Framework
   static Future<String?> createBackup(String password) async {
     try {
-      // Request storage permission for Android
-      if (Platform.isAndroid) {
-        final status = await Permission.storage.request();
-        if (!status.isGranted) {
-          // Try requesting manage external storage for Android 11+
-          final manageStatus = await Permission.manageExternalStorage.request();
-          if (!manageStatus.isGranted) {
-            throw Exception('Storage permission denied');
-          }
-        }
-      }
-
       // Get all data from databases
       final wallets = await DatabaseHelper.instance.getWallets();
       final identities = await IdentityDatabaseHelper.instance
@@ -50,11 +36,14 @@ class BackupService {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = 'wallet_backup_$timestamp.wbk';
 
-      // Use FilePicker to save file with bytes (required for Android/iOS)
+      // Use Storage Access Framework via FilePicker to save file
+      // This doesn't require storage permissions on Android
       final outputFile = await FilePicker.platform.saveFile(
         dialogTitle: 'Save Backup File',
         fileName: fileName,
         bytes: encryptedData,
+        type: FileType.custom,
+        allowedExtensions: ['wbk'],
       );
 
       if (outputFile == null) {
@@ -67,43 +56,39 @@ class BackupService {
     }
   }
 
-  // Restore from encrypted backup
+  // Restore from encrypted backup using Storage Access Framework
   static Future<void> restoreBackup(String password) async {
     try {
-      // Request storage permission for Android
-      if (Platform.isAndroid) {
-        final status = await Permission.storage.request();
-        if (!status.isGranted) {
-          final manageStatus = await Permission.manageExternalStorage.request();
-          if (!manageStatus.isGranted) {
-            throw Exception('Storage permission denied');
-          }
-        }
-      }
-
-      // Pick backup file
+      // Pick backup file using Storage Access Framework
+      // This doesn't require storage permissions on Android
       final result = await FilePicker.platform.pickFiles(
         type: FileType.any,
-        dialogTitle: 'Select Wallet Backup File (.wbk)',
+        dialogTitle: 'Select Wallet Backup File',
         allowMultiple: false,
+        withData: true, // Important: Load file data directly
       );
 
       if (result == null || result.files.isEmpty) {
         throw Exception('No file selected');
       }
 
-      final filePath = result.files.first.path;
-      if (filePath == null) {
-        throw Exception('Invalid file path');
-      }
+      final platformFile = result.files.first;
 
-      final file = File(filePath);
-      if (!await file.exists()) {
-        throw Exception('Selected file does not exist');
-      }
+      // Get encrypted data directly from bytes (SAF approach)
+      Uint8List? encryptedData = platformFile.bytes;
 
-      // Read encrypted data
-      final encryptedData = await file.readAsBytes();
+      // Fallback to file path if bytes not available (shouldn't happen with withData: true)
+      if (encryptedData == null) {
+        final filePath = platformFile.path;
+        if (filePath == null) {
+          throw Exception('Unable to access file data');
+        }
+        final file = File(filePath);
+        if (!await file.exists()) {
+          throw Exception('Selected file does not exist');
+        }
+        encryptedData = await file.readAsBytes();
+      }
 
       // Decrypt the data
       final decryptedJson = _decryptData(encryptedData, password);
