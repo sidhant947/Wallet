@@ -25,7 +25,7 @@ void main() async {
   final startupProvider = StartupSettingsProvider();
 
   await Future.wait([
-    themeProvider.loadThemePreference(),
+    themeProvider.init(), // Use the new init method
     startupProvider.loadStartupSettings(),
   ]);
 
@@ -48,6 +48,7 @@ void main() async {
   );
 }
 
+// ... rest of the file is unchanged
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 

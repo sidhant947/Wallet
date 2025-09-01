@@ -1,33 +1,91 @@
 // lib/models/theme_provider.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// Enum for the available theme options
+enum ThemePreference { light, dark, system }
+
 class ThemeProvider with ChangeNotifier {
-  bool _isDarkMode = true;
+  ThemePreference _themePreference = ThemePreference.system;
+  bool _isDarkMode = false; // This will now be a derived state
   bool _useSystemFont = false;
-  static const String _themeKey = 'isDarkMode';
+
+  static const String _themePreferenceKey = 'themePreference';
   static const String _fontKey = 'useSystemFont';
 
+  // Getters for the current state
+  ThemePreference get themePreference => _themePreference;
   bool get isDarkMode => _isDarkMode;
   bool get useSystemFont => _useSystemFont;
 
-  ThemeMode get currentTheme => _isDarkMode ? ThemeMode.dark : ThemeMode.light;
+  // Determines the ThemeMode for the MaterialApp
+  ThemeMode get currentTheme {
+    switch (_themePreference) {
+      case ThemePreference.light:
+        return ThemeMode.light;
+      case ThemePreference.dark:
+        return ThemeMode.dark;
+      case ThemePreference.system:
+      default:
+        return ThemeMode.system;
+    }
+  }
 
-  Future<void> loadThemePreference() async {
+  // Initializes the provider, loading preferences and setting up listeners
+  Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    _isDarkMode = prefs.getBool(_themeKey) ?? true;
+
+    // Load saved theme preference, defaulting to 'system'
+    final themeIndex =
+        prefs.getInt(_themePreferenceKey) ?? ThemePreference.system.index;
+    _themePreference = ThemePreference.values[themeIndex];
+
+    // Load font preference
     _useSystemFont = prefs.getBool(_fontKey) ?? false;
+
+    // Set the initial dark mode state based on preference
+    _updateDarkModeState();
+
+    // Listen for changes in the system's theme
+    SchedulerBinding.instance.window.onPlatformBrightnessChanged = () {
+      if (_themePreference == ThemePreference.system) {
+        _updateDarkModeState();
+        notifyListeners();
+      }
+    };
+
     notifyListeners();
   }
 
-  Future<void> toggleTheme() async {
-    _isDarkMode = !_isDarkMode;
+  // Helper method to set the internal _isDarkMode flag correctly
+  void _updateDarkModeState() {
+    if (_themePreference == ThemePreference.light) {
+      _isDarkMode = false;
+    } else if (_themePreference == ThemePreference.dark) {
+      _isDarkMode = true;
+    } else {
+      // When set to system, check the actual system brightness
+      final brightness = SchedulerBinding.instance.window.platformBrightness;
+      _isDarkMode = brightness == Brightness.dark;
+    }
+  }
+
+  // Sets the new theme preference and saves it
+  Future<void> setThemePreference(ThemePreference preference) async {
+    if (_themePreference == preference) return;
+
+    _themePreference = preference;
+    _updateDarkModeState();
+
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_themeKey, _isDarkMode);
+    await prefs.setInt(_themePreferenceKey, preference.index);
+
     notifyListeners();
   }
 
+  // Unchanged methods below...
   Future<void> toggleFont() async {
     _useSystemFont = !_useSystemFont;
     final prefs = await SharedPreferences.getInstance();

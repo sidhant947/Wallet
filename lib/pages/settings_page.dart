@@ -10,6 +10,19 @@ import 'package:wallet/models/provider_helper.dart';
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
+  // Helper to get a user-friendly name for each theme option
+  String _getThemeDisplayName(ThemePreference preference) {
+    switch (preference) {
+      case ThemePreference.light:
+        return 'Light';
+      case ThemePreference.dark:
+        return 'Dark';
+      case ThemePreference.system:
+      default:
+        return 'Follow System';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -50,20 +63,16 @@ class SettingsPage extends StatelessWidget {
             ],
           ),
 
-          // --- Theme Settings Section ---
+          // --- Theme Settings Section (MODIFIED) ---
           _SettingsSection(
             title: 'Appearance',
             children: [
+              // This tile replaces the old Dark Mode switch
               _SettingsTile(
-                icon: Icons.dark_mode_outlined,
-                title: 'Dark Mode',
-                subtitle: 'Toggle between light and dark themes',
-                trailing: Switch(
-                  value: themeProvider.isDarkMode,
-                  onChanged: (_) {
-                    themeProvider.toggleTheme();
-                  },
-                ),
+                icon: Icons.brightness_6_outlined,
+                title: 'App Theme',
+                subtitle: _getThemeDisplayName(themeProvider.themePreference),
+                onTap: () => _showThemeDialog(context, themeProvider),
               ),
               _SettingsTile(
                 icon: Icons.font_download_outlined,
@@ -99,6 +108,38 @@ class SettingsPage extends StatelessWidget {
                 },
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Method to show the theme selection dialog
+  void _showThemeDialog(BuildContext context, ThemeProvider themeProvider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Choose Theme'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: ThemePreference.values.map((preference) {
+            return RadioListTile<ThemePreference>(
+              title: Text(_getThemeDisplayName(preference)),
+              value: preference,
+              groupValue: themeProvider.themePreference,
+              onChanged: (ThemePreference? value) {
+                if (value != null) {
+                  themeProvider.setThemePreference(value);
+                  Navigator.pop(context);
+                }
+              },
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
         ],
       ),
