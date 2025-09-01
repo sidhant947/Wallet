@@ -1,3 +1,5 @@
+// lib/models/theme_provider.dart
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,11 +14,10 @@ class ThemeProvider with ChangeNotifier {
 
   ThemeMode get currentTheme => _isDarkMode ? ThemeMode.dark : ThemeMode.light;
 
-  // Initialize theme from saved preferences
   Future<void> loadThemePreference() async {
     final prefs = await SharedPreferences.getInstance();
-    _isDarkMode = prefs.getBool(_themeKey) ?? true; // Default to dark mode
-    _useSystemFont = prefs.getBool(_fontKey) ?? false; // Default to custom font
+    _isDarkMode = prefs.getBool(_themeKey) ?? true;
+    _useSystemFont = prefs.getBool(_fontKey) ?? false;
     notifyListeners();
   }
 
@@ -34,18 +35,14 @@ class ThemeProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Theme-aware colors
-  Color get primaryColor => _isDarkMode ? Colors.white : Colors.black;
-  Color get secondaryColor => _isDarkMode ? Colors.white70 : Colors.black87;
-  Color get backgroundColor => _isDarkMode ? Colors.black : Colors.white;
-  Color get surfaceColor =>
-      _isDarkMode ? Colors.grey.shade900 : Colors.grey.shade100;
-  Color get cardColor => _isDarkMode ? Colors.grey.shade800 : Colors.white;
-  Color get borderColor => _isDarkMode ? Colors.white30 : Colors.black26;
-  Color get accentColor =>
-      _isDarkMode ? Colors.blueAccent.shade400 : Colors.blue.shade600;
+  static const PageTransitionsTheme _pageTransitionsTheme =
+      PageTransitionsTheme(
+        builders: <TargetPlatform, PageTransitionsBuilder>{
+          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        },
+      );
 
-  // Get theme-aware text style
   TextStyle getTextStyle({
     double fontSize = 16,
     FontWeight fontWeight = FontWeight.normal,
@@ -54,8 +51,112 @@ class ThemeProvider with ChangeNotifier {
     return TextStyle(
       fontSize: fontSize,
       fontWeight: fontWeight,
-      color: color ?? primaryColor,
-      fontFamily: _useSystemFont ? null : "Bebas",
+      color:
+          color ??
+          (_isDarkMode ? Colors.white.withOpacity(0.87) : Colors.black87),
     );
   }
+
+  // --- NEW DARK THEME (PURE BLACK + WHITE ACCENT) ---
+  ThemeData get darkTheme => ThemeData(
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: Colors.black,
+    cardColor: Colors.black, // Cards will be distinguished by a border
+    fontFamily: _useSystemFont ? null : 'Bebas',
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.black,
+      foregroundColor: Colors.white,
+      elevation: 0,
+      centerTitle: true,
+      titleTextStyle: TextStyle(
+        fontFamily: 'Bebas',
+        fontSize: 22,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    drawerTheme: const DrawerThemeData(backgroundColor: Color(0xFF1A1A1A)),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black,
+    ),
+    listTileTheme: const ListTileThemeData(iconColor: Colors.white70),
+    colorScheme: const ColorScheme.dark(
+      primary: Colors.white,
+      secondary: Colors.white,
+      surface: Color(0xFF1A1A1A),
+      onPrimary: Colors.black,
+      onSecondary: Colors.black,
+      onSurface: Colors.white,
+      error: Colors.redAccent,
+    ),
+    pageTransitionsTheme: _pageTransitionsTheme,
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: const Color(0xFF1A1A1A),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade800),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade800),
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: const Color(0xFF1A1A1A),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    ),
+  );
+
+  // --- NEW LIGHT THEME (PURE WHITE + RED ACCENT) ---
+  ThemeData get lightTheme => ThemeData(
+    brightness: Brightness.light,
+    scaffoldBackgroundColor: Colors.white,
+    cardColor: Colors.white,
+    fontFamily: _useSystemFont ? null : 'Bebas',
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black,
+      elevation: 0,
+      centerTitle: true,
+      titleTextStyle: TextStyle(
+        fontFamily: 'Bebas',
+        fontSize: 22,
+        fontWeight: FontWeight.bold,
+        color: Colors.black,
+      ),
+    ),
+    drawerTheme: const DrawerThemeData(backgroundColor: Colors.white),
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: Colors.red.shade700,
+      foregroundColor: Colors.white,
+    ),
+    listTileTheme: const ListTileThemeData(iconColor: Colors.black54),
+    colorScheme: ColorScheme.light(
+      primary: Colors.red.shade700,
+      secondary: Colors.red.shade600,
+      surface: Colors.white,
+      onPrimary: Colors.white,
+      onSecondary: Colors.white,
+      onSurface: Colors.black,
+      error: Colors.red.shade900,
+    ),
+    pageTransitionsTheme: _pageTransitionsTheme,
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    ),
+  );
 }

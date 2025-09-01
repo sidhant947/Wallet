@@ -1,416 +1,149 @@
+// lib/pages/walletdetails.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/db_helper.dart';
 import '../models/provider_helper.dart';
 import '../models/theme_provider.dart';
+import '../widgets/glass_credit_card.dart';
 
 class WalletDetailScreen extends StatefulWidget {
   final Wallet wallet;
-
   const WalletDetailScreen({super.key, required this.wallet});
-
   @override
   State<WalletDetailScreen> createState() => _WalletDetailScreenState();
 }
 
 class _WalletDetailScreenState extends State<WalletDetailScreen> {
-  String formatExpiryNumber(String input) {
-    StringBuffer result = StringBuffer();
-    int count = 0;
+  late Wallet currentWallet;
 
-    for (int i = 0; i < input.length; i++) {
-      result.write(input[i]);
-      count++;
-
-      if (count == 2 && i != input.length - 1) {
-        result.write(' / ');
-        count = 0;
-      }
-    }
-
-    return result.toString();
+  @override
+  void initState() {
+    super.initState();
+    currentWallet = widget.wallet;
   }
 
-  String formatCardNumber(String input) {
-    StringBuffer result = StringBuffer();
-    int count = 0;
-
-    for (int i = 0; i < input.length; i++) {
-      result.write(input[i]);
-      count++;
-
-      if (count == 4 && i != input.length - 1) {
-        result.write('  ');
-        count = 0;
-      }
+  String _formatCashback(String? spends, String? rewards) {
+    if (spends == null ||
+        rewards == null ||
+        spends.isEmpty ||
+        rewards.isEmpty) {
+      return '₹0.00';
     }
-
-    return result.toString();
+    double spendsVal = double.tryParse(spends) ?? 0;
+    double rewardsVal = double.tryParse(rewards) ?? 0;
+    double result = (spendsVal * rewardsVal) / 100;
+    return '₹${result.toStringAsFixed(2)}';
   }
 
-  String formatCashback(String spends, String rewards) {
-    if (spends.isEmpty || rewards.isEmpty) {
-      return '0';
-    }
-    double spendsInt = double.parse(spends);
-    double rewardsInt = double.parse(rewards);
-    double result = double.parse(
-      ((spendsInt * rewardsInt) / 100).toStringAsFixed(2),
-    );
-
-    return result.toString();
+  String _getFeeWaiverStatus(Wallet wallet) {
+    double spends = double.tryParse(wallet.spends ?? '0') ?? 0;
+    double waiverRequirement =
+        double.tryParse(wallet.annualFeeWaiver ?? '0') ?? 0;
+    if (waiverRequirement == 0) return "Not Applicable";
+    if (spends >= waiverRequirement) return "Waived Off";
+    return "₹${(waiverRequirement - spends).toStringAsFixed(2)} more to waive";
   }
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          "Card Summary",
-          style: themeProvider.getTextStyle(fontSize: 20),
-        ),
-        forceMaterialTransparency: true,
+        title: Text(currentWallet.name),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              // Navigate to the edit screen with the current wallet details
-              Navigator.push(
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () async {
+              final updatedWallet = await Navigator.push<Wallet>(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => WalletEditScreen(wallet: widget.wallet),
+                  builder: (context) => WalletEditScreen(wallet: currentWallet),
                 ),
-              ).then((updatedWallet) {
-                if (updatedWallet != null) {
-                  // Refresh the wallet list with the updated wallet
-                  context.read<WalletProvider>().fetchWallets();
-                }
-              });
+              );
+
+              if (updatedWallet != null && mounted) {
+                setState(() {
+                  currentWallet = updatedWallet;
+                });
+              }
             },
           ),
         ],
       ),
-      body: Consumer<WalletProvider>(
-        builder: (context, provider, child) {
-          var wallet = provider.wallets.firstWhere(
-            (w) => w.id == widget.wallet.id,
-          );
-
-          return ListView(
-            // crossAxisAlignment: CrossAxisAlignment.start,
+      body: ListView(
+        padding: const EdgeInsets.all(16.0),
+        children: [
+          SizedBox(
+            height: 235,
+            child: GlassCreditCard(
+              wallet: currentWallet,
+              isMasked: false,
+              onCardTap: () {
+                Clipboard.setData(ClipboardData(text: currentWallet.number));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Card Number Copied!')),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          _DetailSection(
+            title: "Financials",
             children: [
-              Container(
-                margin: EdgeInsets.all(20),
-                height: 200,
-                width: double.infinity,
-                decoration: wallet.network == "rupay"
-                    ? BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.blueGrey, Colors.black],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          tileMode:
-                              TileMode.repeated, // This repeats the gradient
-                        ),
-                        borderRadius: BorderRadius.circular(15),
-                        boxShadow: [
-                          BoxShadow(color: Colors.white24, blurRadius: 8),
-                        ],
-                      )
-                    : wallet.network == "visa"
-                    ? BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.indigo, Colors.cyan],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          tileMode:
-                              TileMode.repeated, // This repeats the gradient
-                        ),
-                        borderRadius: BorderRadius.circular(15),
-                        boxShadow: [
-                          BoxShadow(color: Colors.blue[700]!, blurRadius: 8),
-                        ],
-                      )
-                    : wallet.network == "mastercard"
-                    ? BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.orange, Colors.deepOrange],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          tileMode:
-                              TileMode.repeated, // This repeats the gradient
-                        ),
-                        borderRadius: BorderRadius.circular(15),
-                        boxShadow: [
-                          BoxShadow(color: Colors.orange[200]!, blurRadius: 8),
-                        ],
-                      )
-                    : BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.black87, Colors.black],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          tileMode:
-                              TileMode.repeated, // This repeats the gradient
-                        ),
-                        borderRadius: BorderRadius.circular(15),
-                        boxShadow: [
-                          BoxShadow(color: Colors.white24, blurRadius: 20),
-                        ],
-                      ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(10),
-                      alignment: Alignment.topRight,
-                      child: Text(
-                        wallet.name,
-                        style: themeProvider.getTextStyle(
-                          fontSize: 18,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: EdgeInsets.all(10),
-                      alignment: Alignment.center,
-                      child: Text(
-                        formatCardNumber(wallet.number),
-                        style: themeProvider.getTextStyle(
-                          fontSize: 25,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.only(left: 20),
-                          alignment: Alignment.topLeft,
-                          child: Text(
-                            formatExpiryNumber(wallet.expiry),
-                            style: themeProvider.getTextStyle(
-                              fontSize: 15,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.only(right: 20),
-                          alignment: Alignment.topLeft,
-                          child: Image.asset(
-                            "assets/network/${wallet.network}.png",
-                            height: 25,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+              _DetailTile(
+                icon: Icons.account_balance_wallet_outlined,
+                title: 'Max Limit',
+                value: '₹${currentWallet.maxlimit ?? 'N/A'}',
               ),
-              Container(
-                padding: EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Max Limit",
-                            style: themeProvider.getTextStyle(fontSize: 18),
-                          ),
-                          Text(
-                            wallet.maxlimit ?? 'No Data',
-                            style: themeProvider.getTextStyle(fontSize: 18),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Divider(),
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "Annual Spends",
-                                style: themeProvider.getTextStyle(fontSize: 18),
-                              ),
-                              Text(
-                                double.parse(
-                                  wallet.spends ?? "0",
-                                ).toStringAsFixed(2),
-                                style: themeProvider.getTextStyle(fontSize: 18),
-                              ),
-                            ],
-                          ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                "Cashback Value",
-                                style: themeProvider.getTextStyle(fontSize: 18),
-                              ),
-                              Text(
-                                formatCashback(
-                                  wallet.spends ?? '0',
-                                  wallet.rewards ?? '0',
-                                ),
-                                style: themeProvider.getTextStyle(fontSize: 18),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Divider(),
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Type: ",
-                            style: themeProvider.getTextStyle(fontSize: 18),
-                          ),
-                          Text(
-                            wallet.cardtype ?? 'Paid/LTF',
-                            style: themeProvider.getTextStyle(fontSize: 18),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Divider(),
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Bill Generation Date: ",
-                            style: themeProvider.getTextStyle(fontSize: 18),
-                          ),
-                          Text(
-                            wallet.billdate ?? 'No Date',
-                            style: themeProvider.getTextStyle(fontSize: 18),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Divider(),
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Annual fee Waiver: ",
-                            style: themeProvider.getTextStyle(fontSize: 18),
-                          ),
-                          Column(
-                            children: [
-                              Text(
-                                wallet.annualFeeWaiver != null &&
-                                        wallet.spends != null
-                                    ? (double.parse(
-                                                wallet.annualFeeWaiver ?? "0",
-                                              ) <
-                                              double.parse(wallet.spends ?? "0")
-                                          ? "waived off"
-                                          : wallet.annualFeeWaiver!)
-                                    : "N/A",
-                                style: themeProvider.getTextStyle(fontSize: 18),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Divider(),
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        children: [
-                          Text(
-                            "Card Spend Category: ",
-                            style: themeProvider.getTextStyle(fontSize: 18),
-                          ),
-                          Text(
-                            wallet.category ?? 'No Categories Added Yet',
-                            style: themeProvider.getTextStyle(fontSize: 18),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Custom Fields Section
-                    if (wallet.customFields != null &&
-                        wallet.customFields!.isNotEmpty) ...[
-                      Divider(),
-                      Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Custom Fields:",
-                              style: themeProvider.getTextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 10),
-                            ...wallet.customFields!.entries.map(
-                              (entry) => Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8.0,
-                                ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      flex: 2,
-                                      child: Text(
-                                        "${entry.key}:",
-                                        style: themeProvider.getTextStyle(
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      flex: 3,
-                                      child: Text(
-                                        entry.value,
-                                        style: themeProvider.getTextStyle(
-                                          fontSize: 16,
-                                        ),
-                                        textAlign: TextAlign.end,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
+              _DetailTile(
+                icon: Icons.receipt_long_outlined,
+                title: 'Annual Spends',
+                value: '₹${currentWallet.spends ?? '0.00'}',
+              ),
+              _DetailTile(
+                icon: Icons.card_giftcard_outlined,
+                title: 'Estimated Cashback',
+                value: _formatCashback(
+                  currentWallet.spends,
+                  currentWallet.rewards,
                 ),
               ),
             ],
-          );
-        },
+          ),
+          _DetailSection(
+            title: "Billing & Terms",
+            children: [
+              _DetailTile(
+                icon: Icons.event_note_outlined,
+                title: 'Bill Generation Date',
+                value: 'Every ${currentWallet.billdate ?? 'N/A'}',
+              ),
+              _DetailTile(
+                icon: Icons.verified_outlined,
+                title: 'Annual Fee Waiver',
+                value: _getFeeWaiverStatus(currentWallet),
+              ),
+              _DetailTile(
+                icon: Icons.credit_card,
+                title: 'Card Type',
+                value: currentWallet.cardtype ?? 'N/A',
+              ),
+            ],
+          ),
+          if (currentWallet.customFields != null &&
+              currentWallet.customFields!.isNotEmpty)
+            _DetailSection(
+              title: "Custom Fields",
+              children: currentWallet.customFields!.entries.map((entry) {
+                return _DetailTile(
+                  icon: Icons.info_outline,
+                  title: entry.key,
+                  value: entry.value,
+                );
+              }).toList(),
+            ),
+        ],
       ),
     );
   }
@@ -418,94 +151,52 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
 
 class WalletEditScreen extends StatefulWidget {
   final Wallet wallet;
-
   const WalletEditScreen({super.key, required this.wallet});
-
   @override
   WalletEditScreenState createState() => WalletEditScreenState();
 }
 
 class WalletEditScreenState extends State<WalletEditScreen> {
-  // Controller for each field to update the values
-  late TextEditingController _nameController;
-  late TextEditingController _numberController;
-  late TextEditingController _expiryController;
-  late String _network;
-  late TextEditingController _maxlimitController;
-  late TextEditingController _spendsController;
-  late TextEditingController _cardtypeController;
-  late TextEditingController _billdateController;
-  late TextEditingController _categoryController;
-  late TextEditingController _annualFeeWaiverController;
-  late TextEditingController _rewardsController;
-
-  // Custom fields management
-  Map<String, String> _customFields = {};
-  final List<MapEntry<String, TextEditingController>> _customFieldControllers =
-      [];
-
   final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameController,
+      _numberController,
+      _expiryController,
+      _issuerController,
+      _maxlimitController,
+      _spendsController,
+      _cardtypeController,
+      _billdateController,
+      _categoryController,
+      _annualFeeWaiverController,
+      _rewardsController;
+  late String _network;
+  final List<TextEditingController> _customFieldNameControllers = [];
+  final List<TextEditingController> _customFieldValueControllers = [];
 
   @override
   void initState() {
     super.initState();
-    // Initialize the controllers with the current wallet details
-    _nameController = TextEditingController(text: widget.wallet.name);
-    _numberController = TextEditingController(text: widget.wallet.number);
-    _expiryController = TextEditingController(text: widget.wallet.expiry);
-    _network = widget.wallet.network!;
-    _maxlimitController = TextEditingController(text: widget.wallet.maxlimit);
-    _spendsController = TextEditingController(text: widget.wallet.spends);
-    _cardtypeController = TextEditingController(text: widget.wallet.cardtype);
-    _billdateController = TextEditingController(text: widget.wallet.billdate);
-    _categoryController = TextEditingController(text: widget.wallet.category);
+    final wallet = widget.wallet;
+    _nameController = TextEditingController(text: wallet.name);
+    _numberController = TextEditingController(text: wallet.number);
+    _expiryController = TextEditingController(text: wallet.expiry);
+    _network = wallet.network ?? "visa";
+    _issuerController = TextEditingController(text: wallet.issuer);
+    _maxlimitController = TextEditingController(text: wallet.maxlimit);
+    _spendsController = TextEditingController(text: wallet.spends);
+    _cardtypeController = TextEditingController(text: wallet.cardtype);
+    _billdateController = TextEditingController(text: wallet.billdate);
+    _categoryController = TextEditingController(text: wallet.category);
     _annualFeeWaiverController = TextEditingController(
-      text: widget.wallet.annualFeeWaiver,
+      text: wallet.annualFeeWaiver,
     );
-    _rewardsController = TextEditingController(text: widget.wallet.rewards);
-
-    // Initialize custom fields
-    _customFields = Map<String, String>.from(widget.wallet.customFields ?? {});
-    _initializeCustomFieldControllers();
-  }
-
-  void _initializeCustomFieldControllers() {
-    _customFieldControllers.clear();
-    for (var entry in _customFields.entries) {
-      _customFieldControllers.add(
-        MapEntry(entry.key, TextEditingController(text: entry.value)),
-      );
+    _rewardsController = TextEditingController(text: wallet.rewards);
+    if (wallet.customFields != null) {
+      wallet.customFields!.forEach((key, value) {
+        _customFieldNameControllers.add(TextEditingController(text: key));
+        _customFieldValueControllers.add(TextEditingController(text: value));
+      });
     }
-  }
-
-  void _addCustomField() {
-    setState(() {
-      String newKey = 'Custom Field ${_customFields.length + 1}';
-      _customFields[newKey] = '';
-      _customFieldControllers.add(MapEntry(newKey, TextEditingController()));
-    });
-  }
-
-  void _removeCustomField(int index) {
-    setState(() {
-      String keyToRemove = _customFieldControllers[index].key;
-      _customFieldControllers[index].value.dispose();
-      _customFieldControllers.removeAt(index);
-      _customFields.remove(keyToRemove);
-    });
-  }
-
-  void _updateCustomFieldKey(int index, String newKey) {
-    setState(() {
-      String oldKey = _customFieldControllers[index].key;
-      String value = _customFields[oldKey] ?? '';
-      _customFields.remove(oldKey);
-      _customFields[newKey] = value;
-      _customFieldControllers[index] = MapEntry(
-        newKey,
-        _customFieldControllers[index].value,
-      );
-    });
   }
 
   @override
@@ -513,6 +204,7 @@ class WalletEditScreenState extends State<WalletEditScreen> {
     _nameController.dispose();
     _numberController.dispose();
     _expiryController.dispose();
+    _issuerController.dispose();
     _maxlimitController.dispose();
     _spendsController.dispose();
     _cardtypeController.dispose();
@@ -520,411 +212,329 @@ class WalletEditScreenState extends State<WalletEditScreen> {
     _categoryController.dispose();
     _annualFeeWaiverController.dispose();
     _rewardsController.dispose();
-
-    // Dispose custom field controllers
-    for (var controller in _customFieldControllers) {
-      controller.value.dispose();
+    for (var controller in _customFieldNameControllers) {
+      controller.dispose();
     }
-
+    for (var controller in _customFieldValueControllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
-  // Function to save the updated wallet details
+  void _addCustomField() {
+    setState(() {
+      _customFieldNameControllers.add(TextEditingController());
+      _customFieldValueControllers.add(TextEditingController());
+    });
+  }
+
+  void _removeCustomField(int index) {
+    setState(() {
+      _customFieldNameControllers[index].dispose();
+      _customFieldValueControllers[index].dispose();
+      _customFieldNameControllers.removeAt(index);
+      _customFieldValueControllers.removeAt(index);
+    });
+  }
+
   void _saveUpdatedDetails() async {
-    // Update custom fields from controllers
-    for (int i = 0; i < _customFieldControllers.length; i++) {
-      String key = _customFieldControllers[i].key;
-      String value = _customFieldControllers[i].value.text;
-      _customFields[key] = value;
-    }
+    if (_formKey.currentState!.validate()) {
+      Map<String, String> customFields = {};
+      for (int i = 0; i < _customFieldNameControllers.length; i++) {
+        String fieldName = _customFieldNameControllers[i].text.trim();
+        String fieldValue = _customFieldValueControllers[i].text.trim();
+        if (fieldName.isNotEmpty && fieldValue.isNotEmpty) {
+          customFields[fieldName] = fieldValue;
+        }
+      }
 
-    final updatedWallet = Wallet(
-      id: widget.wallet.id,
-      name: _nameController.text,
-      number: _numberController.text,
-      expiry: _expiryController.text,
-      network: _network, // Updated network
-      issuer: widget.wallet.issuer,
-      customFields: _customFields.isNotEmpty ? _customFields : null,
-      maxlimit: _maxlimitController.text,
-      spends: _spendsController.text,
-      cardtype: _cardtypeController.text,
-      billdate: _billdateController.text,
-      category: _categoryController.text,
-      annualFeeWaiver: _annualFeeWaiverController.text,
-      rewards: _rewardsController.text,
-    );
+      final updatedWallet = Wallet(
+        id: widget.wallet.id,
+        name: _nameController.text,
+        number: _numberController.text,
+        expiry: _expiryController.text,
+        network: _network,
+        issuer: _issuerController.text,
+        maxlimit: _maxlimitController.text,
+        spends: _spendsController.text,
+        cardtype: _cardtypeController.text,
+        billdate: _billdateController.text,
+        category: _categoryController.text,
+        annualFeeWaiver: _annualFeeWaiverController.text,
+        rewards: _rewardsController.text,
+        customFields: customFields,
+      );
 
-    // Save the updated wallet details to the database
-    await DatabaseHelper.instance.updateWallet(updatedWallet);
+      await DatabaseHelper.instance.updateWallet(updatedWallet);
 
-    // Go back to the previous screen with the updated wallet
-    if (mounted) {
-      Navigator.pop(context, updatedWallet);
+      if (mounted) {
+        context.read<WalletProvider>().fetchWallets();
+        Navigator.pop(context, updatedWallet);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
     return Scaffold(
       appBar: AppBar(
-        forceMaterialTransparency: true,
-        title: Text(
-          "Edit Card Details",
-          style: themeProvider.getTextStyle(fontSize: 20),
-        ),
+        title: const Text("Edit Card"),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saveUpdatedDetails, // Save the updated details
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: TextButton(
+              onPressed: _saveUpdatedDetails,
+              child: const Text("SAVE"),
+            ),
           ),
         ],
       ),
-      body: Consumer<WalletProvider>(
-        builder: (context, provider, child) {
-          var wallet = provider.wallets.firstWhere(
-            (w) => w.id == widget.wallet.id,
-          );
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16.0),
+          children: [
+            _DetailSection(
+              title: "Primary Details",
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: 'Card Name'),
+                  validator: (v) => v!.isEmpty ? 'Cannot be empty' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _numberController,
+                  decoration: const InputDecoration(labelText: 'Card Number'),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(16),
+                  ],
+                  validator: (v) =>
+                      v!.length < 15 ? 'Enter a valid number' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _expiryController,
+                  decoration: const InputDecoration(labelText: 'Expiry (MMYY)'),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(4),
+                  ],
+                  validator: (v) => v!.length != 4 ? 'Must be 4 digits' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _issuerController,
+                  decoration: const InputDecoration(
+                    labelText: 'Card Issuer (e.g. HDFC)',
+                  ),
+                  validator: (v) => v!.isEmpty ? 'Cannot be empty' : null,
+                ),
 
-          // Update the controllers with the current wallet details
-          _nameController.text = wallet.name;
-          _numberController.text = wallet.number;
-          _expiryController.text = wallet.expiry;
-          _maxlimitController.text = wallet.maxlimit ?? '0';
-          _spendsController.text = wallet.spends ?? '0';
-          _cardtypeController.text = wallet.cardtype ?? 'Paid';
-          _billdateController.text = wallet.billdate ?? '10';
-          _categoryController.text = wallet.category ?? 'Amazon';
-          _annualFeeWaiverController.text = wallet.annualFeeWaiver ?? '0';
-          _rewardsController.text = wallet.rewards ?? '0';
-
-          return ListView(
-            children: [
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: <Widget>[
-                    // Card Name Input
-                    Container(
-                      margin: EdgeInsets.all(20),
-                      padding: EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.white),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            controller: _nameController,
-                            maxLength: 20,
-                            decoration: const InputDecoration(
-                              labelText: 'Card Name',
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a name';
-                              }
-                              return null;
-                            },
-                          ),
-
-                          // Card Number Input (16 digits validation)
-                          TextFormField(
-                            controller: _numberController,
-                            decoration: const InputDecoration(
-                              labelText: 'Card Number',
-                            ),
-                            keyboardType: TextInputType.number,
-                            maxLength: 16,
-                            inputFormatters: [
-                              FilteringTextInputFormatter
-                                  .digitsOnly, // Only digits allowed
-                              LengthLimitingTextInputFormatter(
-                                16,
-                              ), // Limit to 16 digits
-                            ],
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a card number';
-                              }
-                              if (value.length < 15) {
-                                return 'Card number must be 16 digits';
-                              }
-                              return null;
-                            },
-                          ),
-
-                          // Expiry Date Input (4 digits validation)
-                          TextFormField(
-                            controller: _expiryController,
-                            maxLength: 4,
-                            decoration: const InputDecoration(
-                              labelText: 'Expiry Date (MMYY)',
-                            ),
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter
-                                  .digitsOnly, // Only digits allowed
-                              LengthLimitingTextInputFormatter(
-                                4,
-                              ), // Limit to 4 digits
-                            ],
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter an expiry date';
-                              }
-                              if (value.length != 4) {
-                                return 'Expiry date must be 4 digits (MMYY)';
-                              }
-                              return null;
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: DropdownButtonFormField<String>(
-                        initialValue: "rupay",
-                        decoration: const InputDecoration(
-                          labelText: 'Card Network',
-                          // border: OutlineInputBorder(),
-                        ),
-                        items:
-                            [
-                              'rupay',
-                              'visa',
-                              'mastercard',
-                              'amex',
-                              'discover',
-                            ].map((String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-
-                                child: Text(
-                                  value.toUpperCase(),
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                              );
-                            }).toList(),
-                        onChanged: (newValue) {
-                          setState(() {
-                            _network = newValue!;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select a card type';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-
-                    Container(
-                      margin: EdgeInsets.all(20),
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            controller: _maxlimitController,
-                            decoration: const InputDecoration(
-                              labelText: 'Max Limit',
-                            ),
-                            keyboardType: TextInputType.number,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter limits';
-                              }
-                              return null;
-                            },
-                          ),
-                          SizedBox(height: 20),
-                          // Spends Input
-                          TextFormField(
-                            controller: _spendsController,
-                            decoration: const InputDecoration(
-                              labelText: 'Spends',
-                            ),
-                            keyboardType: TextInputType.number,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter spends';
-                              }
-                              return null;
-                            },
-                          ),
-                          SizedBox(height: 20),
-                          // Card Type Input
-                          TextFormField(
-                            controller: _cardtypeController,
-                            decoration: const InputDecoration(
-                              labelText: 'Card Type',
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a card type';
-                              }
-                              return null;
-                            },
-                          ),
-                          SizedBox(height: 20),
-                          // Bill Date Input
-                          TextFormField(
-                            controller: _billdateController,
-                            decoration: const InputDecoration(
-                              labelText: 'Bill Date',
-                            ),
-                            keyboardType: TextInputType.number,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a bill date';
-                              }
-                              if (value.length > 2) {
-                                return 'Enter a valid date 1-31';
-                              }
-                              return null;
-                            },
-                          ),
-                          SizedBox(height: 20),
-                          // Category Input
-                          TextFormField(
-                            controller: _categoryController,
-                            decoration: const InputDecoration(
-                              labelText: 'Category',
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a category';
-                              }
-                              return null;
-                            },
-                          ),
-                          SizedBox(height: 20),
-                          // Annual Fee Waiver Input
-                          TextFormField(
-                            keyboardType: TextInputType.number,
-                            controller: _annualFeeWaiverController,
-                            decoration: const InputDecoration(
-                              labelText: 'Annual Fee Waiver',
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter an annual fee waiver';
-                              }
-                              return null;
-                            },
-                          ),
-                          SizedBox(height: 20),
-                          // Rewards Input
-                          TextFormField(
-                            keyboardType: TextInputType.number,
-                            controller: _rewardsController,
-                            decoration: const InputDecoration(
-                              labelText: 'Cashback %',
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter rewards';
-                              }
-                              if (value.length > 2) {
-                                return 'Enter a valid percentage 0-99';
-                              }
-                              return null;
-                            },
-                          ),
-                          SizedBox(height: 30),
-                          // Custom Fields Section
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Custom Fields',
-                                style: themeProvider.getTextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              IconButton(
-                                icon: Icon(
-                                  Icons.add_circle,
-                                  color: Colors.green,
-                                ),
-                                onPressed: _addCustomField,
-                                tooltip: 'Add Custom Field',
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 10),
-                          // Custom Fields List
-                          ..._customFieldControllers.asMap().entries.map((
-                            entry,
-                          ) {
-                            int index = entry.key;
-                            String fieldKey = entry.value.key;
-                            TextEditingController controller =
-                                entry.value.value;
-
-                            return Container(
-                              margin: EdgeInsets.only(bottom: 15),
-                              padding: EdgeInsets.all(15),
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: Colors.grey.withOpacity(0.3),
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: TextFormField(
-                                          initialValue: fieldKey,
-                                          decoration: InputDecoration(
-                                            labelText: 'Field Name',
-                                            border: OutlineInputBorder(),
-                                          ),
-                                          onChanged: (value) {
-                                            _updateCustomFieldKey(index, value);
-                                          },
-                                        ),
-                                      ),
-                                      SizedBox(width: 10),
-                                      IconButton(
-                                        icon: Icon(
-                                          Icons.delete,
-                                          color: Colors.red,
-                                        ),
-                                        onPressed: () =>
-                                            _removeCustomField(index),
-                                        tooltip: 'Remove Field',
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 10),
-                                  TextFormField(
-                                    controller: controller,
-                                    decoration: InputDecoration(
-                                      labelText: 'Field Value',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                        ],
-                      ),
-                    ),
-                    // Save Button
+                // ** FIXED: ADDED THE DROPDOWN FOR CARD NETWORK HERE **
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  initialValue: _network,
+                  decoration: const InputDecoration(labelText: 'Card Network'),
+                  items: ['visa', 'mastercard', 'rupay', 'amex', 'discover']
+                      .map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value.toUpperCase()),
+                        );
+                      })
+                      .toList(),
+                  onChanged: (newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        _network = newValue;
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+            _DetailSection(
+              title: "Financials",
+              children: [
+                TextFormField(
+                  controller: _maxlimitController,
+                  decoration: const InputDecoration(labelText: 'Max Limit (₹)'),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _spendsController,
+                  decoration: const InputDecoration(
+                    labelText: 'Current Spends (₹)',
+                  ),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _rewardsController,
+                  decoration: const InputDecoration(
+                    labelText: 'Cashback Rate (%)',
+                  ),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(2),
                   ],
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            ),
+            _DetailSection(
+              title: "Billing & Terms",
+              children: [
+                TextFormField(
+                  controller: _billdateController,
+                  decoration: const InputDecoration(
+                    labelText: 'Bill Date (e.g., 15)',
+                  ),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(2),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _annualFeeWaiverController,
+                  decoration: const InputDecoration(
+                    labelText: 'Annual Fee Waiver on Spends of (₹)',
+                  ),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _cardtypeController,
+                  decoration: const InputDecoration(
+                    labelText: 'Card Type (e.g., LTF, Paid)',
+                  ),
+                ),
+              ],
+            ),
+            _DetailSection(
+              title: "Custom Fields",
+              children: [
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _customFieldNameControllers.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _customFieldNameControllers[index],
+                              decoration: const InputDecoration(
+                                labelText: 'Field Name',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _customFieldValueControllers[index],
+                              decoration: const InputDecoration(
+                                labelText: 'Value',
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: () => _removeCustomField(index),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                Center(
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text("Add Custom Field"),
+                    onPressed: _addCustomField,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Helper Widgets
+class _DetailSection extends StatelessWidget {
+  final String title;
+  final List<Widget> children;
+  const _DetailSection({required this.title, required this.children});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Provider.of<ThemeProvider>(
+              context,
+            ).getTextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+  const _DetailTile({
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
+  @override
+  Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 20,
+            color: themeProvider.getTextStyle().color?.withOpacity(0.6),
+          ),
+          const SizedBox(width: 16),
+          Expanded(child: Text(title)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }

@@ -1,6 +1,9 @@
+// lib/screens/homescreen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -8,150 +11,13 @@ import 'package:wallet/pages/settings_page.dart';
 import 'package:wallet/screens/summary.dart';
 import 'package:wallet/screens/identityscreen.dart';
 import 'package:wallet/screens/loyaltyscreen.dart';
+import 'package:wallet/widgets/glass_credit_card.dart';
 import '../models/dataentry.dart';
 import '../models/db_helper.dart';
 import '../models/provider_helper.dart';
 import '../models/theme_provider.dart';
 import '../pages/walletdetails.dart';
 
-// -----------------------------------------------------------------------------
-// Simplified Card Design Component
-// -----------------------------------------------------------------------------
-class SimpleCard extends StatelessWidget {
-  final String cardHolderName;
-  final String cardNumber;
-  final String expiryDate;
-  final String network;
-  final bool isMasked;
-  final String lastFourDigits;
-  final VoidCallback onTap;
-  final VoidCallback onCopy;
-
-  const SimpleCard({
-    super.key,
-    required this.cardHolderName,
-    required this.cardNumber,
-    required this.expiryDate,
-    required this.network,
-    required this.isMasked,
-    required this.lastFourDigits,
-    required this.onTap,
-    required this.onCopy,
-  });
-
-  // Helper to determine a basic background color based on network
-  Color _getCardColor(String networkType) {
-    switch (networkType.toLowerCase()) {
-      case 'rupay':
-        return Colors.pinkAccent.shade700;
-      case 'visa':
-        return Colors.cyan.shade700;
-      case 'mastercard':
-        return Colors.deepOrange.shade700;
-      default:
-        return Colors.black; // Default dark color
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cardColor = _getCardColor(network);
-    final themeProvider = Provider.of<ThemeProvider>(context);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        padding: const EdgeInsets.all(20),
-        height: MediaQuery.of(context).size.height * 0.250,
-        decoration: BoxDecoration(
-          color: cardColor, // Simple solid color background
-          borderRadius: BorderRadius.circular(12), // Slightly rounded corners
-          boxShadow: [
-            BoxShadow(
-              color: themeProvider.isDarkMode
-                  ? Colors.black.withValues(alpha: 0.3)
-                  : Colors.grey.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: Text(
-                    cardHolderName,
-                    style: themeProvider.getTextStyle(
-                      fontSize: 20,
-                      color: Colors.white,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const Icon(
-                  Icons.wifi, // Generic card icon
-                  color: Colors.white,
-                  size: 30,
-                ),
-              ],
-            ),
-            GestureDetector(
-              onTap: onCopy,
-              child: Text(
-                isMasked ? "XXXX XXXX XXXX $lastFourDigits" : cardNumber,
-                style: TextStyle(
-                  fontFamily:
-                      'ZSpace', // Assuming ZSpace is a monospace-like font
-                  fontSize: 22,
-                  color: Colors.white,
-                  letterSpacing: 1.5,
-                ),
-              ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  isMasked ? "MM/YY" : expiryDate,
-                  style: const TextStyle(
-                    fontFamily: 'ZSpace',
-                    fontSize: 16,
-                    color: Colors.white70,
-                  ),
-                ),
-                Image.asset(
-                  "assets/network/$network.png",
-                  height: 35,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    // Fallback for missing network images
-                    return Text(
-                      network.toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// -----------------------------------------------------------------------------
-// HomeScreen - Your main screen with integrated standard cards and filters
-// -----------------------------------------------------------------------------
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -160,122 +26,94 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _selectedFilter = 'all'; // Default filter
+  String _selectedFilter = 'all';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<WalletProvider>().fetchWallets();
+    });
+  }
+
+  Future<void> launchUrlCustom(Uri url) async {
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $url');
+    }
+  }
+
+  void removeData(BuildContext context, int id) {
+    DatabaseHelper.instance.deleteWallet(id).then((_) {
+      if (mounted) {
+        context.read<WalletProvider>().fetchWallets();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Card Deleted',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSecondary,
+              ),
+            ),
+            backgroundColor: Theme.of(context).colorScheme.secondary,
+          ),
+        );
+      }
+    });
+  }
+
+  void copyToClipboard(String text) {
+    Clipboard.setData(ClipboardData(text: text)).then((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Card number copied',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSecondary,
+              ),
+            ),
+            backgroundColor: Theme.of(context).colorScheme.secondary,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Fetch wallets when the screen is first built
-    context.read<WalletProvider>().fetchWallets();
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final walletProvider = Provider.of<WalletProvider>(context);
 
-    Future<void> launchUrlCustom(Uri url) async {
-      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-        throw Exception('Could not launch $url');
-      }
-    }
-
-    void removeData(BuildContext context, int id) async {
-      await DatabaseHelper.instance.deleteWallet(id);
-      if (mounted) {
-        context.read<WalletProvider>().fetchWallets(); // Refresh wallet list
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Card Deleted')));
-      }
-    }
-
-    void copyToClipboard(String text) {
-      Clipboard.setData(ClipboardData(text: text))
-          .then((_) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Copied Card Details'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            }
-          })
-          .catchError((e) {
-            // Handle error silently or use a proper logging framework
-          });
-    }
-
-    String formatCardNumber(String input) {
-      StringBuffer result = StringBuffer();
-      int count = 0;
-
-      for (int i = 0; i < input.length; i++) {
-        result.write(input[i]);
-        count++;
-
-        if (count == 4 && i != input.length - 1) {
-          result.write(' ');
-          count = 0;
-        }
-      }
-
-      return result.toString();
-    }
-
-    String formatExpiryNumber(String input) {
-      StringBuffer result = StringBuffer();
-      int count = 0;
-
-      for (int i = 0; i < input.length; i++) {
-        result.write(input[i]);
-        count++;
-
-        if (count == 2 && i != input.length - 1) {
-          result.write(' / ');
-          count = 0;
-        }
-      }
-
-      return result.toString();
-    }
+    List<Wallet> filteredWallets = walletProvider.wallets.where((wallet) {
+      if (_selectedFilter == 'all') return true;
+      return wallet.network?.toLowerCase() == _selectedFilter;
+    }).toList();
 
     return Scaffold(
       appBar: AppBar(
-        forceMaterialTransparency: true,
-        title: Icon(Icons.wallet, size: 34, color: themeProvider.primaryColor),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
+        title: Icon(
+          Icons.wallet_outlined,
+          size: 34,
+          color: Theme.of(context).appBarTheme.foregroundColor,
+        ),
       ),
       drawer: Drawer(
-        backgroundColor: themeProvider.backgroundColor,
         child: ListView(
-          padding: const EdgeInsets.all(0),
+          padding: EdgeInsets.zero,
           children: <Widget>[
             const SizedBox(height: 100),
             ListTile(
-              leading: Icon(
-                Icons.fingerprint,
-                color: themeProvider.secondaryColor,
-              ),
-              title: Text(
-                'Identity Cards',
-                style: themeProvider.getTextStyle(),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const IdentityScreen(),
-                  ),
-                );
-              },
+              leading: const Icon(Icons.credit_card),
+              title: Text('Credit Cards', style: themeProvider.getTextStyle()),
+              onTap: () => Navigator.pop(context),
             ),
             ListTile(
-              leading: Icon(
-                Icons.shopping_basket,
-                color: themeProvider.secondaryColor,
-              ),
+              leading: const Icon(Icons.shopping_basket_outlined),
               title: Text('Loyalty Cards', style: themeProvider.getTextStyle()),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
                     builder: (context) => const LoyaltyScreen(),
@@ -283,25 +121,37 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-            Divider(color: themeProvider.borderColor),
-
             ListTile(
-              leading: Icon(Icons.list, color: themeProvider.secondaryColor),
+              leading: const Icon(Icons.fingerprint),
+              title: Text(
+                'Identity Cards',
+                style: themeProvider.getTextStyle(),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const IdentityScreen(),
+                  ),
+                );
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.summarize_outlined),
               title: Text('Summary', style: themeProvider.getTextStyle()),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => Summary()),
+                  MaterialPageRoute(builder: (context) => const Summary()),
                 );
               },
             ),
-            Divider(color: themeProvider.borderColor),
+            const Divider(),
             ListTile(
-              leading: Icon(
-                Icons.settings,
-                color: themeProvider.secondaryColor,
-              ),
+              leading: const Icon(Icons.settings_outlined),
               title: Text('Settings', style: themeProvider.getTextStyle()),
               onTap: () {
                 Navigator.pop(context);
@@ -311,255 +161,176 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-
-            Divider(color: themeProvider.borderColor),
+            const Divider(),
             ListTile(
+              leading: const Icon(Icons.star_outline),
               title: Text(
                 "Donate on Github",
                 style: themeProvider.getTextStyle(),
               ),
-              subtitle: Text(
-                "Leave a Star on Repo",
-                style: themeProvider.getTextStyle(
-                  fontSize: 14,
-                  color: themeProvider.secondaryColor,
-                ),
+              onTap: () => launchUrlCustom(
+                Uri.parse("https://github.com/sidhant947/Wallet"),
               ),
-              leading: Icon(Icons.star),
-              onTap: () {
-                launchUrlCustom(
-                  Uri.parse("https://github.com/sidhant947/Wallet"),
-                );
-              },
             ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          var result = await Navigator.push(
+          final result = await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const DataEntryScreen()),
           );
-
-          if (result != null) {
-            // After adding a card, update the wallet list in the provider
-            if (mounted) {
-              context
-                  .read<WalletProvider>()
-                  .fetchWallets(); // Refresh wallet list
-            }
+          if (result == true && mounted) {
+            context.read<WalletProvider>().fetchWallets();
           }
         },
-        backgroundColor: themeProvider.accentColor,
-        child: Icon(
-          Icons.add_card,
-          color: themeProvider.isDarkMode ? Colors.white : Colors.white,
-        ),
+        child: const Icon(Icons.add),
       ),
-      body: Consumer<WalletProvider>(
-        builder: (context, provider, child) {
-          // Filter the wallets based on the selected filter
-          List<Wallet> filteredWallets = provider.wallets.where((wallet) {
-            if (_selectedFilter == 'all') {
-              return true;
-            } else if (_selectedFilter == 'other') {
-              return ![
-                'visa',
-                'mastercard',
-                'rupay',
-                'amex',
-                'discover',
-              ].contains(wallet.network?.toLowerCase());
-            } else {
-              return wallet.network?.toLowerCase() == _selectedFilter;
-            }
-          }).toList();
-
-          if (provider.wallets.isEmpty) {
-            return Center(child: Lottie.asset("assets/loading.json"));
-          }
-
-          return Column(
-            children: [
-              // Filter options - now wrapped in a SingleChildScrollView
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 10.0,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment<String>(value: 'all', label: Text('ALL')),
+                  ButtonSegment<String>(value: 'visa', label: Text('VISA')),
+                  ButtonSegment<String>(
+                    value: 'mastercard',
+                    label: Text('MASTERCARD'),
+                  ),
+                  ButtonSegment<String>(value: 'rupay', label: Text('RUPAY')),
+                  ButtonSegment<String>(value: 'amex', label: Text('AMEX')),
+                  ButtonSegment<String>(
+                    value: 'discover',
+                    label: Text('DISCOVER'),
+                  ),
+                ],
+                showSelectedIcon: false,
+                selected: <String>{_selectedFilter},
+                onSelectionChanged: (Set<String> newSelection) {
+                  setState(() => _selectedFilter = newSelection.first);
+                },
+                style: SegmentedButton.styleFrom(
+                  // This textStyle applies the Bebas font to all segments
+                  textStyle: const TextStyle(fontFamily: 'Bebas', fontSize: 14),
+                  backgroundColor: Theme.of(context).cardColor,
+                  side: BorderSide(color: Colors.grey.withOpacity(0.2)),
+                  foregroundColor: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.color?.withOpacity(0.7),
+                  selectedForegroundColor: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary,
+                  selectedBackgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primary,
                 ),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SegmentedButton<String>(
-                    segments: const <ButtonSegment<String>>[
-                      ButtonSegment<String>(
-                        value: 'all',
-                        label: Text('All', softWrap: false), // Prevent wrapping
-                      ),
-                      ButtonSegment<String>(
-                        value: 'visa',
-                        label: Text(
-                          'Visa',
-                          softWrap: false,
-                        ), // Prevent wrapping
-                      ),
-                      ButtonSegment<String>(
-                        value: 'mastercard',
-                        label: Text(
-                          'Mastercard',
-                          softWrap: false,
-                        ), // Prevent wrapping
-                      ),
-                      ButtonSegment<String>(
-                        value: 'rupay',
-                        label: Text(
-                          'Rupay',
-                          softWrap: false,
-                        ), // Prevent wrapping
-                      ),
-                      ButtonSegment<String>(
-                        value: 'amex',
-                        label: Text(
-                          'Amex',
-                          softWrap: false,
-                        ), // Prevent wrapping
-                      ),
-                      ButtonSegment<String>(
-                        value: 'discover',
-                        label: Text(
-                          'Discover',
-                          softWrap: false,
-                        ), // Prevent wrapping
-                      ),
-                    ],
-                    selected: <String>{_selectedFilter},
-                    onSelectionChanged: (Set<String> newSelection) {
-                      setState(() {
-                        _selectedFilter = newSelection.first;
-                      });
-                    },
-                    showSelectedIcon: false,
-                    style: SegmentedButton.styleFrom(
-                      foregroundColor: themeProvider.primaryColor,
-                      selectedForegroundColor: themeProvider.isDarkMode
-                          ? Colors.black
-                          : Colors.white,
-                      selectedBackgroundColor: themeProvider.primaryColor,
-                      side: BorderSide(
-                        color: themeProvider.borderColor,
-                        width: 0.8,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      // Fixed minimum size for each button
-                      minimumSize: const Size(
-                        100,
-                        40,
-                      ), // Example: Width 100, Height 40
-                      // No explicit padding here, letting minimumSize control the box
+              ),
+            ),
+          ),
+          Expanded(
+            child: filteredWallets.isEmpty
+                ? Center(
+                    child: walletProvider.wallets.isEmpty
+                        ? Lottie.asset("assets/empty.json", width: 200)
+                        : Text(
+                            'No cards match this filter.',
+                            style: themeProvider.getTextStyle(
+                              color: Colors.grey,
+                            ),
+                          ),
+                  )
+                : AnimationLimiter(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.only(top: 8, bottom: 80),
+                      itemCount: filteredWallets.length,
+                      itemBuilder: (context, index) {
+                        var wallet = filteredWallets[index];
+                        return AnimationConfiguration.staggeredList(
+                          position: index,
+                          duration: const Duration(milliseconds: 500),
+                          child: SlideAnimation(
+                            verticalOffset: 50.0,
+                            child: FadeInAnimation(
+                              // ** FIXED ** Wrapped the Slidable in a SizedBox for fixed height
+                              child: SizedBox(
+                                height:
+                                    235, // Adjust this value to fit your card perfectly
+                                child: Slidable(
+                                  key: ValueKey(wallet.id),
+                                  startActionPane: ActionPane(
+                                    motion: const DrawerMotion(),
+                                    extentRatio: 0.25,
+                                    children: [
+                                      SlidableAction(
+                                        onPressed: (_) => walletProvider
+                                            .toggleMask(wallet.id!),
+                                        backgroundColor: Theme.of(
+                                          context,
+                                        ).colorScheme.secondary,
+                                        foregroundColor: Theme.of(
+                                          context,
+                                        ).colorScheme.onSecondary,
+                                        icon:
+                                            walletProvider.isMasked(wallet.id!)
+                                            ? Icons.visibility_outlined
+                                            : Icons.visibility_off_outlined,
+                                        borderRadius: const BorderRadius.only(
+                                          topLeft: Radius.circular(20),
+                                          bottomLeft: Radius.circular(20),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  endActionPane: ActionPane(
+                                    motion: const DrawerMotion(),
+                                    extentRatio: 0.25,
+                                    children: [
+                                      SlidableAction(
+                                        onPressed: (_) =>
+                                            removeData(context, wallet.id!),
+                                        backgroundColor: Theme.of(
+                                          context,
+                                        ).colorScheme.error,
+                                        foregroundColor: Colors.white,
+                                        icon: Icons.delete_outline,
+                                        borderRadius: const BorderRadius.only(
+                                          topRight: Radius.circular(20),
+                                          bottomRight: Radius.circular(20),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  child: GlassCreditCard(
+                                    wallet: wallet,
+                                    isMasked: walletProvider.isMasked(
+                                      wallet.id!,
+                                    ),
+                                    onCardTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            WalletDetailScreen(wallet: wallet),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
-                ),
-              ),
-              Expanded(
-                child: filteredWallets.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No ${_selectedFilter == 'all' ? '' : _selectedFilter} cards found.',
-                          style: themeProvider.getTextStyle(
-                            fontSize: 16,
-                            color: themeProvider.secondaryColor,
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: filteredWallets.length,
-                        scrollDirection: Axis.vertical,
-                        itemBuilder: (context, index) {
-                          var wallet =
-                              filteredWallets[index]; // Use filteredWallets
-
-                          String formattedNumber = formatCardNumber(
-                            wallet.number,
-                          );
-
-                          String masknumber = wallet.number.substring(
-                            wallet.number.length - 4,
-                          );
-
-                          String formattedExpiry = formatExpiryNumber(
-                            wallet.expiry,
-                          );
-
-                          return Slidable(
-                            key: ValueKey(wallet.id),
-                            endActionPane: ActionPane(
-                              motion: const ScrollMotion(),
-                              children: [
-                                SlidableAction(
-                                  onPressed: (BuildContext context) {
-                                    removeData(context, wallet.id!);
-                                  },
-                                  backgroundColor: Colors.transparent,
-                                  foregroundColor: themeProvider.primaryColor,
-                                  icon: Icons.delete,
-                                  label: 'Delete',
-                                ),
-                              ],
-                            ),
-                            startActionPane: ActionPane(
-                              motion: const ScrollMotion(),
-                              children: [
-                                SlidableAction(
-                                  onPressed: (BuildContext context) {
-                                    provider.toggleMask(
-                                      wallet.id!,
-                                    ); // Toggle the mask
-                                  },
-                                  backgroundColor: Colors.transparent,
-                                  foregroundColor: themeProvider.primaryColor,
-                                  icon: provider.isMasked(wallet.id!)
-                                      ? Icons.visibility
-                                      : Icons.visibility_off_rounded,
-                                  label: provider.isMasked(wallet.id!)
-                                      ? "Show"
-                                      : "Hide",
-                                ),
-                              ],
-                            ),
-                            child: SimpleCard(
-                              // Changed to SimpleCard
-                              cardHolderName: wallet.name,
-                              cardNumber: formattedNumber,
-                              expiryDate: formattedExpiry,
-                              network: wallet.network ?? "N/A",
-                              isMasked: provider.isMasked(wallet.id!),
-                              lastFourDigits: masknumber,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        WalletDetailScreen(wallet: wallet),
-                                  ),
-                                );
-                              },
-                              onCopy: () {
-                                copyToClipboard(wallet.number);
-                              },
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          );
-        },
+          ),
+        ],
       ),
     );
   }
 }
-
-// NOTE: _FuturisticPatternPainter is no longer used, can be removed if desired
-// if no other part of your app uses it.

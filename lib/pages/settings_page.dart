@@ -1,3 +1,5 @@
+// lib/pages/settings_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/theme_provider.dart';
@@ -11,171 +13,92 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final walletProvider = Provider.of<WalletProvider>(context);
     final startupProvider = Provider.of<StartupSettingsProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Settings',
-          style: themeProvider.getTextStyle(fontSize: 20),
-        ),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: ListView(
+        padding: const EdgeInsets.all(16.0),
         children: [
-          // Startup Settings Section
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Startup Settings',
-              style: themeProvider.getTextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+          // --- Startup Settings Section ---
+          _SettingsSection(
+            title: 'Startup',
+            children: [
+              _SettingsTile(
+                icon: Icons.shield_outlined,
+                title: 'Authentication Screen',
+                subtitle: 'Require biometrics when app starts',
+                trailing: Switch(
+                  value: startupProvider.showAuthenticationScreen,
+                  onChanged: (_) {
+                    startupProvider.toggleAuthenticationScreen();
+                  },
+                ),
               ),
-            ),
+              _SettingsTile(
+                icon: Icons.web_asset_outlined,
+                title: 'Default Screen',
+                subtitle: startupProvider.getScreenDisplayName(
+                  startupProvider.defaultScreen,
+                ),
+                onTap: () => _showDefaultScreenDialog(
+                  context,
+                  themeProvider,
+                  startupProvider,
+                ),
+              ),
+            ],
           ),
 
-          SwitchListTile(
-            title: Text(
-              'Show Authentication Screen',
-              style: themeProvider.getTextStyle(fontSize: 16),
-            ),
-            subtitle: Text(
-              'Require authentication when app starts',
-              style: themeProvider.getTextStyle(
-                fontSize: 14,
-                color: themeProvider.secondaryColor,
+          // --- Theme Settings Section ---
+          _SettingsSection(
+            title: 'Appearance',
+            children: [
+              _SettingsTile(
+                icon: Icons.dark_mode_outlined,
+                title: 'Dark Mode',
+                subtitle: 'Toggle between light and dark themes',
+                trailing: Switch(
+                  value: themeProvider.isDarkMode,
+                  onChanged: (_) {
+                    themeProvider.toggleTheme();
+                  },
+                ),
               ),
-            ),
-            value: startupProvider.showAuthenticationScreen,
-            activeThumbColor: themeProvider.accentColor,
-            onChanged: (value) {
-              startupProvider.toggleAuthenticationScreen();
-            },
+              _SettingsTile(
+                icon: Icons.font_download_outlined,
+                title: 'Use System Font',
+                subtitle: 'Use the default system font',
+                trailing: Switch(
+                  value: themeProvider.useSystemFont,
+                  onChanged: (_) {
+                    themeProvider.toggleFont();
+                  },
+                ),
+              ),
+            ],
           ),
 
-          ListTile(
-            title: Text(
-              'Default Screen',
-              style: themeProvider.getTextStyle(fontSize: 16),
-            ),
-            subtitle: Text(
-              'Choose which screen to show after startup: ${startupProvider.getScreenDisplayName(startupProvider.defaultScreen)}',
-              style: themeProvider.getTextStyle(
-                fontSize: 14,
-                color: themeProvider.secondaryColor,
+          // --- Backup & Restore Section ---
+          _SettingsSection(
+            title: 'Data Management',
+            children: [
+              _SettingsTile(
+                icon: Icons.backup_outlined,
+                title: 'Create Backup',
+                subtitle: 'Save an encrypted copy of your data',
+                onTap: () => _showBackupDialog(context, themeProvider),
               ),
-            ),
-            trailing: Icon(
-              Icons.arrow_forward_ios,
-              color: themeProvider.secondaryColor,
-              size: 16,
-            ),
-            onTap: () => _showDefaultScreenDialog(
-              context,
-              themeProvider,
-              startupProvider,
-            ),
-          ),
-
-          // Divider
-          Divider(color: themeProvider.borderColor),
-
-          // Theme Settings Section
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Theme Settings',
-              style: themeProvider.getTextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+              _SettingsTile(
+                icon: Icons.restore_outlined,
+                title: 'Restore from Backup',
+                subtitle: 'Replace current data from a backup file',
+                onTap: () {
+                  final walletProvider = context.read<WalletProvider>();
+                  _showRestoreDialog(context, themeProvider, walletProvider);
+                },
               ),
-            ),
-          ),
-
-          SwitchListTile(
-            title: Text(
-              'Dark Mode',
-              style: themeProvider.getTextStyle(fontSize: 16),
-            ),
-            subtitle: Text(
-              'Toggle between light and dark themes',
-              style: themeProvider.getTextStyle(
-                fontSize: 14,
-                color: themeProvider.secondaryColor,
-              ),
-            ),
-            value: themeProvider.isDarkMode,
-            activeThumbColor: themeProvider.accentColor,
-            onChanged: (value) {
-              themeProvider.toggleTheme();
-            },
-          ),
-          SwitchListTile(
-            title: Text(
-              'Use System Font',
-              style: themeProvider.getTextStyle(fontSize: 16),
-            ),
-            subtitle: Text(
-              'Use system default font instead of custom font',
-              style: themeProvider.getTextStyle(
-                fontSize: 14,
-                color: themeProvider.secondaryColor,
-              ),
-            ),
-            value: themeProvider.useSystemFont,
-            activeThumbColor: themeProvider.accentColor,
-            onChanged: (value) {
-              themeProvider.toggleFont();
-            },
-          ),
-
-          // Divider
-          Divider(color: themeProvider.borderColor),
-
-          // Backup & Restore Section
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Backup & Restore',
-              style: themeProvider.getTextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-
-          ListTile(
-            leading: Icon(Icons.backup, color: themeProvider.accentColor),
-            title: Text(
-              'Create Backup',
-              style: themeProvider.getTextStyle(fontSize: 16),
-            ),
-            subtitle: Text(
-              'Export all your data to an encrypted backup file',
-              style: themeProvider.getTextStyle(
-                fontSize: 14,
-                color: themeProvider.secondaryColor,
-              ),
-            ),
-            onTap: () => _showBackupDialog(context, themeProvider),
-          ),
-
-          ListTile(
-            leading: Icon(Icons.restore, color: themeProvider.accentColor),
-            title: Text(
-              'Restore Backup',
-              style: themeProvider.getTextStyle(fontSize: 16),
-            ),
-            subtitle: Text(
-              'Import data from an encrypted backup file',
-              style: themeProvider.getTextStyle(
-                fontSize: 14,
-                color: themeProvider.secondaryColor,
-              ),
-            ),
-            onTap: () =>
-                _showRestoreDialog(context, themeProvider, walletProvider),
+            ],
           ),
         ],
       ),
@@ -190,36 +113,19 @@ class SettingsPage extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: themeProvider.backgroundColor,
-        title: Text(
-          'Choose Default Screen',
-          style: themeProvider.getTextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: const Text('Choose Default Screen'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: StartupScreen.values.map((screen) {
-            return ListTile(
-              title: Text(
-                startupProvider.getScreenDisplayName(screen),
-                style: themeProvider.getTextStyle(fontSize: 16),
-              ),
-              leading: Radio<StartupScreen>(
-                value: screen,
-                groupValue: startupProvider.defaultScreen,
-                activeColor: themeProvider.accentColor,
-                onChanged: (StartupScreen? value) {
-                  if (value != null) {
-                    startupProvider.setDefaultScreen(value);
-                    Navigator.pop(context);
-                  }
-                },
-              ),
-              onTap: () {
-                startupProvider.setDefaultScreen(screen);
-                Navigator.pop(context);
+            return RadioListTile<StartupScreen>(
+              title: Text(startupProvider.getScreenDisplayName(screen)),
+              value: screen,
+              groupValue: startupProvider.defaultScreen,
+              onChanged: (StartupScreen? value) {
+                if (value != null) {
+                  startupProvider.setDefaultScreen(value);
+                  Navigator.pop(context);
+                }
               },
             );
           }).toList(),
@@ -227,13 +133,7 @@ class SettingsPage extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: themeProvider.getTextStyle(
-                fontSize: 14,
-                color: themeProvider.secondaryColor,
-              ),
-            ),
+            child: const Text('Cancel'),
           ),
         ],
       ),
@@ -242,121 +142,39 @@ class SettingsPage extends StatelessWidget {
 
   void _showBackupDialog(BuildContext context, ThemeProvider themeProvider) {
     final passwordController = TextEditingController();
-    bool isLoading = false;
-
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          backgroundColor: themeProvider.backgroundColor,
-          title: Text(
-            'Create Backup',
-            style: themeProvider.getTextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Enter a password to encrypt your backup:',
-                style: themeProvider.getTextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                style: themeProvider.getTextStyle(fontSize: 16),
-                decoration: InputDecoration(
-                  labelText: 'Encryption Password',
-                  labelStyle: themeProvider.getTextStyle(
-                    fontSize: 14,
-                    color: themeProvider.secondaryColor,
-                  ),
-                  border: OutlineInputBorder(
-                    borderSide: BorderSide(color: themeProvider.borderColor),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: themeProvider.borderColor),
-                  ),
+      builder: (context) => _PasswordDialog(
+        title: 'Create Backup',
+        content:
+            'Enter a strong password to encrypt your backup file. Do not forget this password.',
+        buttonText: 'Create Backup',
+        passwordController: passwordController,
+        onConfirm: () async {
+          if (passwordController.text.isEmpty) return;
+          try {
+            final backupPath = await BackupService.createBackup(
+              passwordController.text,
+            );
+            if (!context.mounted) return;
+            Navigator.pop(context); // Close dialog on success
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Backup created successfully! Saved to: $backupPath',
                 ),
+                backgroundColor: Colors.green,
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: isLoading ? null : () => Navigator.pop(context),
-              child: Text(
-                'Cancel',
-                style: themeProvider.getTextStyle(
-                  fontSize: 14,
-                  color: themeProvider.secondaryColor,
-                ),
+            );
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Backup failed: $e'),
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
-            ),
-            ElevatedButton(
-              onPressed: isLoading
-                  ? null
-                  : () async {
-                      if (passwordController.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Please enter a password'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        return;
-                      }
-
-                      setState(() => isLoading = true);
-
-                      try {
-                        final backupPath = await BackupService.createBackup(
-                          passwordController.text,
-                        );
-                        Navigator.pop(context);
-
-                        if (backupPath != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Backup created successfully!\nSaved to: $backupPath',
-                              ),
-                              backgroundColor: Colors.green,
-                              duration: const Duration(seconds: 4),
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        setState(() => isLoading = false);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Backup failed: $e'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: themeProvider.accentColor,
-              ),
-              child: isLoading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(
-                      'Create Backup',
-                      style: themeProvider.getTextStyle(
-                        fontSize: 14,
-                        color: Colors.white,
-                      ),
-                    ),
-            ),
-          ],
-        ),
+            );
+          }
+        },
       ),
     );
   }
@@ -367,117 +185,183 @@ class SettingsPage extends StatelessWidget {
     WalletProvider walletProvider,
   ) {
     final passwordController = TextEditingController();
-    bool isLoading = false;
-
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          backgroundColor: themeProvider.backgroundColor,
-          title: Text(
-            'Restore Backup',
-            style: themeProvider.getTextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'This will replace all current data with the backup data. Enter the password used to encrypt the backup:',
-                style: themeProvider.getTextStyle(fontSize: 14),
+      builder: (context) => _PasswordDialog(
+        title: 'Restore Backup',
+        content:
+            'This will replace all current data. Enter the password for the backup file.',
+        buttonText: 'Restore & Overwrite',
+        isDestructive: true,
+        passwordController: passwordController,
+        onConfirm: () async {
+          if (passwordController.text.isEmpty) return;
+          try {
+            await BackupService.restoreBackup(passwordController.text);
+            await walletProvider.fetchWallets(); // Refresh data
+            if (!context.mounted) return;
+            Navigator.pop(context); // Close dialog on success
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Backup restored successfully!'),
+                backgroundColor: Colors.green,
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                style: themeProvider.getTextStyle(fontSize: 16),
-                decoration: InputDecoration(
-                  labelText: 'Backup Password',
-                  labelStyle: themeProvider.getTextStyle(
-                    fontSize: 14,
-                    color: themeProvider.secondaryColor,
-                  ),
-                  border: OutlineInputBorder(
-                    borderSide: BorderSide(color: themeProvider.borderColor),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: themeProvider.borderColor),
-                  ),
-                ),
+            );
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Restore failed: $e'),
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: isLoading ? null : () => Navigator.pop(context),
-              child: Text(
-                'Cancel',
-                style: themeProvider.getTextStyle(
-                  fontSize: 14,
-                  color: themeProvider.secondaryColor,
-                ),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: isLoading
-                  ? null
-                  : () async {
-                      if (passwordController.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Please enter the backup password'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        return;
-                      }
-
-                      setState(() => isLoading = true);
-
-                      try {
-                        await BackupService.restoreBackup(
-                          passwordController.text,
-                        );
-                        await walletProvider
-                            .fetchWallets(); // Refresh the wallet list
-                        Navigator.pop(context);
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Backup restored successfully!'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      } catch (e) {
-                        setState(() => isLoading = false);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Restore failed: $e'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-              child: isLoading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(
-                      'Restore Backup',
-                      style: themeProvider.getTextStyle(
-                        fontSize: 14,
-                        color: Colors.white,
-                      ),
-                    ),
-            ),
-          ],
-        ),
+            );
+          }
+        },
       ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// HELPER WIDGETS FOR SETTINGS UI
+// -----------------------------------------------------------------------------
+
+class _SettingsSection extends StatelessWidget {
+  final String title;
+  final List<Widget> children;
+  const _SettingsSection({required this.title, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 8.0),
+          child: Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodySmall?.color,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(children: children),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+}
+
+class _SettingsTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  const _SettingsTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.trailing,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      onTap: onTap,
+      leading: Icon(icon),
+      title: Text(title),
+      subtitle: Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+      trailing:
+          trailing ??
+          (onTap != null
+              ? const Icon(Icons.arrow_forward_ios, size: 16)
+              : null),
+    );
+  }
+}
+
+class _PasswordDialog extends StatefulWidget {
+  final String title;
+  final String content;
+  final String buttonText;
+  final bool isDestructive;
+  final TextEditingController passwordController;
+  final Future<void> Function() onConfirm;
+
+  const _PasswordDialog({
+    required this.title,
+    required this.content,
+    required this.buttonText,
+    this.isDestructive = false,
+    required this.passwordController,
+    required this.onConfirm,
+  });
+
+  @override
+  State<_PasswordDialog> createState() => _PasswordDialogState();
+}
+
+class _PasswordDialogState extends State<_PasswordDialog> {
+  bool _isLoading = false;
+
+  void _handleConfirm() async {
+    setState(() => _isLoading = true);
+    await widget.onConfirm();
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(widget.content),
+          const SizedBox(height: 16),
+          TextField(
+            controller: widget.passwordController,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Password'),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _isLoading ? null : _handleConfirm,
+          style: FilledButton.styleFrom(
+            backgroundColor: widget.isDestructive
+                ? Theme.of(context).colorScheme.error
+                : null,
+          ),
+          child: _isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(widget.buttonText),
+        ),
+      ],
     );
   }
 }

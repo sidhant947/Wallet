@@ -1,9 +1,19 @@
+// lib/models/dataentry.dart
+
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:lottie/lottie.dart';
+import 'package:provider/provider.dart';
+import 'package:wallet/models/theme_provider.dart';
+import 'package:wallet/widgets/glass_credit_card.dart'; // Import the shared GlassCreditCard
 import 'db_helper.dart';
 
+// Enum to define the type of card we are creating
+enum BarcodeCardType { identity, loyalty }
+
+// -----------------------------------------------------------------------------
+// CREDIT CARD DATA ENTRY SCREEN (WITH LIVE PREVIEW)
+// -----------------------------------------------------------------------------
 class DataEntryScreen extends StatefulWidget {
   const DataEntryScreen({super.key});
 
@@ -12,92 +22,65 @@ class DataEntryScreen extends StatefulWidget {
 }
 
 class _DataEntryScreenState extends State<DataEntryScreen> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _numberController = TextEditingController();
-  final TextEditingController _expiryController = TextEditingController();
-  final TextEditingController _issuerController = TextEditingController();
-  String _network = "rupay";
-
   final _formKey = GlobalKey<FormState>();
 
-  final List<TextEditingController> _customFieldNameControllers = [];
-  final List<TextEditingController> _customFieldValueControllers = [];
+  final _nameController = TextEditingController();
+  final _numberController = TextEditingController();
+  final _expiryController = TextEditingController();
+  final _issuerController = TextEditingController();
+  String _network = "visa"; // Default to a common network
 
-  String formatCardNumber(String input) {
-    StringBuffer result = StringBuffer();
-    int count = 0;
+  final _customFieldNameControllers = <TextEditingController>[];
+  final _customFieldValueControllers = <TextEditingController>[];
 
-    for (int i = 0; i < input.length; i++) {
-      result.write(input[i]);
-      count++;
-
-      if (count == 4 && i != input.length - 1) {
-        result.write('  ');
-        count = 0;
-      }
-    }
-
-    return result.toString();
+  @override
+  void initState() {
+    super.initState();
+    // Add listeners to update the UI on text change
+    _nameController.addListener(() => setState(() {}));
+    _numberController.addListener(() => setState(() {}));
+    _expiryController.addListener(() => setState(() {}));
   }
 
-  String formatExpiryNumber(String input) {
-    StringBuffer result = StringBuffer();
-    int count = 0;
-
-    for (int i = 0; i < input.length; i++) {
-      result.write(input[i]);
-      count++;
-
-      if (count == 2 && i != input.length - 1) {
-        result.write(' / ');
-        count = 0;
-      }
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _numberController.dispose();
+    _expiryController.dispose();
+    _issuerController.dispose();
+    for (var controller in _customFieldNameControllers) {
+      controller.dispose();
     }
-
-    return result.toString();
+    for (var controller in _customFieldValueControllers) {
+      controller.dispose();
+    }
+    super.dispose();
   }
 
   void _addData() async {
-    String name = _nameController.text;
-    String number = _numberController.text;
-    String expiry = _expiryController.text;
-    String issuer = _issuerController.text;
-
-    Map<String, String> customFields = {};
-    for (int i = 0; i < _customFieldNameControllers.length; i++) {
-      String fieldName = _customFieldNameControllers[i].text;
-      String fieldValue = _customFieldValueControllers[i].text;
-      if (fieldName.isNotEmpty && fieldValue.isNotEmpty) {
-        customFields[fieldName] = fieldValue;
+    if (_formKey.currentState!.validate()) {
+      Map<String, String> customFields = {};
+      for (int i = 0; i < _customFieldNameControllers.length; i++) {
+        String fieldName = _customFieldNameControllers[i].text;
+        String fieldValue = _customFieldValueControllers[i].text;
+        if (fieldName.isNotEmpty && fieldValue.isNotEmpty) {
+          customFields[fieldName] = fieldValue;
+        }
       }
-    }
 
-    // Ensure that card number and expiry are valid
-    if (number.length > 14 && expiry.length == 4) {
-      if (name.isNotEmpty) {
-        Wallet wallet = Wallet(
-          name: name,
-          number: number,
-          expiry: expiry,
-          network: _network,
-          issuer: issuer,
-          customFields: customFields,
-        );
-        await DatabaseHelper.instance.insertWallet(
-          wallet,
-        ); // Assuming you have a database helper to insert the wallet
+      Wallet wallet = Wallet(
+        name: _nameController.text,
+        number: _numberController.text,
+        expiry: _expiryController.text,
+        network: _network,
+        issuer: _issuerController.text,
+        customFields: customFields.isNotEmpty ? customFields : null,
+      );
+      await DatabaseHelper.instance.insertWallet(wallet);
 
+      if (mounted) {
         Navigator.pop(context, true);
       }
-    } else {
-      // Show a message if the card number or expiry is not valid
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Card number must be 16 digits and expiry must be 4 digits',
-          ),
-        ),
-      );
     }
   }
 
@@ -110,6 +93,8 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
 
   void _removeCustomField(int index) {
     setState(() {
+      _customFieldNameControllers[index].dispose();
+      _customFieldValueControllers[index].dispose();
       _customFieldNameControllers.removeAt(index);
       _customFieldValueControllers.removeAt(index);
     });
@@ -117,193 +102,134 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
+    // Create a dummy wallet for the preview
+    final previewWallet = Wallet(
+      name: _nameController.text.isEmpty ? "CARDHOLDER" : _nameController.text,
+      number: _numberController.text.padRight(16, '•'),
+      expiry: _expiryController.text.padRight(4, '•'),
+      network: _network,
+    );
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Save New Card',
-          style: TextStyle(fontFamily: 'Bebas', fontSize: 30),
-        ),
-        centerTitle: true,
-        forceMaterialTransparency: true,
-      ),
-      body: ListView(
-        children: [
-          _nameController.text.isEmpty &&
-                  _expiryController.text.isEmpty &&
-                  _numberController.text.isEmpty
-              ? Container(
-                  margin: EdgeInsets.all(20),
-                  height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.deepPurple, width: 2),
-                  ),
-                  child: Lottie.asset("assets/card.json"),
-                )
-              : Container(
-                  margin: EdgeInsets.all(20),
-                  height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.deepPurple, width: 2),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(10),
-                        alignment: Alignment.topRight,
-                        child: Text(
-                          _nameController.text,
-                          style: TextStyle(fontSize: 18),
-                        ),
-                      ),
-                      Container(
-                        padding: EdgeInsets.all(10),
-                        alignment: Alignment.center,
-                        child: Text(
-                          formatCardNumber(_numberController.text),
-                          style: TextStyle(fontSize: 25),
-                        ),
-                      ),
-                      Container(
-                        padding: EdgeInsets.only(left: 20),
-                        alignment: Alignment.topLeft,
-                        child: Text(
-                          formatExpiryNumber(_expiryController.text),
-                          style: TextStyle(fontSize: 15),
-                        ),
-                      ),
-                    ],
-                  ),
+      appBar: AppBar(title: const Text('Add New Card')),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16.0),
+          children: [
+            // Live Card Preview
+            GlassCreditCard(
+              wallet: previewWallet,
+              isMasked: false, // Always show details in preview
+              onCardTap: () {}, // No action on tap in preview
+            ),
+            const SizedBox(height: 24),
+
+            // Form Fields Section
+            _FormSection(
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: _network,
+                  decoration: const InputDecoration(labelText: 'Card Network'),
+                  items: ['visa', 'mastercard', 'rupay', 'amex', 'discover']
+                      .map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value.toUpperCase()),
+                        );
+                      })
+                      .toList(),
+                  onChanged: (newValue) {
+                    setState(() {
+                      _network = newValue!;
+                    });
+                  },
                 ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: <Widget>[
-                  DropdownButtonFormField<String>(
-                    initialValue: "rupay",
-                    decoration: const InputDecoration(
-                      labelText: 'Card Network',
-                      // border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Cardholder Name',
+                  ),
+                  validator: (v) => v!.isEmpty ? 'Please enter a name' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _numberController,
+                  decoration: const InputDecoration(labelText: 'Card Number'),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(16),
+                  ],
+                  validator: (v) =>
+                      v!.length < 15 ? 'Enter a valid number' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _expiryController,
+                  decoration: const InputDecoration(labelText: 'Expiry (MMYY)'),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(4),
+                  ],
+                  validator: (v) => v!.length != 4 ? 'Must be 4 digits' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _issuerController,
+                  decoration: const InputDecoration(
+                    labelText: 'Card Issuer (e.g., HDFC)',
+                  ),
+                  validator: (v) =>
+                      v!.isEmpty ? 'Please enter an issuer' : null,
+                ),
+              ],
+            ),
+
+            // Custom Fields Section
+            _FormSection(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Custom Fields",
+                      style: themeProvider.getTextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    items: ['rupay', 'visa', 'mastercard', 'amex', 'discover']
-                        .map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(
-                              value.toUpperCase(),
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          );
-                        })
-                        .toList(),
-                    onChanged: (newValue) {
-                      setState(() {
-                        _network = newValue!;
-                      });
-                    },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please select a card type';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  // Card Name Input
-                  TextFormField(
-                    controller: _nameController,
-                    maxLength: 20,
-                    decoration: const InputDecoration(labelText: 'Card Name'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a name';
-                      }
-                      return null;
-                    },
-                    onChanged: (context) {
-                      setState(() {});
-                    },
-                  ),
-
-                  // Card Number Input (16 digits validation)
-                  TextFormField(
-                    controller: _numberController,
-                    decoration: const InputDecoration(labelText: 'Card Number'),
-                    keyboardType: TextInputType.number,
-                    maxLength: 16,
-                    inputFormatters: [
-                      FilteringTextInputFormatter
-                          .digitsOnly, // Only digits allowed
-                      LengthLimitingTextInputFormatter(
-                        16,
-                      ), // Limit to 16 digits
-                    ],
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a card number';
-                      }
-                      if (value.length < 15) {
-                        return 'Card number must be 16 digits';
-                      }
-                      return null;
-                    },
-                    onChanged: (context) {
-                      setState(() {});
-                    },
-                  ),
-
-                  // Expiry Date Input (4 digits validation)
-                  TextFormField(
-                    controller: _expiryController,
-                    maxLength: 4,
-                    decoration: const InputDecoration(
-                      labelText: 'Expiry Date (MMYY)',
+                    IconButton(
+                      icon: Icon(
+                        Icons.add_circle,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      onPressed: _addCustomField,
                     ),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter
-                          .digitsOnly, // Only digits allowed
-                      LengthLimitingTextInputFormatter(4), // Limit to 4 digits
-                    ],
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter an expiry date';
-                      }
-                      if (value.length != 4) {
-                        return 'Expiry date must be 4 digits (MMYY)';
-                      }
-                      return null;
-                    },
-                    onChanged: (context) {
-                      setState(() {});
-                    },
-                  ),
-                  TextFormField(
-                    controller: _issuerController,
-                    decoration: const InputDecoration(
-                      labelText: 'Card Issuer (e.g., Chase, Barclays)',
+                  ],
+                ),
+                if (_customFieldNameControllers.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24.0),
+                    child: Center(
+                      child: Text(
+                        "No custom fields added.",
+                        style: themeProvider.getTextStyle(color: Colors.grey),
+                      ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a card issuer';
-                      }
-                      return null;
-                    },
                   ),
-
-                  const SizedBox(height: 20),
-
-                  ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _customFieldNameControllers.length,
-                    itemBuilder: (context, index) {
-                      return Row(
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _customFieldNameControllers.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: Row(
                         children: [
                           Expanded(
                             child: TextFormField(
@@ -313,316 +239,200 @@ class _DataEntryScreenState extends State<DataEntryScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 8),
                           Expanded(
                             child: TextFormField(
                               controller: _customFieldValueControllers[index],
                               decoration: const InputDecoration(
-                                labelText: 'Field Value',
+                                labelText: 'Value',
                               ),
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.remove_circle),
+                            icon: const Icon(Icons.remove_circle_outline),
                             onPressed: () => _removeCustomField(index),
                           ),
                         ],
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  TextButton.icon(
-                    onPressed: _addCustomField,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Custom Field'),
-                  ),
-
-                  const SizedBox(height: 20),
-                  // Save Button
-                  GestureDetector(
-                    onTap: () {
-                      if (_formKey.currentState!.validate()) {
-                        _addData();
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(15),
-                      width: 200,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.deepPurple,
-                        borderRadius: BorderRadius.circular(5),
                       ),
-                      child: const Text(
-                        'Save Card',
-                        style: TextStyle(fontSize: 25),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                    );
+                  },
+                ),
+              ],
             ),
-          ),
+
+            const SizedBox(height: 16),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: _addData,
+              child: const Text('Save Card'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// UPDATED BARCODE DATA ENTRY SCREEN
+// -----------------------------------------------------------------------------
+class BarcodeDataEntryScreen extends StatefulWidget {
+  final BarcodeCardType cardType;
+
+  const BarcodeDataEntryScreen({super.key, required this.cardType});
+
+  @override
+  State<BarcodeDataEntryScreen> createState() => _BarcodeDataEntryScreenState();
+}
+
+class _BarcodeDataEntryScreenState extends State<BarcodeDataEntryScreen> {
+  final _nameController = TextEditingController();
+  final _numberController = TextEditingController();
+
+  Map<String, String> _getConfig() {
+    switch (widget.cardType) {
+      case BarcodeCardType.identity:
+        return {
+          'appBarTitle': 'Save Identity Card',
+          'nameHint': 'Identity Name (e.g., Driver License)',
+          'numberHint': '12345678 / XXXXX78923X',
+          'saveButtonText': 'Save Identity Card',
+        };
+      case BarcodeCardType.loyalty:
+      default:
+        return {
+          'appBarTitle': 'Save Loyalty Card',
+          'nameHint': 'Program Name (e.g., Starbucks)',
+          'numberHint': '87989237498',
+          'saveButtonText': 'Save Loyalty Card',
+        };
+    }
+  }
+
+  void _addData() async {
+    final name = _nameController.text.trim();
+    final number = _numberController.text.trim();
+
+    if (name.isEmpty || number.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill out all fields.')),
+      );
+      return;
+    }
+
+    try {
+      if (widget.cardType == BarcodeCardType.identity) {
+        final newIdentity = Identity(
+          identityName: name,
+          identityNumber: number,
+        );
+        await IdentityDatabaseHelper.instance.insertIdentity(newIdentity);
+      } else {
+        final newLoyalty = Loyalty(loyaltyName: name, loyaltyNumber: number);
+        await LoyaltyDatabaseHelper.instance.insertLoyalty(newLoyalty);
+      }
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Error saving card.')));
+      }
+    }
+  }
+
+  Future<void> _scan() async {
+    try {
+      final result = await BarcodeScanner.scan();
+      if (result.type == ResultType.Barcode) {
+        setState(() => _numberController.text = result.rawContent);
+      }
+    } on PlatformException catch (e) {
+      if (e.code == BarcodeScanner.cameraAccessDenied) {
+        // Handle camera permission denied
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final config = _getConfig();
+
+    return Scaffold(
+      appBar: AppBar(title: Text(config['appBarTitle']!)),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: _nameController,
+              decoration: InputDecoration(labelText: config['nameHint']),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _numberController,
+              decoration: InputDecoration(labelText: config['numberHint']),
+            ),
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.qr_code_scanner),
+              label: const Text("Scan Barcode"),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(50),
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: _scan,
+            ),
+            const Spacer(),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size.fromHeight(50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: _addData,
+              child: Text(config['saveButtonText']!),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Helper widget for styling form sections
+class _FormSection extends StatelessWidget {
+  final List<Widget> children;
+  const _FormSection({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
         ],
       ),
-    );
-  }
-}
-
-// Identity
-
-class IdentityDataEntryScreen extends StatefulWidget {
-  const IdentityDataEntryScreen({super.key});
-
-  @override
-  State<IdentityDataEntryScreen> createState() =>
-      _IdentityDataEntryScreenState();
-}
-
-class _IdentityDataEntryScreenState extends State<IdentityDataEntryScreen> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _numberController = TextEditingController();
-
-  void _addData() async {
-    String name = _nameController.text.trim();
-    String number = _numberController.text.trim();
-
-    // Validate input
-    if (name.isEmpty || number.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill out both fields.')),
-      );
-      return;
-    }
-
-    try {
-      // Create new Identity object
-      Identity newIdentity = Identity(
-        identityName: name,
-        identityNumber: number,
-      );
-
-      // Insert the new identity into the database
-      await IdentityDatabaseHelper.instance.insertIdentity(newIdentity);
-
-      // Pop the screen to go back
-      Navigator.pop(context, true);
-    } catch (e) {
-      // Handle any errors during insertion
-      print("Error inserting identity: $e");
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error saving identity card.')),
-      );
-    }
-  }
-
-  static final _possibleFormats = BarcodeFormat.values.toList()
-    ..removeWhere((e) => e == BarcodeFormat.unknown);
-
-  List<BarcodeFormat> selectedFormats = [..._possibleFormats];
-
-  Future<void> _scan() async {
-    final result = await BarcodeScanner.scan(
-      options: ScanOptions(restrictFormat: selectedFormats),
-    );
-    setState(() => _numberController.text = result.rawContent);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Save Your Identity Card',
-          style: TextStyle(fontFamily: 'Bebas', fontSize: 25),
-        ),
-        // backgroundColor: Colors.black,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            Column(
-              children: [
-                TextField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(hintText: 'Identity'),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _numberController,
-                  decoration: const InputDecoration(
-                    hintText: '12345678 / XXXXX78923X',
-                    hintStyle: TextStyle(fontFamily: 'ZSpace'),
-                  ),
-                ),
-                SizedBox(height: 20),
-                GestureDetector(
-                  onTap: _scan,
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    width: 200,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.white),
-                    ),
-                    child: const Text(
-                      "Scan Barcode",
-                      style: TextStyle(fontSize: 20),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            GestureDetector(
-              onTap: _addData,
-              child: Container(
-                padding: const EdgeInsets.all(15),
-                width: 200,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.deepPurple,
-                  borderRadius: BorderRadius.circular(5),
-                ),
-                child: const Text(
-                  "Save Identity Card",
-                  style: TextStyle(fontSize: 20),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Loyalty
-
-// ignore: must_be_immutable
-class LoyaltyDataEntryScreen extends StatefulWidget {
-  const LoyaltyDataEntryScreen({super.key});
-
-  @override
-  State<LoyaltyDataEntryScreen> createState() => _LoyaltyDataEntryScreenState();
-}
-
-class _LoyaltyDataEntryScreenState extends State<LoyaltyDataEntryScreen> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _numberController = TextEditingController();
-
-  void _addData() async {
-    String name = _nameController.text.trim();
-    String number = _numberController.text.trim();
-
-    // Validate input
-    if (name.isEmpty || number.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill out both fields.')),
-      );
-      return;
-    }
-
-    try {
-      // Create new Loyalty object
-      Loyalty newLoyalty = Loyalty(loyaltyName: name, loyaltyNumber: number);
-
-      // Insert the new Loyalty into the database
-      await LoyaltyDatabaseHelper.instance.insertLoyalty(newLoyalty);
-
-      // Pop the screen to go back
-      Navigator.pop(context, true);
-    } catch (e) {
-      // Handle any errors during insertion
-      print("Error inserting Loyalty: $e");
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error saving Loyalty card.')),
-      );
-    }
-  }
-
-  static final _possibleFormats = BarcodeFormat.values.toList()
-    ..removeWhere((e) => e == BarcodeFormat.unknown);
-
-  List<BarcodeFormat> selectedFormats = [..._possibleFormats];
-
-  Future<void> _scan() async {
-    final result = await BarcodeScanner.scan(
-      options: ScanOptions(restrictFormat: selectedFormats),
-    );
-    setState(() => _numberController.text = result.rawContent);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Save Your Loyalty Card',
-          style: TextStyle(fontFamily: 'Bebas', fontSize: 25),
-        ),
-        // backgroundColor: Colors.black,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            Column(
-              children: [
-                TextField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(hintText: 'Starbucks'),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _numberController,
-                  decoration: const InputDecoration(
-                    hintText: '87989237498',
-                    hintStyle: TextStyle(fontFamily: 'ZSpace'),
-                  ),
-                ),
-                SizedBox(height: 20),
-                GestureDetector(
-                  onTap: _scan,
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    width: 200,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.white),
-                    ),
-                    child: const Text(
-                      "Scan Barcode",
-                      style: TextStyle(fontSize: 20),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            GestureDetector(
-              onTap: _addData,
-              child: Container(
-                padding: const EdgeInsets.all(15),
-                width: 200,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.deepPurple,
-                  borderRadius: BorderRadius.circular(5),
-                ),
-                child: const Text(
-                  "Save Loyalty Card",
-                  style: TextStyle(fontSize: 20),
-                ),
-              ),
-            ),
-          ],
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
       ),
     );
   }
