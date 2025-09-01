@@ -1,6 +1,6 @@
 # This workflow is triggered when a commit is pushed to the main branch
 # that includes a change to the 'version' line in the pubspec.yaml file.
-name: Build Flutter APK on Version Upgrade
+name: Build and Release Flutter APK
 
 on:
   push:
@@ -44,15 +44,37 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # Step 6: Build the APKs, split by ABI
-      # This command creates separate APKs for different CPU architectures (arm, arm64, x86_64)
-      - name: Build split APKs
-        run: flutter build apk --split-per-abi
+      # Step 6: Check Flutter environment
+      # This provides detailed diagnostics to ensure the environment is healthy.
+      - name: Run Flutter Doctor
+        run: flutter doctor -v
 
-      # Step 7: Upload the generated APKs as a build artifact
-      # The APKs are stored in a zip file named 'release-apks-vX.Y.Z+B'
-      - name: Upload APKs artifact
-        uses: actions/upload-artifact@v4
+      # Step 7: Clean the project
+      - name: Clean Flutter project
+        run: flutter clean
+
+      # Step 8: Build the APKs, split by ABI
+      # This command creates separate APKs for different CPU architectures (arm, arm64, x86_64)
+      # The --verbose flag is added for more detailed build logs.
+      - name: Build split APKs
+        run: flutter build apk --split-per-abi --verbose
+
+      # Step 9: Create a GitHub Release
+      # This action creates a new release and a corresponding git tag.
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: release-apks-v${{ env.APP_VERSION }}
-          path: build/app/outputs/flutter-apk/
+          tag_name: v${{ env.APP_VERSION }}
+          name: Release v${{ env.APP_VERSION }}
+          body: |
+            Automated release for version ${{ env.APP_VERSION }}.
+            APKs are split per ABI.
+          draft: false
+          prerelease: false
+          files: |
+            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+            build/app/outputs/flutter-apk/app-x86_64-release.apk
