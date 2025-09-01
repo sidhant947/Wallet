@@ -7,14 +7,14 @@ publish_to: "none"
 version: 1.0.15+18
 
 environment:
-  sdk: ^3.8.1
-  flutter: ^3.32.4
+  sdk: ^3.9.0
+  flutter: ^3.35.2
 
 dependencies:
   barcode_scan2: ^4.4.0
   barcode_widget: ^2.0.4
   crypto: ^3.0.5
-  file_picker: ^8.1.4
+  file_picker: ^10.3.2
   flutter:
     sdk: flutter
   flutter_slidable: ^4.0.0

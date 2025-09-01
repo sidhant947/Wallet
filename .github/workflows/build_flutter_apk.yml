@@ -1,0 +1,58 @@
+# This workflow is triggered when a commit is pushed to the main branch
+# that includes a change to the 'version' line in the pubspec.yaml file.
+name: Build Flutter APK on Version Upgrade
+
+on:
+  push:
+    branches:
+      - main # Or your default branch, e.g., master
+    paths:
+      - "pubspec.yaml"
+
+jobs:
+  build-and-release:
+    name: Build and Release APKs
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Extract the app version from pubspec.yaml
+      # This command reads the line containing 'version:', splits it by the space,
+      # and takes the second part (the version number).
+      - name: Get app version
+        id: get_version
+        run: echo "APP_VERSION=$(grep 'version:' pubspec.yaml | cut -d ' ' -f 2)" >> $GITHUB_ENV
+
+      # Step 3: Set up Java Development Kit (JDK), required for Android builds
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "11"
+
+      # Step 4: Set up the Flutter environment
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable" # You can specify 'beta', 'dev', or 'master'
+          cache: true
+
+      # Step 5: Install Flutter dependencies
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Step 6: Build the APKs, split by ABI
+      # This command creates separate APKs for different CPU architectures (arm, arm64, x86_64)
+      - name: Build split APKs
+        run: flutter build apk --split-per-abi
+
+      # Step 7: Upload the generated APKs as a build artifact
+      # The APKs are stored in a zip file named 'release-apks-vX.Y.Z+B'
+      - name: Upload APKs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apks-v${{ env.APP_VERSION }}
+          path: build/app/outputs/flutter-apk/
