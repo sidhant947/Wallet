@@ -152,7 +152,7 @@ class _FinancialOverviewCard extends StatelessWidget {
             progressColor: Theme.of(context).colorScheme.primary,
             backgroundColor: Theme.of(
               context,
-            ).colorScheme.primary.withOpacity(0.2),
+            ).colorScheme.primary.withAlpha(51),
           ),
         ],
       ),
@@ -182,7 +182,7 @@ class _UpcomingBillsSection extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Theme.of(context).scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                border: Border.all(color: Colors.grey.withAlpha(51)),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -268,7 +268,7 @@ class _FeeWaiverSection extends StatelessWidget {
                   borderRadius: BorderRadius.circular(3),
                   backgroundColor: Theme.of(
                     context,
-                  ).colorScheme.primary.withOpacity(0.2),
+                  ).colorScheme.primary.withAlpha(51),
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(height: 4),
@@ -324,7 +324,7 @@ class _SummaryContainer extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        border: Border.all(color: Colors.grey.withAlpha(51)),
       ),
       child: child,
     );
@@ -346,7 +346,7 @@ class _InfoRow extends StatelessWidget {
           style: TextStyle(
             color: Theme.of(
               context,
-            ).textTheme.bodyMedium?.color?.withOpacity(0.8),
+            ).textTheme.bodyMedium?.color?.withAlpha(204),
           ),
         ),
         Text(

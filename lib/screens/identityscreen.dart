@@ -1,5 +1,6 @@
 // lib/screens/identityscreen.dart
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -44,7 +45,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
         });
       }
     } catch (e) {
-      print('Error loading identities: $e');
+      debugPrint('Error loading identities: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -58,32 +59,29 @@ class _IdentityScreenState extends State<IdentityScreen> {
   }
 
   void _removeData(BuildContext context, int id) async {
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await IdentityDatabaseHelper.instance.deleteIdentity(id);
       await _loadIdentities();
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Identity card deleted!')));
-      }
+
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Identity card deleted!')),
+      );
     } catch (e) {
-      print('Error deleting identity: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to delete identity card.')),
-        );
-      }
+      debugPrint('Error deleting identity: $e');
+
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Failed to delete identity card.')),
+      );
     }
   }
 
-  void _copyToClipboard(String text) {
-    Clipboard.setData(ClipboardData(text: text)).then((_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Identity number copied!')),
-        );
-      }
-    });
+  void _copyToClipboard(String text) async {
+    final messenger = ScaffoldMessenger.of(context);
+    await Clipboard.setData(ClipboardData(text: text));
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Identity number copied!')),
+    );
   }
 
   Future<void> launchUrlCustom(Uri url) async {

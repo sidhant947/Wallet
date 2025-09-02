@@ -265,12 +265,14 @@ class WalletEditScreenState extends State<WalletEditScreen> {
         customFields: customFields,
       );
 
+      // Capture context-dependent objects before async gap
+      final provider = context.read<WalletProvider>();
+      final navigator = Navigator.of(context);
+
       await DatabaseHelper.instance.updateWallet(updatedWallet);
 
-      if (mounted) {
-        context.read<WalletProvider>().fetchWallets();
-        Navigator.pop(context, updatedWallet);
-      }
+      provider.fetchWallets();
+      navigator.pop(updatedWallet);
     }
   }
 
@@ -488,9 +490,9 @@ class _DetailSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        border: Border.all(color: Colors.grey.withAlpha(51)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+          BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -529,7 +531,7 @@ class _DetailTile extends StatelessWidget {
           Icon(
             icon,
             size: 20,
-            color: themeProvider.getTextStyle().color?.withOpacity(0.6),
+            color: themeProvider.getTextStyle().color?.withAlpha(153),
           ),
           const SizedBox(width: 16),
           Expanded(child: Text(title)),

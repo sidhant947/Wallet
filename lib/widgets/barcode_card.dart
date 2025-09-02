@@ -38,12 +38,12 @@ class BarcodeCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.withOpacity(0.2)),
+          border: Border.all(color: Colors.grey.withAlpha(51)),
           boxShadow: themeProvider.isDarkMode
               ? null
               : [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: Colors.grey.withAlpha(26),
                     blurRadius: 15,
                     offset: const Offset(0, 5),
                   ),
@@ -73,7 +73,7 @@ class BarcodeCard extends StatelessWidget {
                       ? Icons.fingerprint
                       : Icons.shopping_basket_outlined,
                   size: 30,
-                  color: themeProvider.getTextStyle().color?.withOpacity(0.6),
+                  color: themeProvider.getTextStyle().color?.withAlpha(153),
                 ),
               ],
             ),
@@ -86,9 +86,7 @@ class BarcodeCard extends StatelessWidget {
                     .getTextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
-                      color: themeProvider.getTextStyle().color?.withOpacity(
-                        0.8,
-                      ),
+                      color: themeProvider.getTextStyle().color?.withAlpha(204),
                     )
                     .copyWith(fontFamily: 'ZSpace'),
               ),
@@ -98,7 +96,7 @@ class BarcodeCard extends StatelessWidget {
               tapHint,
               style: themeProvider.getTextStyle(
                 fontSize: 12,
-                color: themeProvider.getTextStyle().color?.withOpacity(0.5),
+                color: themeProvider.getTextStyle().color?.withAlpha(128),
               ),
             ),
           ],

@@ -83,7 +83,7 @@ class GlassCreditCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: shadowColor.withOpacity(0.5),
+                color: shadowColor.withAlpha(128),
                 blurRadius: 25,
                 spreadRadius: 0,
                 offset: const Offset(0, 8),
@@ -96,7 +96,7 @@ class GlassCreditCard extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: cardColor,
-                border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                border: Border.all(color: Colors.grey.withAlpha(51)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

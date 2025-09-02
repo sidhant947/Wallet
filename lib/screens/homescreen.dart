@@ -42,42 +42,48 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void removeData(BuildContext context, int id) {
-    DatabaseHelper.instance.deleteWallet(id).then((_) {
-      if (mounted) {
-        context.read<WalletProvider>().fetchWallets();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Card Deleted',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSecondary,
-              ),
-            ),
-            backgroundColor: Theme.of(context).colorScheme.secondary,
+  void removeData(BuildContext context, int id) async {
+    // Capture context-dependent objects before the async gap
+    final provider = context.read<WalletProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final theme = Theme.of(context);
+
+    await DatabaseHelper.instance.deleteWallet(id);
+
+    // Use the captured objects after the await.
+    // The 'mounted' check is still a good practice.
+    if (mounted) {
+      provider.fetchWallets();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Card Deleted',
+            style: TextStyle(color: theme.colorScheme.onSecondary),
           ),
-        );
-      }
-    });
+          backgroundColor: theme.colorScheme.secondary,
+        ),
+      );
+    }
   }
 
-  void copyToClipboard(String text) {
-    Clipboard.setData(ClipboardData(text: text)).then((_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Card number copied',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSecondary,
-              ),
-            ),
-            backgroundColor: Theme.of(context).colorScheme.secondary,
-            behavior: SnackBarBehavior.floating,
+  void copyToClipboard(String text) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final theme = Theme.of(context);
+
+    await Clipboard.setData(ClipboardData(text: text));
+
+    if (mounted) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Card number copied',
+            style: TextStyle(color: theme.colorScheme.onSecondary),
           ),
-        );
-      }
-    });
+          backgroundColor: theme.colorScheme.secondary,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -177,12 +183,14 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
+          // Capture provider before the async gap
+          final provider = context.read<WalletProvider>();
           final result = await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const DataEntryScreen()),
           );
           if (result == true && mounted) {
-            context.read<WalletProvider>().fetchWallets();
+            provider.fetchWallets();
           }
         },
         child: const Icon(Icons.add),
@@ -220,10 +228,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   // This textStyle applies the Bebas font to all segments
                   textStyle: const TextStyle(fontFamily: 'Bebas', fontSize: 14),
                   backgroundColor: Theme.of(context).cardColor,
-                  side: BorderSide(color: Colors.grey.withOpacity(0.2)),
+                  side: BorderSide(color: Colors.grey.withAlpha(51)),
                   foregroundColor: Theme.of(
                     context,
-                  ).textTheme.bodyLarge?.color?.withOpacity(0.7),
+                  ).textTheme.bodyLarge?.color?.withAlpha(179),
                   selectedForegroundColor: Theme.of(
                     context,
                   ).colorScheme.onPrimary,

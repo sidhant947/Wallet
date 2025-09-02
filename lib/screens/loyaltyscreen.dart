@@ -1,5 +1,6 @@
 // lib/screens/loyaltyscreen.dart
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -44,7 +45,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
         });
       }
     } catch (e) {
-      print('Error loading loyalty cards: $e');
+      debugPrint('Error loading loyalty cards: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -58,32 +59,29 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
   }
 
   void _removeData(BuildContext context, int id) async {
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await LoyaltyDatabaseHelper.instance.deleteLoyalty(id);
       await _loadLoyalties();
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Loyalty card deleted!')));
-      }
+
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Loyalty card deleted!')),
+      );
     } catch (e) {
-      print('Error deleting loyalty card: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to delete loyalty card.')),
-        );
-      }
+      debugPrint('Error deleting loyalty card: $e');
+
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Failed to delete loyalty card.')),
+      );
     }
   }
 
-  void _copyToClipboard(String text) {
-    Clipboard.setData(ClipboardData(text: text)).then((_) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Loyalty number copied!')));
-      }
-    });
+  void _copyToClipboard(String text) async {
+    final messenger = ScaffoldMessenger.of(context);
+    await Clipboard.setData(ClipboardData(text: text));
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Loyalty number copied!')),
+    );
   }
 
   Future<void> launchUrlCustom(Uri url) async {

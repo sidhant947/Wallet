@@ -18,7 +18,6 @@ class SettingsPage extends StatelessWidget {
       case ThemePreference.dark:
         return 'Dark';
       case ThemePreference.system:
-      default:
         return 'Follow System';
     }
   }
@@ -193,13 +192,15 @@ class SettingsPage extends StatelessWidget {
         passwordController: passwordController,
         onConfirm: () async {
           if (passwordController.text.isEmpty) return;
+          final messenger = ScaffoldMessenger.of(context);
+          final navigator = Navigator.of(context);
           try {
             final backupPath = await BackupService.createBackup(
               passwordController.text,
             );
-            if (!context.mounted) return;
-            Navigator.pop(context); // Close dialog on success
-            ScaffoldMessenger.of(context).showSnackBar(
+
+            navigator.pop(); // Close dialog on success
+            messenger.showSnackBar(
               SnackBar(
                 content: Text(
                   'Backup created successfully! Saved to: $backupPath',
@@ -208,7 +209,7 @@ class SettingsPage extends StatelessWidget {
               ),
             );
           } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               SnackBar(
                 content: Text('Backup failed: $e'),
                 backgroundColor: Theme.of(context).colorScheme.error,
@@ -237,19 +238,22 @@ class SettingsPage extends StatelessWidget {
         passwordController: passwordController,
         onConfirm: () async {
           if (passwordController.text.isEmpty) return;
+          final messenger = ScaffoldMessenger.of(context);
+          final navigator = Navigator.of(context);
+
           try {
             await BackupService.restoreBackup(passwordController.text);
             await walletProvider.fetchWallets(); // Refresh data
-            if (!context.mounted) return;
-            Navigator.pop(context); // Close dialog on success
-            ScaffoldMessenger.of(context).showSnackBar(
+
+            navigator.pop(); // Close dialog on success
+            messenger.showSnackBar(
               const SnackBar(
                 content: Text('Backup restored successfully!'),
                 backgroundColor: Colors.green,
               ),
             );
           } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               SnackBar(
                 content: Text('Restore failed: $e'),
                 backgroundColor: Theme.of(context).colorScheme.error,

@@ -28,7 +28,6 @@ class ThemeProvider with ChangeNotifier {
       case ThemePreference.dark:
         return ThemeMode.dark;
       case ThemePreference.system:
-      default:
         return ThemeMode.system;
     }
   }
@@ -49,7 +48,8 @@ class ThemeProvider with ChangeNotifier {
     _updateDarkModeState();
 
     // Listen for changes in the system's theme
-    SchedulerBinding.instance.window.onPlatformBrightnessChanged = () {
+    var platformDispatcher = SchedulerBinding.instance.platformDispatcher;
+    platformDispatcher.onPlatformBrightnessChanged = () {
       if (_themePreference == ThemePreference.system) {
         _updateDarkModeState();
         notifyListeners();
@@ -67,7 +67,8 @@ class ThemeProvider with ChangeNotifier {
       _isDarkMode = true;
     } else {
       // When set to system, check the actual system brightness
-      final brightness = SchedulerBinding.instance.window.platformBrightness;
+      final brightness =
+          SchedulerBinding.instance.platformDispatcher.platformBrightness;
       _isDarkMode = brightness == Brightness.dark;
     }
   }
@@ -111,7 +112,9 @@ class ThemeProvider with ChangeNotifier {
       fontWeight: fontWeight,
       color:
           color ??
-          (_isDarkMode ? Colors.white.withOpacity(0.87) : Colors.black87),
+          (_isDarkMode
+              ? Colors.white.withAlpha(222) // 87% opacity
+              : Colors.black87),
     );
   }
 

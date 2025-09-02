@@ -304,7 +304,6 @@ class _BarcodeDataEntryScreenState extends State<BarcodeDataEntryScreen> {
           'saveButtonText': 'Save Identity Card',
         };
       case BarcodeCardType.loyalty:
-      default:
         return {
           'appBarTitle': 'Save Loyalty Card',
           'nameHint': 'Program Name (e.g., Starbucks)',
@@ -317,9 +316,10 @@ class _BarcodeDataEntryScreenState extends State<BarcodeDataEntryScreen> {
   void _addData() async {
     final name = _nameController.text.trim();
     final number = _numberController.text.trim();
+    final messenger = ScaffoldMessenger.of(context);
 
     if (name.isEmpty || number.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Please fill out all fields.')),
       );
       return;
@@ -339,9 +339,9 @@ class _BarcodeDataEntryScreenState extends State<BarcodeDataEntryScreen> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Error saving card.')));
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Error saving card.')),
+        );
       }
     }
   }
@@ -386,7 +386,7 @@ class _BarcodeDataEntryScreenState extends State<BarcodeDataEntryScreen> {
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
                 side: BorderSide(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                  color: Theme.of(context).colorScheme.primary.withAlpha(128),
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -427,7 +427,7 @@ class _FormSection extends StatelessWidget {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+          BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 10),
         ],
       ),
       child: Column(

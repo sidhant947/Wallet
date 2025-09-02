@@ -1,5 +1,6 @@
 // lib/widgets/display_barcode_screen.dart
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:barcode_widget/barcode_widget.dart';
@@ -40,7 +41,7 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
       _originalBrightness = await ScreenBrightness().current;
       await ScreenBrightness().setScreenBrightness(1.0);
     } catch (e) {
-      print("Failed to set brightness: $e");
+      debugPrint("Failed to set brightness: $e");
     }
   }
 
@@ -48,7 +49,7 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
     try {
       await ScreenBrightness().setScreenBrightness(_originalBrightness);
     } catch (e) {
-      print("Failed to reset brightness: $e");
+      debugPrint("Failed to reset brightness: $e");
     }
   }
 
@@ -62,7 +63,6 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
     ];
 
     return Scaffold(
-      // backgroundColor: themeProvider.scaffoldBackgroundColor,
       body: SafeArea(
         child: Stack(
           children: [
@@ -98,8 +98,8 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
                       "Swipe for different formats",
                       style: themeProvider.getTextStyle(
                         fontSize: 12,
-                        color: themeProvider.getTextStyle().color?.withOpacity(
-                          0.5,
+                        color: themeProvider.getTextStyle().color?.withAlpha(
+                          128,
                         ),
                       ),
                     ),
@@ -116,7 +116,7 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
                   Navigator.of(context).pop();
                 },
                 style: IconButton.styleFrom(
-                  backgroundColor: Colors.black.withOpacity(0.1),
+                  backgroundColor: Colors.black.withAlpha(26),
                   foregroundColor: themeProvider.getTextStyle().color,
                 ),
               ),
@@ -157,7 +157,7 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withAlpha(26),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -171,11 +171,11 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
                     ? barcodeSize
                     : barcodeSize / 2, // Keep aspect ratio
                 color: Colors.black,
-                errorBuilder: (context, error) => Center(
+                errorBuilder: (context, error) => const Center(
                   child: Text(
                     'Invalid Data for this Barcode Type',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.red),
+                    style: TextStyle(color: Colors.red),
                   ),
                 ),
               ),
