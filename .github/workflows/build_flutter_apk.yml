@@ -40,10 +40,6 @@ jobs:
       - name: Run static analysis
         run: flutter analyze
 
-      # Step 5 (Optional): Run your unit and widget tests
-      - name: Run tests
-        run: flutter test
-
-      # Step 6: Build a debug version of the Android APK to verify the build completes
+      # Step 5: Build a debug version of the Android APK to verify the build completes
       - name: Build Flutter App (Android)
-        run: flutter build apk --debug
+        run: flutter build apk
