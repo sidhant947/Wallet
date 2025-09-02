@@ -152,6 +152,6 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     // The splash screen can be a simple loading indicator while settings are checked.
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    return const Scaffold(body: Center(child: Text("Authentication Needed")));
   }
 }

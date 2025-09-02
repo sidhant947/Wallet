@@ -1,106 +1,49 @@
-# This workflow handles two distinct scenarios:
-# 1. On Pull Requests to `main`: Runs a code quality check.
-# 2. On Push to `main` with a version change: Builds and creates a release.
-name: Flutter CI/CD
+# This is a basic workflow to help you get started with Actions
+name: Manual Flutter Build Check
 
+# Controls when the workflow will run
+# This workflow uses 'workflow_dispatch' which allows you to run this workflow manually
+# from the Actions tab of your GitHub repository.
 on:
-  # Trigger for pull requests to check code quality before merging
-  pull_request:
-    branches:
-      - main
-  # Trigger for pushes to main that change the version, to create a release
-  push:
-    branches:
-      - main
-    paths:
-      - 'pubspec.yaml'
-  # Allows manual triggering from the Actions tab
   workflow_dispatch:
+    inputs:
+      flutter_version:
+        description: "Flutter Version (e.g., 3.19.x or latest)"
+        required: true
+        default: "stable"
 
 jobs:
-  # Job 1: Run on Pull Requests for code quality check
-  quality_check:
-    name: Code Quality Check
-    # This job only runs for pull request events
-    if: github.event_name == 'pull_request'
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
     runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - name: Checkout code
+      # Step 1: Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Flutter
+      # Step 2: Sets up the Flutter SDK for use in your workflow
+      - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
-          cache: true
+          flutter-version: ${{ github.event.inputs.flutter_version }}
+          channel: "stable"
+          cache: true # Caches dependencies for faster builds
 
-      - name: Setup JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Install packages
+      # Step 3: Installs your project's dependencies
+      - name: Get Flutter dependencies
         run: flutter pub get
 
-      - name: Linter
+      # Step 4 (Optional): Run static analysis to find any potential issues
+      - name: Run static analysis
         run: flutter analyze
 
-      - name: Build APK for validation
-        run: flutter build apk
+      # Step 5 (Optional): Run your unit and widget tests
+      - name: Run tests
+        run: flutter test
 
-      - name: Upload validation APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: validation-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-
-  # Job 2: Run on version upgrade to build and release APKs
-  build_and_release:
-    name: Build and Release
-    # This job only runs for push events (to main, with pubspec change)
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Get app version
-        id: get_version
-        run: echo "APP_VERSION=$(grep 'version:' pubspec.yaml | cut -d ' ' -f 2)" >> $GITHUB_ENV
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          cache: true
-
-      - name: Setup JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Install packages
-        run: flutter pub get
-
-      - name: Build split APKs
-        run: flutter build apk --split-per-abi
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ env.APP_VERSION }}
-          name: Release v${{ env.APP_VERSION }}
-          body: |
-            Automated release for version ${{ env.APP_VERSION }}.
-            APKs are split per ABI.
-          draft: false
-          prerelease: false
-          files: |
-            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
-            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-            build/app/outputs/flutter-apk/app-x86_64-release.apk
-
+      # Step 6: Build a debug version of the Android APK to verify the build completes
+      - name: Build Flutter App (Android)
+        run: flutter build apk --debug
