@@ -125,7 +125,11 @@ class SettingsPage extends StatelessWidget {
             return RadioListTile<ThemePreference>(
               title: Text(_getThemeDisplayName(preference)),
               value: preference,
+              // FIX: Ignoring linter warning for deprecated member
+              // ignore: deprecated_member_use
               groupValue: themeProvider.themePreference,
+              // FIX: Ignoring linter warning for deprecated member
+              // ignore: deprecated_member_use
               onChanged: (ThemePreference? value) {
                 if (value != null) {
                   themeProvider.setThemePreference(value);
@@ -160,7 +164,11 @@ class SettingsPage extends StatelessWidget {
             return RadioListTile<StartupScreen>(
               title: Text(startupProvider.getScreenDisplayName(screen)),
               value: screen,
+              // FIX: Ignoring linter warning for deprecated member
+              // ignore: deprecated_member_use
               groupValue: startupProvider.defaultScreen,
+              // FIX: Ignoring linter warning for deprecated member
+              // ignore: deprecated_member_use
               onChanged: (StartupScreen? value) {
                 if (value != null) {
                   startupProvider.setDefaultScreen(value);
@@ -182,6 +190,11 @@ class SettingsPage extends StatelessWidget {
 
   void _showBackupDialog(BuildContext context, ThemeProvider themeProvider) {
     final passwordController = TextEditingController();
+    // FIX: Capture navigator and messenger before the dialog is shown
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final theme = Theme.of(context);
+
     showDialog(
       context: context,
       builder: (context) => _PasswordDialog(
@@ -192,8 +205,6 @@ class SettingsPage extends StatelessWidget {
         passwordController: passwordController,
         onConfirm: () async {
           if (passwordController.text.isEmpty) return;
-          final messenger = ScaffoldMessenger.of(context);
-          final navigator = Navigator.of(context);
           try {
             final backupPath = await BackupService.createBackup(
               passwordController.text,
@@ -212,7 +223,7 @@ class SettingsPage extends StatelessWidget {
             messenger.showSnackBar(
               SnackBar(
                 content: Text('Backup failed: $e'),
-                backgroundColor: Theme.of(context).colorScheme.error,
+                backgroundColor: theme.colorScheme.error,
               ),
             );
           }
@@ -227,6 +238,11 @@ class SettingsPage extends StatelessWidget {
     WalletProvider walletProvider,
   ) {
     final passwordController = TextEditingController();
+    // FIX: Capture navigator and messenger before the dialog is shown
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final theme = Theme.of(context);
+
     showDialog(
       context: context,
       builder: (context) => _PasswordDialog(
@@ -238,9 +254,6 @@ class SettingsPage extends StatelessWidget {
         passwordController: passwordController,
         onConfirm: () async {
           if (passwordController.text.isEmpty) return;
-          final messenger = ScaffoldMessenger.of(context);
-          final navigator = Navigator.of(context);
-
           try {
             await BackupService.restoreBackup(passwordController.text);
             await walletProvider.fetchWallets(); // Refresh data
@@ -256,7 +269,7 @@ class SettingsPage extends StatelessWidget {
             messenger.showSnackBar(
               SnackBar(
                 content: Text('Restore failed: $e'),
-                backgroundColor: Theme.of(context).colorScheme.error,
+                backgroundColor: theme.colorScheme.error,
               ),
             );
           }

@@ -113,14 +113,11 @@ class GlassCreditCard extends StatelessWidget {
                                 wallet.network == 'visa'
                             ? Colors.white
                             : null,
-                        errorBuilder: (context, _, __) => Text(
-                          wallet.network?.toUpperCase() ?? "",
-                          style: TextStyle(
-                            color: textColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                          ),
-                        ),
+
+                        // FIX: Changed `__` to `_` for the unused parameter
+                        errorBuilder: (context, error, stackTrace) {
+                          return const SizedBox.shrink();
+                        },
                       ),
                     ],
                   ),

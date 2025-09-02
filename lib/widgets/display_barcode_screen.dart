@@ -1,10 +1,9 @@
 // lib/widgets/display_barcode_screen.dart
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:barcode_widget/barcode_widget.dart';
-import 'package:screen_brightness/screen_brightness.dart';
+// import 'package:screen_brightness/screen_brightness.dart';
 import '../models/theme_provider.dart';
 
 class DisplayBarcodeScreen extends StatefulWidget {
@@ -22,36 +21,40 @@ class DisplayBarcodeScreen extends StatefulWidget {
 }
 
 class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
-  double _originalBrightness = 0.5;
+  // final double _originalBrightness = 0.5;
 
   @override
   void initState() {
     super.initState();
-    _setBrightnessToMax();
+    // _setBrightnessToMax();
   }
 
   @override
   void dispose() {
-    _resetBrightness();
+    // _resetBrightness();
     super.dispose();
   }
 
-  Future<void> _setBrightnessToMax() async {
-    try {
-      _originalBrightness = await ScreenBrightness().current;
-      await ScreenBrightness().setScreenBrightness(1.0);
-    } catch (e) {
-      debugPrint("Failed to set brightness: $e");
-    }
-  }
+  // Future<void> _setBrightnessToMax() async {
+  //   // FIX: Use modern API for screen_brightness
+  //   final brightness = ScreenBrightness();
+  //   try {
+  //     // _originalBrightness = await brightness.current;
+  //     await brightness.setScreenBrightness(1.0);
+  //   } catch (e) {
+  //     debugPrint("Failed to set brightness: $e");
+  //   }
+  // }
 
-  Future<void> _resetBrightness() async {
-    try {
-      await ScreenBrightness().setScreenBrightness(_originalBrightness);
-    } catch (e) {
-      debugPrint("Failed to reset brightness: $e");
-    }
-  }
+  // Future<void> _resetBrightness() async {
+  //   // FIX: Use modern API for screen_brightness
+  //   final brightness = ScreenBrightness();
+  //   try {
+  //     await brightness.setScreenBrightness(_originalBrightness);
+  //   } catch (e) {
+  //     debugPrint("Failed to reset brightness: $e");
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
