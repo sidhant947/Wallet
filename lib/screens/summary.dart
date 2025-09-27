@@ -188,7 +188,7 @@ class _IncompleteCardsSection extends StatelessWidget {
                 ),
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );

@@ -25,14 +25,36 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   String _selectedFilter = 'all';
 
+  // FIXED: Declared the controller here...
+  late final TextEditingController _searchController;
+  String _searchQuery = "";
+
   @override
   void initState() {
     super.initState();
+    // FIXED: ...and correctly initialized it in initState.
+    _searchController = TextEditingController();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<WalletProvider>().fetchWallets();
       context.read<LoyaltyProvider>().fetchLoyalties();
       context.read<IdentityProvider>().fetchIdentities();
     });
+
+    _searchController.addListener(() {
+      // This setState call is what triggers the filter to re-run
+      if (mounted) {
+        setState(() {
+          _searchQuery = _searchController.text;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _onItemTapped(int index) {
@@ -135,7 +157,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        // FIXED: Added an actions property to place the settings button on the right.
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -148,7 +169,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      // FIXED: Removed the drawer property entirely.
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.push(
@@ -217,7 +237,20 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    final List<Wallet> filteredWallets = walletProvider.wallets.where((wallet) {
+    // 1. First, filter by the search query.
+    final List<Wallet> searchedWallets = _searchQuery.isEmpty
+        ? walletProvider.wallets
+        : walletProvider.wallets.where((wallet) {
+            final query = _searchQuery.toLowerCase();
+            return (wallet.name.toLowerCase().contains(query)) ||
+                (wallet.number.contains(query)) ||
+                (wallet.network?.toLowerCase().contains(query) ?? false) ||
+                (wallet.issuer?.toLowerCase().contains(query) ?? false) ||
+                (wallet.cardtype?.toLowerCase().contains(query) ?? false);
+          }).toList();
+
+    // 2. Then, filter the result by the network button.
+    final List<Wallet> filteredWallets = searchedWallets.where((wallet) {
       if (_selectedFilter == 'all') return true;
       return wallet.network?.toLowerCase() == _selectedFilter;
     }).toList();
@@ -226,7 +259,27 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.only(top: 16, bottom: 80),
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              fillColor: Theme.of(context).cardColor,
+              hintText: 'Search by name, number, issuer...',
+              prefixIcon: const Icon(Icons.search),
+              // focusColor: Colors.red,
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                      },
+                    )
+                  : null,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: SegmentedButton<String>(
@@ -264,10 +317,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
+        const SizedBox(height: 8),
         if (filteredWallets.isEmpty)
           const Padding(
-            padding: EdgeInsets.all(32.0),
-            child: Center(child: Text('No cards match this filter.')),
+            padding: EdgeInsets.all(48.0),
+            child: Center(child: Text('No cards found.')),
           )
         else
           Column(
@@ -292,7 +346,6 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             }).toList(),
           ),
-        // FIXED: Added the Summary button here, which will only build if cards exist.
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
           child: OutlinedButton.icon(

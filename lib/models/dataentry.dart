@@ -220,8 +220,12 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
     _numberController.dispose();
     _expiryController.dispose();
     _issuerController.dispose();
-    for (var c in _customFieldNameControllers) c.dispose();
-    for (var c in _customFieldValueControllers) c.dispose();
+    for (var c in _customFieldNameControllers) {
+      c.dispose();
+    }
+    for (var c in _customFieldValueControllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 

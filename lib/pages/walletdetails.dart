@@ -469,7 +469,7 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _network,
+                  initialValue: _network,
                   decoration: const InputDecoration(labelText: 'Card Network'),
                   items: ['visa', 'mastercard', 'rupay', 'amex', 'discover']
                       .map((String value) {
