@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:wallet/models/dataentry.dart'; // FIXED: Import dataentry to access the color map
 import '../models/db_helper.dart';
 import '../models/theme_provider.dart';
 
@@ -29,23 +30,6 @@ class GlassCreditCard extends StatelessWidget {
     return "${input.substring(0, 2)}/${input.substring(2, 4)}";
   }
 
-  Color _getShadowColor(String? network) {
-    switch (network?.toLowerCase()) {
-      case 'visa':
-        return Colors.blue.shade700;
-      case 'mastercard':
-        return Colors.orange.shade800;
-      case 'amex':
-        return Colors.amber.shade700;
-      case 'rupay':
-        return Colors.green.shade600;
-      case 'discover':
-        return Colors.purple.shade700;
-      default:
-        return Colors.grey.shade500;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -53,49 +37,58 @@ class GlassCreditCard extends StatelessWidget {
         ? wallet.number.substring(wallet.number.length - 4)
         : wallet.number;
 
-    // ** NEW LOGIC: Check for Rupay card first **
+    // --- FIXED: Updated color logic ---
+
+    // 1. Check if a specific color has been selected for the card.
+    final Color? selectedColor = cardColors[wallet.color];
+    final bool hasCustomColor =
+        selectedColor != null && wallet.color != 'default';
+
+    // 2. Determine card and text colors based on the selection.
     bool isRupay = wallet.network?.toLowerCase() == 'rupay';
 
-    final cardColor = isRupay
+    final Color cardColor = hasCustomColor
+        ? selectedColor // Use the selected color
+        : isRupay
         ? Colors
-              .black // Always black for Rupay
-        : (themeProvider.isDarkMode ? Colors.black : Colors.white);
+              .black // Fallback for Rupay cards
+        : (themeProvider.isDarkMode
+              ? Colors.black
+              : Colors.white); // Final fallback to the app theme
 
-    final textColor = isRupay
-        ? Colors
-              .white // Always white text for Rupay
-        : (themeProvider.isDarkMode ? Colors.white : Colors.black);
+    // Text should be white on any dark or colored background.
+    final bool useWhiteText =
+        hasCustomColor || isRupay || themeProvider.isDarkMode;
 
-    final mutedTextColor = isRupay
-        ? Colors
-              .white70 // Always light grey text for Rupay
-        : (themeProvider.isDarkMode ? Colors.white70 : Colors.black54);
+    final textColor = useWhiteText ? Colors.white : Colors.black;
+    final mutedTextColor = useWhiteText ? Colors.white70 : Colors.black54;
 
-    final shadowColor = _getShadowColor(wallet.network);
+    // --- End of fix ---
+
+    // final shadowColor = _getShadowColor(wallet.network);
 
     return GestureDetector(
       onTap: onCardTap,
       child: AspectRatio(
         aspectRatio: 1.586,
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: shadowColor.withAlpha(128),
-                blurRadius: 25,
-                spreadRadius: 0,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            // borderRadius: BorderRadius.circular(10),
+            // boxShadow: [
+            //   BoxShadow(
+            //     color: shadowColor.withAlpha(128),
+            //     blurRadius: 25,
+            //     spreadRadius: 0,
+            //     offset: const Offset(0, 8),
+            //   ),
+            // ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(15),
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: cardColor,
+                color: cardColor, // This now uses the corrected color
                 border: Border.all(color: Colors.grey.withAlpha(51)),
               ),
               child: Column(
@@ -108,13 +101,9 @@ class GlassCreditCard extends StatelessWidget {
                         "assets/network/${wallet.network}.png",
                         height: 35,
                         fit: BoxFit.contain,
-                        color:
-                            (themeProvider.isDarkMode || isRupay) &&
-                                wallet.network == 'visa'
+                        color: (useWhiteText) && wallet.network == 'visa'
                             ? Colors.white
                             : null,
-
-                        // FIX: Changed `__` to `_` for the unused parameter
                         errorBuilder: (context, error, stackTrace) {
                           return const SizedBox.shrink();
                         },
@@ -135,7 +124,7 @@ class GlassCreditCard extends StatelessWidget {
                         style: TextStyle(
                           fontFamily: 'ZSpace',
                           fontSize: 28,
-                          color: textColor,
+                          color: textColor, // Uses corrected text color
                           letterSpacing: 2.0,
                         ),
                       ),
@@ -161,7 +150,8 @@ class GlassCreditCard extends StatelessWidget {
                           Text(
                             "EXPIRES",
                             style: TextStyle(
-                              color: mutedTextColor,
+                              color:
+                                  mutedTextColor, // Uses corrected text color
                               fontSize: 10,
                             ),
                           ),

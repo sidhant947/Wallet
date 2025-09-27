@@ -1,13 +1,40 @@
-// lib/pages/walletdetails.dart
-
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:wallet/models/dataentry.dart'; // FIXED: Import to use ColorPicker
 import '../models/db_helper.dart';
 import '../models/provider_helper.dart';
 import '../models/theme_provider.dart';
 import '../widgets/glass_credit_card.dart';
 
+// (FullScreenImageViewer class remains the same)
+class FullScreenImageViewer extends StatelessWidget {
+  final File imageFile;
+  const FullScreenImageViewer({super.key, required this.imageFile});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          panEnabled: true,
+          minScale: 1.0,
+          maxScale: 4.0,
+          child: Image.file(imageFile),
+        ),
+      ),
+    );
+  }
+}
+
+// (WalletDetailScreen class remains the same)
 class WalletDetailScreen extends StatefulWidget {
   final Wallet wallet;
   const WalletDetailScreen({super.key, required this.wallet});
@@ -46,8 +73,43 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
     return "₹${(waiverRequirement - spends).toStringAsFixed(2)} more to waive";
   }
 
+  Widget _buildImageThumbnail(String imagePath, String label) {
+    final imageFile = File(imagePath);
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FullScreenImageViewer(imageFile: imageFile),
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.file(
+              imageFile,
+              height: 100,
+              width: 150,
+              fit: BoxFit.cover,
+              errorBuilder: (c, e, s) => Container(
+                height: 100,
+                width: 150,
+                color: Colors.grey.shade200,
+                child: const Icon(Icons.error_outline),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(label),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    bool isPathValid(String? path) => path != null && path.isNotEmpty;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(currentWallet.name),
@@ -77,8 +139,8 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
           SizedBox(
             height: 235,
             child: GlassCreditCard(
+              isMasked: true,
               wallet: currentWallet,
-              isMasked: false,
               onCardTap: () {
                 Clipboard.setData(ClipboardData(text: currentWallet.number));
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -88,6 +150,29 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
             ),
           ),
           const SizedBox(height: 16),
+          if (isPathValid(currentWallet.frontImagePath) ||
+              isPathValid(currentWallet.backImagePath))
+            _DetailSection(
+              title: "Card Images",
+              children: [
+                Center(
+                  child: Column(
+                    children: [
+                      if (isPathValid(currentWallet.frontImagePath))
+                        _buildImageThumbnail(
+                          currentWallet.frontImagePath!,
+                          'Front',
+                        ),
+                      if (isPathValid(currentWallet.backImagePath))
+                        _buildImageThumbnail(
+                          currentWallet.backImagePath!,
+                          'Back',
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           _DetailSection(
             title: "Financials",
             children: [
@@ -149,6 +234,8 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
   }
 }
 
+// --- MODIFIED: WalletEditScreen ---
+
 class WalletEditScreen extends StatefulWidget {
   final Wallet wallet;
   const WalletEditScreen({super.key, required this.wallet});
@@ -170,6 +257,7 @@ class WalletEditScreenState extends State<WalletEditScreen> {
       _annualFeeWaiverController,
       _rewardsController;
   late String _network;
+  late String _selectedColor; // FIXED: Added state for color
   final List<TextEditingController> _customFieldNameControllers = [];
   final List<TextEditingController> _customFieldValueControllers = [];
 
@@ -191,16 +279,29 @@ class WalletEditScreenState extends State<WalletEditScreen> {
       text: wallet.annualFeeWaiver,
     );
     _rewardsController = TextEditingController(text: wallet.rewards);
+    _selectedColor = wallet.color ?? 'default'; // FIXED: Initialize color
+
     if (wallet.customFields != null) {
       wallet.customFields!.forEach((key, value) {
         _customFieldNameControllers.add(TextEditingController(text: key));
         _customFieldValueControllers.add(TextEditingController(text: value));
       });
     }
+
+    // FIXED: Add listeners to update preview in real-time
+    _nameController.addListener(_updatePreview);
+    _numberController.addListener(_updatePreview);
+    _expiryController.addListener(_updatePreview);
   }
 
   @override
   void dispose() {
+    // FIXED: Remove listeners
+    _nameController.removeListener(_updatePreview);
+    _numberController.removeListener(_updatePreview);
+    _expiryController.removeListener(_updatePreview);
+
+    // Dispose all controllers
     _nameController.dispose();
     _numberController.dispose();
     _expiryController.dispose();
@@ -219,6 +320,11 @@ class WalletEditScreenState extends State<WalletEditScreen> {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  // FIXED: Method to trigger rebuild for the preview
+  void _updatePreview() {
+    setState(() {});
   }
 
   void _addCustomField() {
@@ -263,12 +369,13 @@ class WalletEditScreenState extends State<WalletEditScreen> {
         annualFeeWaiver: _annualFeeWaiverController.text,
         rewards: _rewardsController.text,
         customFields: customFields,
+        color: _selectedColor, // FIXED: Save the selected color
+        // FIXED: Preserve existing images when saving
+        frontImagePath: widget.wallet.frontImagePath,
+        backImagePath: widget.wallet.backImagePath,
       );
-
-      // Capture context-dependent objects before async gap
       final provider = context.read<WalletProvider>();
       final navigator = Navigator.of(context);
-
       await DatabaseHelper.instance.updateWallet(updatedWallet);
 
       provider.fetchWallets();
@@ -278,6 +385,16 @@ class WalletEditScreenState extends State<WalletEditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // FIXED: Create a preview wallet object that updates in real-time
+    final previewWallet = Wallet(
+      id: widget.wallet.id,
+      name: _nameController.text.isEmpty ? 'CARD NAME' : _nameController.text,
+      number: _numberController.text,
+      expiry: _expiryController.text,
+      network: _network,
+      color: _selectedColor,
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Edit Card"),
@@ -296,9 +413,24 @@ class WalletEditScreenState extends State<WalletEditScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16.0),
           children: [
+            // FIXED: Added the live card preview
+            GlassCreditCard(
+              isMasked: false, // Show full details while editing
+              wallet: previewWallet,
+              onCardTap: () {},
+            ),
+            const SizedBox(height: 24),
             _DetailSection(
               title: "Primary Details",
               children: [
+                // FIXED: Added the color picker
+                ColorPicker(
+                  selectedColor: _selectedColor,
+                  onColorSelected: (color) {
+                    setState(() => _selectedColor = color);
+                  },
+                ),
+                const SizedBox(height: 24),
                 TextFormField(
                   controller: _nameController,
                   decoration: const InputDecoration(labelText: 'Card Name'),
@@ -335,11 +467,9 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                   ),
                   validator: (v) => v!.isEmpty ? 'Cannot be empty' : null,
                 ),
-
-                // ** FIXED: ADDED THE DROPDOWN FOR CARD NETWORK HERE **
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  initialValue: _network,
+                  value: _network,
                   decoration: const InputDecoration(labelText: 'Card Network'),
                   items: ['visa', 'mastercard', 'rupay', 'amex', 'discover']
                       .map((String value) {
@@ -477,7 +607,7 @@ class WalletEditScreenState extends State<WalletEditScreen> {
   }
 }
 
-// Helper Widgets
+// (Rest of the file remains the same: _DetailSection, _DetailTile)
 class _DetailSection extends StatelessWidget {
   final String title;
   final List<Widget> children;
@@ -521,6 +651,7 @@ class _DetailTile extends StatelessWidget {
     required this.title,
     required this.value,
   });
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);

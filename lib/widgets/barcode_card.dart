@@ -1,42 +1,55 @@
-// lib/widgets/barcode_card.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:wallet/models/db_helper.dart';
 import '../models/theme_provider.dart';
 import '../models/dataentry.dart';
 
 class BarcodeCard extends StatelessWidget {
-  final String cardName;
-  final String cardNumber;
+  // MODIFIED: Pass full objects to get all data like color
+  final Loyalty? loyalty;
+  final Identity? identity;
   final BarcodeCardType cardType;
   final VoidCallback onCardTap;
-  final VoidCallback onBarcodeIconTap;
+  final VoidCallback onCopyTap;
+  final VoidCallback onDeleteTap;
 
   const BarcodeCard({
     super.key,
-    required this.cardName,
-    required this.cardNumber,
+    this.loyalty,
+    this.identity,
     required this.cardType,
     required this.onCardTap,
-    required this.onBarcodeIconTap,
-  });
+    required this.onCopyTap,
+    required this.onDeleteTap,
+  }) : assert(loyalty != null || identity != null);
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final isIdentity = cardType == BarcodeCardType.identity;
-    final tapHint = isIdentity
-        ? "Tap for barcode, Long press to copy"
-        : "Tap for barcode, Long press to copy";
+    const tapHint = "Tap to show barcode";
+
+    // MODIFIED: Get data from the correct object
+    final String cardName = cardType == BarcodeCardType.loyalty
+        ? loyalty!.loyaltyName
+        : identity!.identityName;
+    final String cardNumber = cardType == BarcodeCardType.loyalty
+        ? loyalty!.loyaltyNumber
+        : identity!.identityNumber;
+    final String? colorString = cardType == BarcodeCardType.loyalty
+        ? loyalty!.color
+        : identity!.color;
+
+    // MODIFIED: Use saved color
+    final Color cardColor = cardColors[colorString] ?? cardColors['default']!;
 
     return InkWell(
       onTap: onCardTap,
-      onLongPress: () => onBarcodeIconTap(), // Use long press for copy now
       borderRadius: BorderRadius.circular(20),
       child: Container(
+        height: 180, // <-- FIXED: Added a fixed height to resolve layout error
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
+          color: cardColor, // MODIFIED
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.grey.withAlpha(51)),
           boxShadow: themeProvider.isDarkMode
@@ -63,17 +76,38 @@ class BarcodeCard extends StatelessWidget {
                     style: themeProvider.getTextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
+                      color: Colors.white, // MODIFIED
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                Icon(
-                  isIdentity
-                      ? Icons.fingerprint
-                      : Icons.shopping_basket_outlined,
-                  size: 30,
-                  color: themeProvider.getTextStyle().color?.withAlpha(153),
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'copy') {
+                      onCopyTap();
+                    } else if (value == 'delete') {
+                      onDeleteTap();
+                    }
+                  },
+                  itemBuilder: (BuildContext context) =>
+                      <PopupMenuEntry<String>>[
+                        const PopupMenuItem<String>(
+                          value: 'copy',
+                          child: ListTile(
+                            leading: Icon(Icons.copy_outlined),
+                            title: Text('Copy Number'),
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'delete',
+                          child: ListTile(
+                            leading: Icon(Icons.delete_outline),
+                            title: Text('Delete Card'),
+                          ),
+                        ),
+                      ],
+                  icon: const Icon(Icons.more_vert, color: Colors.white70),
                 ),
               ],
             ),
@@ -86,7 +120,7 @@ class BarcodeCard extends StatelessWidget {
                     .getTextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
-                      color: themeProvider.getTextStyle().color?.withAlpha(204),
+                      color: Colors.white.withAlpha(204), // MODIFIED
                     )
                     .copyWith(fontFamily: 'ZSpace'),
               ),
@@ -96,7 +130,7 @@ class BarcodeCard extends StatelessWidget {
               tapHint,
               style: themeProvider.getTextStyle(
                 fontSize: 12,
-                color: themeProvider.getTextStyle().color?.withAlpha(128),
+                color: Colors.white.withAlpha(128), // MODIFIED
               ),
             ),
           ],

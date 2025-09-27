@@ -1,7 +1,7 @@
-// lib/pages/settings_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+// FIXED: Added url_launcher import to open links.
+import 'package:url_launcher/url_launcher.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/models/startup_settings_provider.dart';
 import 'package:wallet/services/backup_service.dart';
@@ -19,6 +19,14 @@ class SettingsPage extends StatelessWidget {
         return 'Dark';
       case ThemePreference.system:
         return 'Follow System';
+    }
+  }
+
+  // FIXED: Added a helper function to launch URLs.
+  Future<void> _launchUrl(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      // You can add a snackbar or alert here to notify the user of an error
     }
   }
 
@@ -47,26 +55,13 @@ class SettingsPage extends StatelessWidget {
                   },
                 ),
               ),
-              _SettingsTile(
-                icon: Icons.web_asset_outlined,
-                title: 'Default Screen',
-                subtitle: startupProvider.getScreenDisplayName(
-                  startupProvider.defaultScreen,
-                ),
-                onTap: () => _showDefaultScreenDialog(
-                  context,
-                  themeProvider,
-                  startupProvider,
-                ),
-              ),
             ],
           ),
 
-          // --- Theme Settings Section (MODIFIED) ---
+          // --- Theme Settings Section ---
           _SettingsSection(
             title: 'Appearance',
             children: [
-              // This tile replaces the old Dark Mode switch
               _SettingsTile(
                 icon: Icons.brightness_6_outlined,
                 title: 'App Theme',
@@ -108,12 +103,25 @@ class SettingsPage extends StatelessWidget {
               ),
             ],
           ),
+
+          // FIXED: Added a new section for the GitHub link.
+          _SettingsSection(
+            title: 'About',
+            children: [
+              _SettingsTile(
+                icon: Icons.code_rounded,
+                title: 'Donate on Github',
+                subtitle: 'Support the project development',
+                onTap: () => _launchUrl('https://github.com/sidhant947/Wallet'),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  // Method to show the theme selection dialog
+  // ... (The rest of the file remains the same)
   void _showThemeDialog(BuildContext context, ThemeProvider themeProvider) {
     showDialog(
       context: context,
@@ -125,11 +133,7 @@ class SettingsPage extends StatelessWidget {
             return RadioListTile<ThemePreference>(
               title: Text(_getThemeDisplayName(preference)),
               value: preference,
-              // FIX: Ignoring linter warning for deprecated member
-              // ignore: deprecated_member_use
               groupValue: themeProvider.themePreference,
-              // FIX: Ignoring linter warning for deprecated member
-              // ignore: deprecated_member_use
               onChanged: (ThemePreference? value) {
                 if (value != null) {
                   themeProvider.setThemePreference(value);
@@ -149,48 +153,8 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  void _showDefaultScreenDialog(
-    BuildContext context,
-    ThemeProvider themeProvider,
-    StartupSettingsProvider startupProvider,
-  ) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Choose Default Screen'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: StartupScreen.values.map((screen) {
-            return RadioListTile<StartupScreen>(
-              title: Text(startupProvider.getScreenDisplayName(screen)),
-              value: screen,
-              // FIX: Ignoring linter warning for deprecated member
-              // ignore: deprecated_member_use
-              groupValue: startupProvider.defaultScreen,
-              // FIX: Ignoring linter warning for deprecated member
-              // ignore: deprecated_member_use
-              onChanged: (StartupScreen? value) {
-                if (value != null) {
-                  startupProvider.setDefaultScreen(value);
-                  Navigator.pop(context);
-                }
-              },
-            );
-          }).toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showBackupDialog(BuildContext context, ThemeProvider themeProvider) {
     final passwordController = TextEditingController();
-    // FIX: Capture navigator and messenger before the dialog is shown
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final theme = Theme.of(context);
@@ -238,7 +202,6 @@ class SettingsPage extends StatelessWidget {
     WalletProvider walletProvider,
   ) {
     final passwordController = TextEditingController();
-    // FIX: Capture navigator and messenger before the dialog is shown
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final theme = Theme.of(context);
@@ -256,7 +219,10 @@ class SettingsPage extends StatelessWidget {
           if (passwordController.text.isEmpty) return;
           try {
             await BackupService.restoreBackup(passwordController.text);
-            await walletProvider.fetchWallets(); // Refresh data
+            // After restoring, we need to refresh ALL providers
+            await context.read<WalletProvider>().fetchWallets();
+            await context.read<LoyaltyProvider>().fetchLoyalties();
+            await context.read<IdentityProvider>().fetchIdentities();
 
             navigator.pop(); // Close dialog on success
             messenger.showSnackBar(
@@ -279,9 +245,7 @@ class SettingsPage extends StatelessWidget {
   }
 }
 
-// -----------------------------------------------------------------------------
-// HELPER WIDGETS FOR SETTINGS UI
-// -----------------------------------------------------------------------------
+// ... (Rest of the file remains the same: _SettingsSection, _SettingsTile, _PasswordDialog)
 
 class _SettingsSection extends StatelessWidget {
   final String title;

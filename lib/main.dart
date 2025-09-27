@@ -6,11 +6,9 @@ import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/models/startup_settings_provider.dart';
 import 'models/provider_helper.dart';
 import 'screens/homescreen.dart';
-import 'screens/identityscreen.dart';
-import 'screens/loyaltyscreen.dart';
 import 'package:provider/provider.dart';
 // This is for testing Only
-// import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:io' show Platform;
 
 void main() async {
@@ -18,7 +16,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // This is for testing Only
-  // databaseFactory = databaseFactoryFfi;
+  databaseFactory = databaseFactoryFfi;
 
   // Initialize providers and load saved preferences
   final themeProvider = ThemeProvider();
@@ -40,6 +38,9 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => WalletProvider()),
+        // MODIFIED: Added new providers
+        ChangeNotifierProvider(create: (context) => LoyaltyProvider()),
+        ChangeNotifierProvider(create: (context) => IdentityProvider()),
         ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider.value(value: startupProvider),
       ],
@@ -48,7 +49,6 @@ void main() async {
   );
 }
 
-// ... rest of the file is unchanged
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -83,49 +83,33 @@ class _SplashScreenState extends State<SplashScreen> {
     });
   }
 
+  // MODIFIED: Simplified startup logic
   Future<void> _checkStartupSettings() async {
     final startupProvider = Provider.of<StartupSettingsProvider>(
       context,
       listen: false,
     );
-
     if (startupProvider.showAuthenticationScreen) {
-      await security();
+      await _performAuthentication();
     } else {
-      _navigateToDefaultScreen();
+      _navigateToHomeScreen();
     }
   }
 
-  void _navigateToDefaultScreen() {
-    final startupProvider = Provider.of<StartupSettingsProvider>(
-      context,
-      listen: false,
-    );
-    Widget targetScreen;
-
-    switch (startupProvider.defaultScreen) {
-      case StartupScreen.home:
-        targetScreen = const HomeScreen();
-        break;
-      case StartupScreen.loyalty:
-        targetScreen = const LoyaltyScreen();
-        break;
-      case StartupScreen.identity:
-        targetScreen = const IdentityScreen();
-        break;
-    }
-
+  // MODIFIED: Renamed and simplified navigation
+  void _navigateToHomeScreen() {
     if (mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => targetScreen),
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
       );
     }
   }
 
-  Future<void> security() async {
+  // MODIFIED: Renamed for clarity
+  Future<void> _performAuthentication() async {
     if (Platform.isLinux || kIsWeb) {
-      _navigateToDefaultScreen();
+      _navigateToHomeScreen();
       return;
     }
 
@@ -137,15 +121,14 @@ class _SplashScreenState extends State<SplashScreen> {
       bool authenticated = await auth.authenticate(
         localizedReason: 'Authenticate to access your wallet',
       );
-
       if (authenticated) {
-        _navigateToDefaultScreen();
+        _navigateToHomeScreen();
       } else {
         // User failed to authenticate. You might want to close the app or show an error.
       }
     } else {
       // If biometrics aren't set up, just proceed.
-      _navigateToDefaultScreen();
+      _navigateToHomeScreen();
     }
   }
 

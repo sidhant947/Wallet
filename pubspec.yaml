@@ -17,8 +17,9 @@ dependencies:
   file_picker: ^10.3.2
   flutter:
     sdk: flutter
-  flutter_slidable: ^4.0.0
+  # flutter_slidable: ^4.0.0
   flutter_staggered_animations: ^1.1.1
+  image_picker: ^1.2.0
   local_auth: ^2.3.0
   lottie: ^3.3.0
   path: ^1.9.0
@@ -30,6 +31,7 @@ dependencies:
   sqflite: ^2.4.1
   sqflite_common_ffi: ^2.3.4+4
   url_launcher: ^6.3.1
+  uuid: ^4.5.1
 
 dev_dependencies:
   flutter_test:

@@ -21,7 +21,7 @@ class DatabaseHelper {
     final path = join(directory.path, 'walletbox.db');
     return openDatabase(
       path,
-      version: 3, // Incremented version for the database schema update
+      version: 5, // MODIFIED: Incremented version
       onCreate: (db, version) {
         return db.execute('''
           CREATE TABLE wallets(
@@ -38,11 +38,15 @@ class DatabaseHelper {
             maxlimit TEXT,
             cardtype TEXT,
             billdate TEXT,
-            category TEXT
+            category TEXT,
+            color TEXT,
+            frontImagePath TEXT,
+            backImagePath TEXT
           )
           ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
+        // Note: This is a simple migration. For production apps, more robust migration is needed.
         if (oldVersion < 2) {
           await db.execute('ALTER TABLE wallets ADD COLUMN spends TEXT;');
           await db.execute('ALTER TABLE wallets ADD COLUMN rewards TEXT;');
@@ -59,6 +63,18 @@ class DatabaseHelper {
           await db.execute('ALTER TABLE wallets ADD COLUMN issuer TEXT;');
           await db.execute('ALTER TABLE wallets ADD COLUMN customFields TEXT;');
         }
+        if (oldVersion < 4) {
+          await db.execute('ALTER TABLE wallets ADD COLUMN color TEXT;');
+        }
+        // MODIFIED: Add image path columns on upgrade
+        if (oldVersion < 5) {
+          await db.execute(
+            'ALTER TABLE wallets ADD COLUMN frontImagePath TEXT;',
+          );
+          await db.execute(
+            'ALTER TABLE wallets ADD COLUMN backImagePath TEXT;',
+          );
+        }
       },
     );
   }
@@ -71,9 +87,7 @@ class DatabaseHelper {
   Future<List<Wallet>> getWallets() async {
     Database db = await instance.database;
     final List<Map<String, dynamic>> maps = await db.query('wallets');
-    return List.generate(maps.length, (i) {
-      return Wallet.fromMap(maps[i]);
-    });
+    return List.generate(maps.length, (i) => Wallet.fromMap(maps[i]));
   }
 
   Future<int> deleteWallet(int id) async {
@@ -100,13 +114,17 @@ class Wallet {
   final String? network;
   final String? issuer;
   final Map<String, String>? customFields;
-  final String? spends; // Optional field
-  final String? rewards; // Optional field
-  final String? annualFeeWaiver; // Optional field
-  final String? maxlimit; // Optional field
-  late final String? cardtype; // Optional field
-  final String? billdate; // Optional field
-  final String? category; // Optional field
+  final String? spends;
+  final String? rewards;
+  final String? annualFeeWaiver;
+  final String? maxlimit;
+  late final String? cardtype;
+  final String? billdate;
+  final String? category;
+  final String? color;
+  // MODIFIED: Added image path fields
+  final String? frontImagePath;
+  final String? backImagePath;
 
   Wallet({
     this.id,
@@ -123,6 +141,9 @@ class Wallet {
     this.cardtype,
     this.billdate,
     this.category,
+    this.color,
+    this.frontImagePath, // MODIFIED
+    this.backImagePath, // MODIFIED
   });
 
   Map<String, dynamic> toMap() {
@@ -141,6 +162,9 @@ class Wallet {
       'cardtype': cardtype,
       'billdate': billdate,
       'category': category,
+      'color': color,
+      'frontImagePath': frontImagePath, // MODIFIED
+      'backImagePath': backImagePath, // MODIFIED
     };
   }
 
@@ -162,6 +186,9 @@ class Wallet {
       cardtype: map['cardtype'],
       billdate: map['billdate'],
       category: map['category'],
+      color: map['color'],
+      frontImagePath: map['frontImagePath'], // MODIFIED
+      backImagePath: map['backImagePath'], // MODIFIED
     );
   }
 }
@@ -169,7 +196,6 @@ class Wallet {
 class IdentityDatabaseHelper {
   static final IdentityDatabaseHelper instance = IdentityDatabaseHelper._init();
   static Database? _database;
-
   IdentityDatabaseHelper._init();
 
   Future<Database> get database async {
@@ -181,7 +207,12 @@ class IdentityDatabaseHelper {
   Future<Database> _initDatabase() async {
     final directory = await getApplicationDocumentsDirectory();
     final path = join(directory.path, 'identity.db');
-    return openDatabase(path, version: 1, onCreate: _onCreate);
+    return openDatabase(
+      path,
+      version: 3,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
   }
 
   Future _onCreate(Database db, int version) async {
@@ -189,9 +220,24 @@ class IdentityDatabaseHelper {
       CREATE TABLE identities(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         identityName TEXT,
-        identityNumber TEXT
+        identityNumber TEXT,
+        color TEXT,
+        frontImagePath TEXT,
+        backImagePath TEXT
       )
     ''');
+  }
+
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE identities ADD COLUMN color TEXT;');
+    }
+    if (oldVersion < 3) {
+      await db.execute(
+        'ALTER TABLE identities ADD COLUMN frontImagePath TEXT;',
+      );
+      await db.execute('ALTER TABLE identities ADD COLUMN backImagePath TEXT;');
+    }
   }
 
   Future<int> insertIdentity(Identity identity) async {
@@ -215,14 +261,27 @@ class Identity {
   final int? id;
   final String identityName;
   final String identityNumber;
+  final String? color;
+  final String? frontImagePath;
+  final String? backImagePath;
 
-  Identity({this.id, required this.identityName, required this.identityNumber});
+  Identity({
+    this.id,
+    required this.identityName,
+    required this.identityNumber,
+    this.color,
+    this.frontImagePath,
+    this.backImagePath,
+  });
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'identityName': identityName,
       'identityNumber': identityNumber,
+      'color': color,
+      'frontImagePath': frontImagePath,
+      'backImagePath': backImagePath,
     };
   }
 
@@ -231,6 +290,9 @@ class Identity {
       id: map['id'],
       identityName: map['identityName'],
       identityNumber: map['identityNumber'],
+      color: map['color'],
+      frontImagePath: map['frontImagePath'],
+      backImagePath: map['backImagePath'],
     );
   }
 }
@@ -238,7 +300,6 @@ class Identity {
 class LoyaltyDatabaseHelper {
   static final LoyaltyDatabaseHelper instance = LoyaltyDatabaseHelper._init();
   static Database? _database;
-
   LoyaltyDatabaseHelper._init();
 
   Future<Database> get database async {
@@ -250,7 +311,12 @@ class LoyaltyDatabaseHelper {
   Future<Database> _initDatabase() async {
     final directory = await getApplicationDocumentsDirectory();
     final path = join(directory.path, 'loyalty.db');
-    return openDatabase(path, version: 1, onCreate: _onCreate);
+    return openDatabase(
+      path,
+      version: 3,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
   }
 
   Future _onCreate(Database db, int version) async {
@@ -258,9 +324,22 @@ class LoyaltyDatabaseHelper {
       CREATE TABLE loyalties(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         loyaltyName TEXT,
-        loyaltyNumber TEXT
+        loyaltyNumber TEXT,
+        color TEXT,
+        frontImagePath TEXT,
+        backImagePath TEXT
       )
     ''');
+  }
+
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE loyalties ADD COLUMN color TEXT;');
+    }
+    if (oldVersion < 3) {
+      await db.execute('ALTER TABLE loyalties ADD COLUMN frontImagePath TEXT;');
+      await db.execute('ALTER TABLE loyalties ADD COLUMN backImagePath TEXT;');
+    }
   }
 
   Future<int> insertLoyalty(Loyalty loyalty) async {
@@ -284,14 +363,27 @@ class Loyalty {
   final int? id;
   final String loyaltyName;
   final String loyaltyNumber;
+  final String? color;
+  final String? frontImagePath;
+  final String? backImagePath;
 
-  Loyalty({this.id, required this.loyaltyName, required this.loyaltyNumber});
+  Loyalty({
+    this.id,
+    required this.loyaltyName,
+    required this.loyaltyNumber,
+    this.color,
+    this.frontImagePath,
+    this.backImagePath,
+  });
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'loyaltyName': loyaltyName,
       'loyaltyNumber': loyaltyNumber,
+      'color': color,
+      'frontImagePath': frontImagePath,
+      'backImagePath': backImagePath,
     };
   }
 
@@ -300,6 +392,9 @@ class Loyalty {
       id: map['id'],
       loyaltyName: map['loyaltyName'],
       loyaltyNumber: map['loyaltyNumber'],
+      color: map['color'],
+      frontImagePath: map['frontImagePath'],
+      backImagePath: map['backImagePath'],
     );
   }
 }
