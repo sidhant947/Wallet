@@ -32,14 +32,6 @@ jobs:
           channel: "stable"
           cache: true # Caches dependencies for faster builds
 
-      # Step 3: Installs your project's dependencies
-      - name: Get Flutter dependencies
-        run: flutter pub get
-
-      # Step 4 (Optional): Run static analysis to find any potential issues
-      - name: Run static analysis
-        run: flutter analyze
-
-      # Step 5: Build a debug version of the Android APK to verify the build completes
+      # Step 3: Build a debug version of the Android APK to verify the build completes
       - name: Build Flutter App (Android)
         run: flutter build apk

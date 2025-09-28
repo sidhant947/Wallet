@@ -7,8 +7,8 @@ publish_to: "none"
 version: 1.0.17+20
 
 environment:
-  sdk: ^3.9.0
-  flutter: ^3.35.2
+  sdk: ^3.9.2
+  flutter: ^3.35.4
 
 dependencies:
   barcode_scan2: ^4.4.0
