@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:wallet/pages/add_card_screen.dart';
 import 'package:wallet/pages/settings_page.dart';
 import 'package:wallet/screens/barcode_card_details_screen.dart';
@@ -147,6 +148,13 @@ class _HomeScreenState extends State<HomeScreen> {
     ).showSnackBar(const SnackBar(content: Text('Card number copied!')));
   }
 
+  Future<void> _launchUrl(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      // You can add a snackbar or alert here to notify the user of an error
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<Widget> pages = [
@@ -157,6 +165,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: GestureDetector(
+          onTap: () => _launchUrl('https://github.com/sidhant947/Wallet'),
+
+          child: const Icon(Icons.star),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),

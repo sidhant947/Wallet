@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-// FIXED: Added url_launcher import to open links.
-import 'package:url_launcher/url_launcher.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/models/startup_settings_provider.dart';
 import 'package:wallet/services/backup_service.dart';
@@ -23,12 +21,6 @@ class SettingsPage extends StatelessWidget {
   }
 
   // FIXED: Added a helper function to launch URLs.
-  Future<void> _launchUrl(String url) async {
-    final Uri uri = Uri.parse(url);
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      // You can add a snackbar or alert here to notify the user of an error
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -105,17 +97,6 @@ class SettingsPage extends StatelessWidget {
           ),
 
           // FIXED: Added a new section for the GitHub link.
-          _SettingsSection(
-            title: 'About',
-            children: [
-              _SettingsTile(
-                icon: Icons.code_rounded,
-                title: 'Donate on Github',
-                subtitle: 'Support the project development',
-                onTap: () => _launchUrl('https://github.com/sidhant947/Wallet'),
-              ),
-            ],
-          ),
         ],
       ),
     );

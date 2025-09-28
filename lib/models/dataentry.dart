@@ -316,7 +316,7 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
         padding: const EdgeInsets.all(16.0),
         children: [
           GlassCreditCard(
-            isMasked: true,
+            isMasked: false,
             wallet: previewWallet,
             onCardTap: () {},
           ),

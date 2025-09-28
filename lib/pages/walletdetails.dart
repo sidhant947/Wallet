@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:wallet/models/dataentry.dart'; // FIXED: Import to use ColorPicker
+import 'package:wallet/models/dataentry.dart';
 import '../models/db_helper.dart';
 import '../models/provider_helper.dart';
 import '../models/theme_provider.dart';
@@ -75,34 +76,38 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
 
   Widget _buildImageThumbnail(String imagePath, String label) {
     final imageFile = File(imagePath);
-    return Column(
-      children: [
-        GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => FullScreenImageViewer(imageFile: imageFile),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    FullScreenImageViewer(imageFile: imageFile),
+              ),
             ),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.file(
-              imageFile,
-              height: 100,
-              width: 150,
-              fit: BoxFit.cover,
-              errorBuilder: (c, e, s) => Container(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.file(
+                imageFile,
                 height: 100,
                 width: 150,
-                color: Colors.grey.shade200,
-                child: const Icon(Icons.error_outline),
+                fit: BoxFit.cover,
+                errorBuilder: (c, e, s) => Container(
+                  height: 100,
+                  width: 150,
+                  color: Colors.grey.shade200,
+                  child: const Icon(Icons.error_outline),
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(label),
-      ],
+          const SizedBox(height: 8),
+          Text(label),
+        ],
+      ),
     );
   }
 
@@ -139,7 +144,7 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
           SizedBox(
             height: 235,
             child: GlassCreditCard(
-              isMasked: true,
+              isMasked: false,
               wallet: currentWallet,
               onCardTap: () {
                 Clipboard.setData(ClipboardData(text: currentWallet.number));
@@ -156,7 +161,8 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
               title: "Card Images",
               children: [
                 Center(
-                  child: Column(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       if (isPathValid(currentWallet.frontImagePath))
                         _buildImageThumbnail(
@@ -257,9 +263,14 @@ class WalletEditScreenState extends State<WalletEditScreen> {
       _annualFeeWaiverController,
       _rewardsController;
   late String _network;
-  late String _selectedColor; // FIXED: Added state for color
+  late String _selectedColor;
   final List<TextEditingController> _customFieldNameControllers = [];
   final List<TextEditingController> _customFieldValueControllers = [];
+
+  // FIXED: Added state for image files and the picker
+  File? _frontImageFile;
+  File? _backImageFile;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -279,7 +290,15 @@ class WalletEditScreenState extends State<WalletEditScreen> {
       text: wallet.annualFeeWaiver,
     );
     _rewardsController = TextEditingController(text: wallet.rewards);
-    _selectedColor = wallet.color ?? 'default'; // FIXED: Initialize color
+    _selectedColor = wallet.color ?? 'default';
+
+    // FIXED: Initialize image files if they already exist
+    if (wallet.frontImagePath != null && wallet.frontImagePath!.isNotEmpty) {
+      _frontImageFile = File(wallet.frontImagePath!);
+    }
+    if (wallet.backImagePath != null && wallet.backImagePath!.isNotEmpty) {
+      _backImageFile = File(wallet.backImagePath!);
+    }
 
     if (wallet.customFields != null) {
       wallet.customFields!.forEach((key, value) {
@@ -288,7 +307,6 @@ class WalletEditScreenState extends State<WalletEditScreen> {
       });
     }
 
-    // FIXED: Add listeners to update preview in real-time
     _nameController.addListener(_updatePreview);
     _numberController.addListener(_updatePreview);
     _expiryController.addListener(_updatePreview);
@@ -296,12 +314,9 @@ class WalletEditScreenState extends State<WalletEditScreen> {
 
   @override
   void dispose() {
-    // FIXED: Remove listeners
     _nameController.removeListener(_updatePreview);
     _numberController.removeListener(_updatePreview);
     _expiryController.removeListener(_updatePreview);
-
-    // Dispose all controllers
     _nameController.dispose();
     _numberController.dispose();
     _expiryController.dispose();
@@ -322,9 +337,24 @@ class WalletEditScreenState extends State<WalletEditScreen> {
     super.dispose();
   }
 
-  // FIXED: Method to trigger rebuild for the preview
   void _updatePreview() {
-    setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  // FIXED: Added image picker logic
+  Future<void> _pickImage(ImageSource source, bool isFront) async {
+    final pickedFile = await _picker.pickImage(source: source);
+    if (pickedFile != null) {
+      setState(() {
+        if (isFront) {
+          _frontImageFile = File(pickedFile.path);
+        } else {
+          _backImageFile = File(pickedFile.path);
+        }
+      });
+    }
   }
 
   void _addCustomField() {
@@ -354,6 +384,23 @@ class WalletEditScreenState extends State<WalletEditScreen> {
         }
       }
 
+      // FIXED: Save new images if they were picked, otherwise keep the old ones.
+      String? frontImagePath = widget.wallet.frontImagePath;
+      if (_frontImageFile != null &&
+          _frontImageFile!.path != widget.wallet.frontImagePath) {
+        frontImagePath = await saveImageToAppDirectory(_frontImageFile!);
+      } else if (_frontImageFile == null) {
+        frontImagePath = null; // Handle image removal
+      }
+
+      String? backImagePath = widget.wallet.backImagePath;
+      if (_backImageFile != null &&
+          _backImageFile!.path != widget.wallet.backImagePath) {
+        backImagePath = await saveImageToAppDirectory(_backImageFile!);
+      } else if (_backImageFile == null) {
+        backImagePath = null; // Handle image removal
+      }
+
       final updatedWallet = Wallet(
         id: widget.wallet.id,
         name: _nameController.text,
@@ -369,10 +416,9 @@ class WalletEditScreenState extends State<WalletEditScreen> {
         annualFeeWaiver: _annualFeeWaiverController.text,
         rewards: _rewardsController.text,
         customFields: customFields,
-        color: _selectedColor, // FIXED: Save the selected color
-        // FIXED: Preserve existing images when saving
-        frontImagePath: widget.wallet.frontImagePath,
-        backImagePath: widget.wallet.backImagePath,
+        color: _selectedColor,
+        frontImagePath: frontImagePath,
+        backImagePath: backImagePath,
       );
       final provider = context.read<WalletProvider>();
       final navigator = Navigator.of(context);
@@ -385,7 +431,6 @@ class WalletEditScreenState extends State<WalletEditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // FIXED: Create a preview wallet object that updates in real-time
     final previewWallet = Wallet(
       id: widget.wallet.id,
       name: _nameController.text.isEmpty ? 'CARD NAME' : _nameController.text,
@@ -413,9 +458,8 @@ class WalletEditScreenState extends State<WalletEditScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16.0),
           children: [
-            // FIXED: Added the live card preview
             GlassCreditCard(
-              isMasked: false, // Show full details while editing
+              isMasked: false,
               wallet: previewWallet,
               onCardTap: () {},
             ),
@@ -423,7 +467,6 @@ class WalletEditScreenState extends State<WalletEditScreen> {
             _DetailSection(
               title: "Primary Details",
               children: [
-                // FIXED: Added the color picker
                 ColorPicker(
                   selectedColor: _selectedColor,
                   onColorSelected: (color) {
@@ -469,7 +512,7 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  initialValue: _network,
+                  value: _network,
                   decoration: const InputDecoration(labelText: 'Card Network'),
                   items: ['visa', 'mastercard', 'rupay', 'amex', 'discover']
                       .map((String value) {
@@ -486,6 +529,25 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                       });
                     }
                   },
+                ),
+              ],
+            ),
+            // FIXED: Added image picker section
+            _DetailSection(
+              title: "Card Images",
+              children: [
+                ImagePickerWidget(
+                  title: 'Front Image',
+                  imageFile: _frontImageFile,
+                  onPickImage: () => _pickImage(ImageSource.gallery, true),
+                  onRemoveImage: () => setState(() => _frontImageFile = null),
+                ),
+                const SizedBox(height: 16),
+                ImagePickerWidget(
+                  title: 'Back Image',
+                  imageFile: _backImageFile,
+                  onPickImage: () => _pickImage(ImageSource.gallery, false),
+                  onRemoveImage: () => setState(() => _backImageFile = null),
                 ),
               ],
             ),

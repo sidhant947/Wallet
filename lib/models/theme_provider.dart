@@ -36,18 +36,12 @@ class ThemeProvider with ChangeNotifier {
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // Load saved theme preference, defaulting to 'system'
     final themeIndex =
         prefs.getInt(_themePreferenceKey) ?? ThemePreference.system.index;
     _themePreference = ThemePreference.values[themeIndex];
-
-    // Load font preference
     _useSystemFont = prefs.getBool(_fontKey) ?? false;
-
-    // Set the initial dark mode state based on preference
     _updateDarkModeState();
 
-    // Listen for changes in the system's theme
     var platformDispatcher = SchedulerBinding.instance.platformDispatcher;
     platformDispatcher.onPlatformBrightnessChanged = () {
       if (_themePreference == ThemePreference.system) {
@@ -55,38 +49,30 @@ class ThemeProvider with ChangeNotifier {
         notifyListeners();
       }
     };
-
     notifyListeners();
   }
 
-  // Helper method to set the internal _isDarkMode flag correctly
   void _updateDarkModeState() {
     if (_themePreference == ThemePreference.light) {
       _isDarkMode = false;
     } else if (_themePreference == ThemePreference.dark) {
       _isDarkMode = true;
     } else {
-      // When set to system, check the actual system brightness
       final brightness =
           SchedulerBinding.instance.platformDispatcher.platformBrightness;
       _isDarkMode = brightness == Brightness.dark;
     }
   }
 
-  // Sets the new theme preference and saves it
   Future<void> setThemePreference(ThemePreference preference) async {
     if (_themePreference == preference) return;
-
     _themePreference = preference;
     _updateDarkModeState();
-
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_themePreferenceKey, preference.index);
-
     notifyListeners();
   }
 
-  // Unchanged methods below...
   Future<void> toggleFont() async {
     _useSystemFont = !_useSystemFont;
     final prefs = await SharedPreferences.getInstance();
@@ -111,18 +97,15 @@ class ThemeProvider with ChangeNotifier {
       fontSize: fontSize,
       fontWeight: fontWeight,
       color:
-          color ??
-          (_isDarkMode
-              ? Colors.white.withAlpha(222) // 87% opacity
-              : Colors.black87),
+          color ?? (_isDarkMode ? Colors.white.withAlpha(222) : Colors.black87),
     );
   }
 
-  // --- NEW DARK THEME (PURE BLACK + WHITE ACCENT) ---
+  // --- PURE DARK THEME ---
   ThemeData get darkTheme => ThemeData(
     brightness: Brightness.dark,
     scaffoldBackgroundColor: Colors.black,
-    cardColor: Colors.black, // Cards will be distinguished by a border
+    cardColor: Colors.black,
     fontFamily: _useSystemFont ? null : 'Bebas',
     appBarTheme: const AppBarTheme(
       backgroundColor: Colors.black,
@@ -169,7 +152,7 @@ class ThemeProvider with ChangeNotifier {
     ),
   );
 
-  // --- NEW LIGHT THEME (PURE WHITE + RED ACCENT) ---
+  // --- PURE LIGHT THEME (FIXED: Removed red accent) ---
   ThemeData get lightTheme => ThemeData(
     brightness: Brightness.light,
     scaffoldBackgroundColor: Colors.white,
@@ -188,14 +171,14 @@ class ThemeProvider with ChangeNotifier {
       ),
     ),
     drawerTheme: const DrawerThemeData(backgroundColor: Colors.white),
-    floatingActionButtonTheme: FloatingActionButtonThemeData(
-      backgroundColor: Colors.red.shade700,
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: Colors.black, // Changed from red
       foregroundColor: Colors.white,
     ),
     listTileTheme: const ListTileThemeData(iconColor: Colors.black54),
     colorScheme: ColorScheme.light(
-      primary: Colors.red.shade700,
-      secondary: Colors.red.shade600,
+      primary: Colors.black, // Changed from red
+      secondary: Colors.black, // Changed from red
       surface: Colors.white,
       onPrimary: Colors.white,
       onSecondary: Colors.white,
