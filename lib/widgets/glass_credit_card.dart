@@ -1,8 +1,10 @@
 // lib/widgets/glass_credit_card.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/dataentry.dart'; // FIXED: Import dataentry to access the color map
+import 'package:wallet/models/provider_helper.dart';
 import '../models/db_helper.dart';
 import '../models/theme_provider.dart';
 
@@ -67,103 +69,126 @@ class GlassCreditCard extends StatelessWidget {
 
     // final shadowColor = _getShadowColor(wallet.network);
 
-    return GestureDetector(
-      onTap: onCardTap,
-      child: AspectRatio(
-        aspectRatio: 1.586,
-        child: Container(
-          decoration: BoxDecoration(
-            // borderRadius: BorderRadius.circular(10),
-            // boxShadow: [
-            //   BoxShadow(
-            //     color: shadowColor.withAlpha(128),
-            //     blurRadius: 25,
-            //     spreadRadius: 0,
-            //     offset: const Offset(0, 8),
-            //   ),
-            // ],
+    return Slidable(
+      key: ValueKey(wallet.id),
+      endActionPane: ActionPane(
+        motion: const ScrollMotion(),
+        extentRatio: 0.25,
+        children: [
+          SlidableAction(
+            onPressed: (context) async {
+              // Delete the card from the database
+              await context.read<WalletProvider>().deleteWallet(wallet.id!);
+              // Optionally, you can show a snackbar or toast to confirm deletion
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Card deleted')));
+            },
+            backgroundColor: Colors.transparent,
+            foregroundColor: Colors.red,
+            icon: Icons.delete,
+            label: 'Delete',
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(15),
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: cardColor, // This now uses the corrected color
-                border: Border.all(color: Colors.grey.withAlpha(51)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Image.asset(
-                        "assets/network/${wallet.network}.png",
-                        height: 35,
-                        fit: BoxFit.contain,
-                        color: (useWhiteText) && wallet.network == 'visa'
-                            ? Colors.white
-                            : null,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const SizedBox.shrink();
-                        },
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      key: ValueKey<bool>(isMasked),
-                      child: Text(
-                        isMasked
-                            ? "**** **** **** $lastFour"
-                            : _formatCardNumber(wallet.number),
-                        style: TextStyle(
-                          fontFamily: 'ZSpace',
-                          fontSize: 28,
-                          color: textColor, // Uses corrected text color
-                          letterSpacing: 2.0,
+        ],
+      ),
+      child: GestureDetector(
+        onTap: onCardTap,
+        child: AspectRatio(
+          aspectRatio: 1.586,
+          child: Container(
+            decoration: BoxDecoration(
+              // borderRadius: BorderRadius.circular(10),
+              // boxShadow: [
+              //   BoxShadow(
+              //     color: shadowColor.withAlpha(128),
+              //     blurRadius: 25,
+              //     spreadRadius: 0,
+              //     offset: const Offset(0, 8),
+              //   ),
+              // ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: cardColor, // This now uses the corrected color
+                  border: Border.all(color: Colors.grey.withAlpha(51)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Image.asset(
+                          "assets/network/${wallet.network}.png",
+                          height: 35,
+                          fit: BoxFit.contain,
+                          color: (useWhiteText) && wallet.network == 'visa'
+                              ? Colors.white
+                              : null,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        key: ValueKey<bool>(isMasked),
+                        child: Text(
+                          isMasked
+                              ? "**** **** **** $lastFour"
+                              : _formatCardNumber(wallet.number),
+                          style: TextStyle(
+                            fontFamily: 'ZSpace',
+                            fontSize: 28,
+                            color: textColor, // Uses corrected text color
+                            letterSpacing: 2.0,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          wallet.name.toUpperCase(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: textColor, fontSize: 18),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            "EXPIRES",
-                            style: TextStyle(
-                              color:
-                                  mutedTextColor, // Uses corrected text color
-                              fontSize: 10,
-                            ),
-                          ),
-                          Text(
-                            isMasked ? "••/••" : _formatExpiry(wallet.expiry),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            wallet.name.toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(color: textColor, fontSize: 18),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
+                        ),
+                        const SizedBox(width: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              "EXPIRES",
+                              style: TextStyle(
+                                color:
+                                    mutedTextColor, // Uses corrected text color
+                                fontSize: 10,
+                              ),
+                            ),
+                            Text(
+                              isMasked ? "••/••" : _formatExpiry(wallet.expiry),
+                              style: TextStyle(color: textColor, fontSize: 18),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

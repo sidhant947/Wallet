@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/models/startup_settings_provider.dart';
 import 'package:wallet/services/backup_service.dart';
@@ -91,6 +92,24 @@ class SettingsPage extends StatelessWidget {
                 onTap: () {
                   final walletProvider = context.read<WalletProvider>();
                   _showRestoreDialog(context, themeProvider, walletProvider);
+                },
+              ),
+            ],
+          ),
+
+          // --- About Section ---
+          _SettingsSection(
+            title: 'Support',
+            children: [
+              _SettingsTile(
+                icon: Icons.code,
+                title: 'Support',
+                subtitle: 'Support for App Store Release',
+                onTap: () {
+                  // FIXED: Use the url_launcher package to open the GitHub link
+                  launchUrl(
+                    Uri.parse('https://github.com/sponsors/sidhant947'),
+                  );
                 },
               ),
             ],

@@ -64,42 +64,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _showWalletDeleteConfirmationDialog(
-    BuildContext context,
-    Wallet wallet,
-  ) {
-    showDialog(
-      context: context,
-      builder: (BuildContext ctx) {
-        return AlertDialog(
-          title: const Text('Delete Card?'),
-          content: Text(
-            'Are you sure you want to delete "${wallet.name}"? This action cannot be undone.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.error,
-              ),
-              onPressed: () {
-                context.read<WalletProvider>().deleteWallet(wallet.id!);
-                Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Card Deleted!')));
-              },
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   void _showBarcodeDeleteConfirmationDialog({
     required int id,
     required String name,
@@ -342,8 +306,6 @@ class _HomeScreenState extends State<HomeScreen> {
               return Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 child: GestureDetector(
-                  onLongPress: () =>
-                      _showWalletDeleteConfirmationDialog(context, wallet),
                   child: GlassCreditCard(
                     wallet: wallet,
                     isMasked: true,
@@ -359,25 +321,30 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             }).toList(),
           ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-          child: OutlinedButton.icon(
-            icon: const Icon(Icons.summarize_outlined),
-            label: const Text('View Financial Summary'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+
+        if (_selectedFilter == 'all')
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 16.0,
             ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const Summary()),
-              );
-            },
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.summarize_outlined),
+              label: const Text('View Financial Summary'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const Summary()),
+                );
+              },
+            ),
           ),
-        ),
       ],
     );
   }
