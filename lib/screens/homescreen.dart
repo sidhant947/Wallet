@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -132,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
         leading: GestureDetector(
           onTap: () => _launchUrl('https://github.com/sidhant947/Wallet'),
 
-          child: const Icon(Icons.star),
+          child: const Icon(Icons.star, color: Colors.yellow),
         ),
         actions: [
           IconButton(
@@ -305,15 +306,42 @@ class _HomeScreenState extends State<HomeScreen> {
             children: filteredWallets.map((wallet) {
               return Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: GestureDetector(
-                  child: GlassCreditCard(
-                    wallet: wallet,
-                    isMasked: true,
-                    onCardTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            WalletDetailScreen(wallet: wallet),
+                child: Slidable(
+                  key: ValueKey(wallet.id), // Important: Use wallet.id for key
+                  endActionPane: ActionPane(
+                    motion: const ScrollMotion(),
+                    extentRatio: 0.25, // Adjust ratio as needed
+                    children: [
+                      SlidableAction(
+                        onPressed: (context) async {
+                          // Delete the card from the database
+                          await context.read<WalletProvider>().deleteWallet(
+                            wallet.id!,
+                          );
+                          // Optionally, you can show a snackbar or toast to confirm deletion
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Card deleted')),
+                          );
+                        },
+                        backgroundColor: Colors
+                            .transparent, // Or a specific color like Colors.red.shade700
+                        foregroundColor: Colors.red,
+                        icon: Icons.delete,
+                        label: 'Delete',
+                      ),
+                      // Add more SlidableAction widgets here if needed (e.g., Edit)
+                    ],
+                  ),
+                  child: GestureDetector(
+                    child: GlassCreditCard(
+                      wallet: wallet,
+                      isMasked: true,
+                      onCardTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              WalletDetailScreen(wallet: wallet),
+                        ),
                       ),
                     ),
                   ),
