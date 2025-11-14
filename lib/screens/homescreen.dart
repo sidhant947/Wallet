@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -162,24 +164,35 @@ class _HomeScreenState extends State<HomeScreen> {
         child: const Icon(Icons.add),
       ),
       body: pages[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected:
+            _onItemTapped, // Your existing function works perfectly
+        // This gives a modern, M3-style elevation and background
+        elevation: 2,
+        // Use surfaceContainer for a modern background color
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+        indicatorColor: Theme.of(context).colorScheme.primaryContainer,
+
+        destinations: const <Widget>[
+          NavigationDestination(
+            // Use the outlined icon for the default state
             icon: Icon(Icons.credit_card_outlined),
+            // Use the filled icon for the 'selected' state
+            selectedIcon: Icon(Icons.credit_card),
             label: 'Payments',
           ),
-          BottomNavigationBarItem(
+          NavigationDestination(
             icon: Icon(Icons.loyalty_outlined),
+            selectedIcon: Icon(Icons.loyalty),
             label: 'Loyalty',
           ),
-          BottomNavigationBarItem(
+          NavigationDestination(
             icon: Icon(Icons.badge_outlined),
+            selectedIcon: Icon(Icons.badge),
             label: 'Identity',
           ),
         ],
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
       ),
     );
   }

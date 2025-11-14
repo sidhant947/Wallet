@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:io';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +26,7 @@ const Map<String, Color> cardColors = {
   'orange': Color(0xFFEF6C00),
 };
 
-// ... (ColorPicker widget remains the same as previous response) ...
+// ... (ColorPicker widget remains the same) ...
 class ColorPicker extends StatelessWidget {
   final String selectedColor;
   final ValueChanged<String> onColorSelected;
@@ -84,7 +86,7 @@ class ColorPicker extends StatelessWidget {
   }
 }
 
-// --- NEW: Image Picker Helper Widget ---
+// ... (ImagePickerWidget remains the same) ...
 class ImagePickerWidget extends StatelessWidget {
   final String title;
   final File? imageFile;
@@ -166,7 +168,7 @@ class ImagePickerWidget extends StatelessWidget {
   }
 }
 
-// --- Utility function to save images ---
+// ... (saveImageToAppDirectory function remains the same) ...
 Future<String?> saveImageToAppDirectory(File imageFile) async {
   try {
     final directory = await getApplicationDocumentsDirectory();
@@ -181,9 +183,7 @@ Future<String?> saveImageToAppDirectory(File imageFile) async {
   }
 }
 
-// -----------------------------------------------------------------------------
-// CREDIT CARD DATA ENTRY FORM (MODIFIED)
-// -----------------------------------------------------------------------------
+// ... (CreditCardEntryForm remains the same) ...
 class CreditCardEntryForm extends StatefulWidget {
   const CreditCardEntryForm({super.key});
 
@@ -484,7 +484,9 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
   }
 }
 
-// ... (Rest of the file remains the same) ...
+// -----------------------------------------------------------------------------
+// BARCODE CARD DATA ENTRY FORM (MODIFIED)
+// -----------------------------------------------------------------------------
 class BarcodeCardEntryForm extends StatefulWidget {
   final BarcodeCardType cardType;
   const BarcodeCardEntryForm({super.key, required this.cardType});
@@ -500,6 +502,23 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
   File? _frontImageFile;
   File? _backImageFile;
   final ImagePicker _picker = ImagePicker();
+
+  // --- ADDED ---
+  @override
+  void initState() {
+    super.initState();
+    // Add listeners to update the preview in real-time
+    _nameController.addListener(() => setState(() {}));
+    _numberController.addListener(() => setState(() {}));
+  }
+
+  // --- ADDED ---
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _numberController.dispose();
+    super.dispose();
+  }
 
   Map<String, String> _getConfig() {
     switch (widget.cardType) {
@@ -532,6 +551,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
   }
 
   void _addData() async {
+    // ... (This function remains the same)
     final name = _nameController.text.trim();
     final number = _numberController.text.trim();
     final messenger = ScaffoldMessenger.of(context);
@@ -583,6 +603,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
   }
 
   Future<void> _scan() async {
+    // ... (This function remains the same)
     try {
       final result = await BarcodeScanner.scan();
       if (result.type == ResultType.Barcode) {
@@ -599,7 +620,19 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-        const SizedBox(height: 20),
+        // --- ADDED ---
+        // Live preview of the barcode card
+        _BarcodeCardPreview(
+          name: _nameController.text,
+          number: _numberController.text,
+          colorName: _selectedColor,
+          cardType: widget.cardType,
+          namePlaceholder: config['nameHint']!,
+          numberPlaceholder: config['numberHint']!,
+        ),
+
+        // --- END OF ADDED SECTION ---
+        const SizedBox(height: 24), // --- MODIFIED: Was 20
         ColorPicker(
           selectedColor: _selectedColor,
           onColorSelected: (color) => setState(() => _selectedColor = color),
@@ -660,6 +693,105 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
   }
 }
 
+// -----------------------------------------------------------------------------
+// --- ADDED: NEW WIDGET FOR BARCODE CARD PREVIEW ---
+// -----------------------------------------------------------------------------
+class _BarcodeCardPreview extends StatelessWidget {
+  final String name;
+  final String number;
+  final String colorName;
+  final BarcodeCardType cardType;
+  final String namePlaceholder;
+  final String numberPlaceholder;
+
+  const _BarcodeCardPreview({
+    required this.name,
+    required this.number,
+    required this.colorName,
+    required this.cardType,
+    required this.namePlaceholder,
+    required this.numberPlaceholder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Use the cardColors map to get the actual color from the name
+    final Color cardBGColor = cardColors[colorName] ?? Colors.black;
+    final String typeLabel = cardType == BarcodeCardType.identity
+        ? 'Identity Card'
+        : 'Loyalty Card';
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 20.0, top: 20.0),
+      padding: const EdgeInsets.only(
+        top: 20.0,
+        left: 20.0,
+        right: 20.0,
+        bottom: 24.0,
+      ),
+      decoration: BoxDecoration(
+        color: cardBGColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: cardBGColor.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                typeLabel,
+                style: const TextStyle(
+                  color: Color.fromRGBO(255, 255, 255, 0.8),
+                  fontSize: 14,
+                ),
+              ),
+              // This is just a visual icon to match your home screen's card
+              const Icon(
+                Icons.copy_all_outlined,
+                color: Color.fromRGBO(255, 255, 255, 0.8),
+                size: 20,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            name.isEmpty ? namePlaceholder : name,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Bebas', // Assuming you use this font
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            number.isEmpty ? numberPlaceholder : number,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ... (_FormSection widget remains the same) ...
 class _FormSection extends StatelessWidget {
   final List<Widget> children;
   const _FormSection({required this.children});
