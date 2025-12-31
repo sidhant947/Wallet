@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -12,6 +13,7 @@ import 'package:wallet/screens/barcode_card_details_screen.dart';
 import 'package:wallet/screens/summary.dart';
 import 'package:wallet/widgets/barcode_card.dart';
 import 'package:wallet/widgets/glass_credit_card.dart';
+import 'package:wallet/widgets/liquid_glass.dart';
 import '../models/dataentry.dart';
 import '../models/db_helper.dart';
 import '../models/provider_helper.dart';
@@ -29,14 +31,12 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   String _selectedFilter = 'all';
 
-  // FIXED: Declared the controller here...
   late final TextEditingController _searchController;
   String _searchQuery = "";
 
   @override
   void initState() {
     super.initState();
-    // FIXED: ...and correctly initialized it in initState.
     _searchController = TextEditingController();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -46,7 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     _searchController.addListener(() {
-      // This setState call is what triggers the filter to re-run
       if (mounted) {
         setState(() {
           _searchQuery = _searchController.text;
@@ -72,37 +71,56 @@ class _HomeScreenState extends State<HomeScreen> {
     required String name,
     required BarcodeCardType type,
   }) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDark = themeProvider.isDarkMode;
+
     showDialog(
       context: context,
       builder: (BuildContext ctx) {
-        return AlertDialog(
-          title: const Text('Delete Card?'),
-          content: Text(
-            'Are you sure you want to delete "$name"? This action cannot be undone.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.error,
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+            title: Text(
+              'Delete Card?',
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black,
+                fontWeight: FontWeight.bold,
               ),
-              onPressed: () {
-                if (type == BarcodeCardType.loyalty) {
-                  context.read<LoyaltyProvider>().deleteLoyalty(id);
-                } else {
-                  context.read<IdentityProvider>().deleteIdentity(id);
-                }
-                Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Card Deleted!')));
-              },
-              child: const Text('Delete'),
             ),
-          ],
+            content: Text(
+              'Are you sure you want to delete "$name"? This action cannot be undone.',
+              style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: isDark ? Colors.white60 : Colors.black54,
+                  ),
+                ),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ),
+                onPressed: () {
+                  if (type == BarcodeCardType.loyalty) {
+                    context.read<LoyaltyProvider>().deleteLoyalty(id);
+                  } else {
+                    context.read<IdentityProvider>().deleteIdentity(id);
+                  }
+                  Navigator.of(ctx).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Card Deleted!')),
+                  );
+                },
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -124,6 +142,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
     final List<Widget> pages = [
       _buildPaymentsTab(context),
       _buildLoyaltyTab(context),
@@ -134,71 +155,115 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         leading: GestureDetector(
           onTap: () => _launchUrl('https://github.com/sidhant947/Wallet'),
-
-          child: const Icon(Icons.star, color: Colors.yellow),
+          child: Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.black.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.star_rounded, color: Colors.amber.shade400),
+          ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsPage()),
-              );
-            },
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.black.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.settings_outlined,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
+                );
+              },
+            ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddCardScreen()),
-          );
-          if (result == true && mounted) {
-            context.read<WalletProvider>().fetchWallets();
-            context.read<LoyaltyProvider>().fetchLoyalties();
-            context.read<IdentityProvider>().fetchIdentities();
-          }
-        },
-        child: const Icon(Icons.add),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.15),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AddCardScreen()),
+            );
+            if (result == true && mounted) {
+              context.read<WalletProvider>().fetchWallets();
+              context.read<LoyaltyProvider>().fetchLoyalties();
+              context.read<IdentityProvider>().fetchIdentities();
+            }
+          },
+          child: const Icon(Icons.add_rounded),
+        ),
       ),
       body: pages[_selectedIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected:
-            _onItemTapped, // Your existing function works perfectly
-        // This gives a modern, M3-style elevation and background
-        elevation: 2,
-        // Use surfaceContainer for a modern background color
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-        indicatorColor: Theme.of(context).colorScheme.primaryContainer,
-
-        destinations: const <Widget>[
-          NavigationDestination(
-            // Use the outlined icon for the default state
-            icon: Icon(Icons.credit_card_outlined),
-            // Use the filled icon for the 'selected' state
-            selectedIcon: Icon(Icons.credit_card),
-            label: 'Payments',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.black.withOpacity(0.05),
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.loyalty_outlined),
-            selectedIcon: Icon(Icons.loyalty),
-            label: 'Loyalty',
+        ),
+        child: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: NavigationBar(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: _onItemTapped,
+              elevation: 0,
+              destinations: const <Widget>[
+                NavigationDestination(
+                  icon: Icon(Icons.credit_card_outlined),
+                  selectedIcon: Icon(Icons.credit_card),
+                  label: 'Payments',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.loyalty_outlined),
+                  selectedIcon: Icon(Icons.loyalty),
+                  label: 'Loyalty',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.badge_outlined),
+                  selectedIcon: Icon(Icons.badge),
+                  label: 'Identity',
+                ),
+              ],
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.badge_outlined),
-            selectedIcon: Icon(Icons.badge),
-            label: 'Identity',
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildEmptyState(BuildContext context, String message) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDark = themeProvider.isDarkMode;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -210,7 +275,10 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Text(
               message,
               textAlign: TextAlign.center,
-              style: themeProvider.getTextStyle(color: Colors.grey),
+              style: TextStyle(
+                color: isDark ? Colors.white54 : Colors.black45,
+                fontSize: 16,
+              ),
             ),
           ),
         ],
@@ -220,6 +288,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildPaymentsTab(BuildContext context) {
     final walletProvider = Provider.of<WalletProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
 
     if (walletProvider.wallets.isEmpty) {
       return _buildEmptyState(
@@ -249,26 +319,59 @@ class _HomeScreenState extends State<HomeScreen> {
     return ListView(
       padding: const EdgeInsets.only(top: 16, bottom: 80),
       children: [
+        // Search field with liquid glass effect
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              fillColor: Theme.of(context).cardColor,
-              hintText: 'Search by name, number, issuer...',
-              prefixIcon: const Icon(Icons.search),
-              // focusColor: Colors.red,
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _searchController.clear();
-                      },
-                    )
-                  : null,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: isDark
+                  ? Colors.white.withOpacity(0.06)
+                  : Colors.black.withOpacity(0.03),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.06),
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: TextField(
+                  controller: _searchController,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    hintText: 'Search by name, number, issuer...',
+                    hintStyle: TextStyle(
+                      color: isDark ? Colors.white38 : Colors.black38,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      color: isDark ? Colors.white54 : Colors.black45,
+                    ),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.clear_rounded,
+                              color: isDark ? Colors.white54 : Colors.black45,
+                            ),
+                            onPressed: () {
+                              _searchController.clear();
+                            },
+                          )
+                        : null,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
+        // Filter chips
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: SingleChildScrollView(
@@ -293,26 +396,21 @@ class _HomeScreenState extends State<HomeScreen> {
               onSelectionChanged: (Set<String> newSelection) {
                 setState(() => _selectedFilter = newSelection.first);
               },
-              style: SegmentedButton.styleFrom(
-                textStyle: const TextStyle(fontFamily: 'Bebas', fontSize: 14),
-                backgroundColor: Theme.of(context).cardColor,
-                side: BorderSide(color: Colors.grey.withAlpha(51)),
-                foregroundColor: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.color?.withAlpha(179),
-                selectedForegroundColor: Theme.of(
-                  context,
-                ).colorScheme.onPrimary,
-                selectedBackgroundColor: Theme.of(context).colorScheme.primary,
-              ),
             ),
           ),
         ),
         const SizedBox(height: 8),
         if (filteredWallets.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(48.0),
-            child: Center(child: Text('No cards found.')),
+          Padding(
+            padding: const EdgeInsets.all(48.0),
+            child: Center(
+              child: Text(
+                'No cards found.',
+                style: TextStyle(
+                  color: isDark ? Colors.white54 : Colors.black45,
+                ),
+              ),
+            ),
           )
         else
           Column(
@@ -320,29 +418,25 @@ class _HomeScreenState extends State<HomeScreen> {
               return Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 child: Slidable(
-                  key: ValueKey(wallet.id), // Important: Use wallet.id for key
+                  key: ValueKey(wallet.id),
                   endActionPane: ActionPane(
                     motion: const ScrollMotion(),
-                    extentRatio: 0.25, // Adjust ratio as needed
+                    extentRatio: 0.25,
                     children: [
                       SlidableAction(
                         onPressed: (context) async {
-                          // Delete the card from the database
                           await context.read<WalletProvider>().deleteWallet(
                             wallet.id!,
                           );
-                          // Optionally, you can show a snackbar or toast to confirm deletion
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Card deleted')),
                           );
                         },
-                        backgroundColor: Colors
-                            .transparent, // Or a specific color like Colors.red.shade700
+                        backgroundColor: Colors.transparent,
                         foregroundColor: Colors.red,
-                        icon: Icons.delete,
+                        icon: Icons.delete_outline_rounded,
                         label: 'Delete',
                       ),
-                      // Add more SlidableAction widgets here if needed (e.g., Edit)
                     ],
                   ),
                   child: GestureDetector(
@@ -369,21 +463,29 @@ class _HomeScreenState extends State<HomeScreen> {
               horizontal: 16.0,
               vertical: 16.0,
             ),
-            child: OutlinedButton.icon(
-              icon: const Icon(Icons.summarize_outlined),
-              label: const Text('View Financial Summary'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: () {
+            child: LiquidGlassContainer(
+              padding: EdgeInsets.zero,
+              onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const Summary()),
                 );
               },
+              child: ListTile(
+                leading: null,
+                title: Text(
+                  'View Financial Summary',
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                trailing: Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: isDark ? Colors.white38 : Colors.black38,
+                ),
+              ),
             ),
           ),
       ],

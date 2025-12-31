@@ -1,8 +1,11 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:barcode_widget/barcode_widget.dart';
+import 'package:provider/provider.dart';
 import 'package:wallet/models/db_helper.dart';
-import 'package:wallet/pages/walletdetails.dart'; // Reusing FullScreenImageViewer
+import 'package:wallet/models/theme_provider.dart';
+import 'package:wallet/pages/walletdetails.dart';
 
 class BarcodeCardDetailScreen extends StatelessWidget {
   final Loyalty? loyalty;
@@ -13,13 +16,12 @@ class BarcodeCardDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // --- FIXED: Safely get all card properties ---
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
 
-    // 1. First, determine which card type is being displayed.
+    // Determine which card type is being displayed
     final bool isLoyaltyCard = loyalty != null;
 
-    // 2. Then, get all data from the correct, non-null object.
-    // The '!' is now safe because we've confirmed which object is not null.
     final cardName = isLoyaltyCard
         ? loyalty!.loyaltyName
         : identity!.identityName;
@@ -33,66 +35,132 @@ class BarcodeCardDetailScreen extends StatelessWidget {
         ? loyalty!.backImagePath
         : identity!.backImagePath;
 
-    // --- End of fix ---
-
-    // Utility to check if a path is valid for display
     bool isPathValid(String? path) => path != null && path.isNotEmpty;
 
     return Scaffold(
-      appBar: AppBar(title: Text(cardName)),
+      appBar: AppBar(
+        title: Text(cardName),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withOpacity(0.08)
+                : Colors.black.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: isDark ? Colors.white : Colors.black,
+              size: 20,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // Barcode Section
+          // Barcode Section with liquid glass effect
           Container(
-            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withAlpha(26),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+                  color: isDark
+                      ? Colors.white.withOpacity(0.05)
+                      : Colors.black.withOpacity(0.1),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
                 ),
               ],
             ),
-            child: BarcodeWidget(
-              barcode: Barcode.code128(),
-              data: barcodeData,
-              color: Colors.black,
-              errorBuilder: (context, error) => const Center(
-                child: Text(
-                  'Invalid Data for this Barcode Type',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.red),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.1)
+                          : Colors.black.withOpacity(0.05),
+                    ),
+                  ),
+                  child: BarcodeWidget(
+                    barcode: Barcode.code128(),
+                    data: barcodeData,
+                    color: Colors.black,
+                    height: 100,
+                    errorBuilder: (context, error) => const Center(
+                      child: Text(
+                        'Invalid Data for this Barcode Type',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Center(
-            child: Text(
-              barcodeData,
-              style: const TextStyle(
-                fontFamily: 'ZSpace',
-                fontSize: 18,
-                letterSpacing: 1.5,
+          const SizedBox(height: 16),
+          // Barcode number display with glass effect
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: isDark
+                  ? Colors.white.withOpacity(0.06)
+                  : Colors.black.withOpacity(0.03),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.05),
+              ),
+            ),
+            child: Center(
+              child: Text(
+                barcodeData,
+                style: TextStyle(
+                  fontFamily: 'ZSpace',
+                  fontSize: 20,
+                  letterSpacing: 2,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
           // Images Section
           if (isPathValid(frontImagePath) || isPathValid(backImagePath))
-            Column(
-              children: [
-                if (isPathValid(frontImagePath))
-                  _buildImageThumbnail(context, frontImagePath!, 'Front'),
-                if (isPathValid(backImagePath))
-                  _buildImageThumbnail(context, backImagePath!, 'Back'),
-                const SizedBox(height: 16),
-              ],
+            _LiquidGlassSection(
+              title: "Card Images",
+              icon: Icons.photo_library_outlined,
+              isDark: isDark,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  if (isPathValid(frontImagePath))
+                    _buildImageThumbnail(
+                      context,
+                      frontImagePath!,
+                      'Front',
+                      isDark,
+                    ),
+                  if (isPathValid(backImagePath))
+                    _buildImageThumbnail(
+                      context,
+                      backImagePath!,
+                      'Back',
+                      isDark,
+                    ),
+                ],
+              ),
             ),
         ],
       ),
@@ -103,10 +171,13 @@ class BarcodeCardDetailScreen extends StatelessWidget {
     BuildContext context,
     String imagePath,
     String label,
+    bool isDark,
   ) {
     final imageFile = File(imagePath);
+    final textColor = isDark ? Colors.white : Colors.black;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.all(8.0),
       child: Column(
         children: [
           GestureDetector(
@@ -117,26 +188,120 @@ class BarcodeCardDetailScreen extends StatelessWidget {
                     FullScreenImageViewer(imageFile: imageFile),
               ),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.file(
-                imageFile,
-                height: 100,
-                width: 150,
-                fit: BoxFit.cover,
-                errorBuilder: (c, e, s) => Container(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.08),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark
+                        ? Colors.black.withOpacity(0.3)
+                        : Colors.black.withOpacity(0.08),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.file(
+                  imageFile,
                   height: 100,
                   width: 150,
-                  color: Colors.grey.shade200,
-                  child: const Icon(Icons.error_outline),
+                  fit: BoxFit.cover,
+                  errorBuilder: (c, e, s) => Container(
+                    height: 100,
+                    width: 150,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.black.withOpacity(0.03),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      Icons.error_outline,
+                      color: textColor.withOpacity(0.3),
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(label),
+          const SizedBox(height: 10),
+          Text(
+            label,
+            style: TextStyle(color: textColor.withOpacity(0.6), fontSize: 13),
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _LiquidGlassSection extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Widget child;
+  final bool isDark;
+
+  const _LiquidGlassSection({
+    required this.title,
+    required this.icon,
+    required this.child,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = isDark ? Colors.white : Colors.black;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
+          child: Row(
+            children: [
+              Icon(icon, size: 16, color: textColor.withOpacity(0.4)),
+              const SizedBox(width: 8),
+              Text(
+                title.toUpperCase(),
+                style: TextStyle(
+                  color: textColor.withOpacity(0.4),
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: isDark
+                ? Colors.white.withOpacity(0.06)
+                : Colors.black.withOpacity(0.03),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.05),
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: child,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

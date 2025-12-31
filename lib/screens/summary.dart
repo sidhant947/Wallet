@@ -1,5 +1,6 @@
 // lib/screens/summary.dart
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/db_helper.dart';
@@ -15,20 +16,21 @@ class Summary extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final wallets = Provider.of<WalletProvider>(context).wallets;
+    final isDark = themeProvider.isDarkMode;
 
     if (wallets.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text("Financial Summary")),
+        appBar: _buildAppBar(context, isDark),
         body: Center(
           child: Text(
             "Add credit cards to see a summary.",
-            style: themeProvider.getTextStyle(color: Colors.grey),
+            style: TextStyle(color: isDark ? Colors.white54 : Colors.black45),
           ),
         ),
       );
     }
 
-    // --- 1. Data Aggregation & Calculation ---
+    // --- Data Aggregation & Calculation ---
     double totalLimit = 0;
     double totalSpends = 0;
     double totalEstimatedCashback = 0;
@@ -38,7 +40,6 @@ class Summary extends StatelessWidget {
     List<Map<String, dynamic>> upcomingBills = [];
     List<Wallet> incompleteCards = [];
 
-    // Maps for new portfolio breakdowns
     Map<String, int> networkCounts = {};
     Map<String, int> issuerCounts = {};
     Map<String, int> cardTypeCounts = {};
@@ -54,7 +55,6 @@ class Summary extends StatelessWidget {
       totalSpends += spends;
       totalEstimatedCashback += (spends * rewardsRate) / 100;
 
-      // Check for incomplete data to prompt the user
       if ((wallet.maxlimit ?? '').isEmpty ||
           (wallet.spends ?? '').isEmpty ||
           (wallet.rewards ?? '').isEmpty ||
@@ -62,7 +62,6 @@ class Summary extends StatelessWidget {
         incompleteCards.add(wallet);
       }
 
-      // Aggregate portfolio data
       if ((wallet.network ?? '').isNotEmpty) {
         networkCounts.update(
           wallet.network!.toUpperCase(),
@@ -85,7 +84,6 @@ class Summary extends StatelessWidget {
         );
       }
 
-      // Existing Insights logic
       if (topCashbackCard == null ||
           rewardsRate >
               (double.tryParse(topCashbackCard.rewards ?? '0') ?? 0)) {
@@ -113,78 +111,143 @@ class Summary extends StatelessWidget {
       return diffA.compareTo(diffB);
     });
 
-    // --- 2. UI Build ---
     return Scaffold(
-      appBar: AppBar(title: const Text("Financial Summary")),
+      appBar: _buildAppBar(context, isDark),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // NEW: Section to prompt user to update incomplete cards
           if (incompleteCards.isNotEmpty)
-            _IncompleteCardsSection(incompleteCards: incompleteCards),
+            _LiquidGlassIncompleteCardsSection(
+              incompleteCards: incompleteCards,
+              isDark: isDark,
+            ),
 
-          _FinancialOverviewCard(
+          _LiquidGlassFinancialOverviewCard(
             totalLimit: totalLimit,
             totalSpends: totalSpends,
             utilization: utilization,
             totalCashback: totalEstimatedCashback,
+            isDark: isDark,
           ),
           const SizedBox(height: 24),
 
-          // NEW: Section for portfolio breakdown
-          _CardDistributionSection(
+          _LiquidGlassCardDistributionSection(
             networkCounts: networkCounts,
             issuerCounts: issuerCounts,
             cardTypeCounts: cardTypeCounts,
+            isDark: isDark,
           ),
 
           if (upcomingBills.isNotEmpty)
-            _UpcomingBillsSection(upcomingBills: upcomingBills),
+            _LiquidGlassUpcomingBillsSection(
+              upcomingBills: upcomingBills,
+              isDark: isDark,
+            ),
 
           if (topCashbackCard != null || highestLimitCard != null)
-            _InsightsSection(
+            _LiquidGlassInsightsSection(
               topCashbackCard: topCashbackCard,
               highestLimitCard: highestLimitCard,
+              isDark: isDark,
             ),
 
           if (feeWaiverCards.isNotEmpty)
-            _FeeWaiverSection(feeWaiverCards: feeWaiverCards),
+            _LiquidGlassFeeWaiverSection(
+              feeWaiverCards: feeWaiverCards,
+              isDark: isDark,
+            ),
         ],
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context, bool isDark) {
+    return AppBar(
+      title: const Text("Financial Summary"),
+      leading: Container(
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.white.withOpacity(0.08)
+              : Colors.black.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: isDark ? Colors.white : Colors.black,
+            size: 20,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
     );
   }
 }
 
-// --- NEW & MODIFIED WIDGETS ---
-
-class _IncompleteCardsSection extends StatelessWidget {
+// --- LIQUID GLASS INCOMPLETE CARDS SECTION ---
+class _LiquidGlassIncompleteCardsSection extends StatelessWidget {
   final List<Wallet> incompleteCards;
-  const _IncompleteCardsSection({required this.incompleteCards});
+  final bool isDark;
+
+  const _LiquidGlassIncompleteCardsSection({
+    required this.incompleteCards,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return _SummarySection(
+    final textColor = isDark ? Colors.white : Colors.black;
+
+    return _LiquidGlassSummarySection(
       title: "Improve Your Summary",
       icon: Icons.edit_note_rounded,
+      isDark: isDark,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             "The following cards are missing key financial details. Update them for a more accurate summary.",
-            style: Theme.of(context).textTheme.bodySmall,
+            style: TextStyle(color: textColor.withOpacity(0.6), fontSize: 14),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           ...incompleteCards.map((wallet) {
-            return ListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              leading: const Icon(Icons.credit_card_outlined),
-              title: Text(wallet.name),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => WalletDetailScreen(wallet: wallet),
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.black.withOpacity(0.02),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                dense: true,
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.08)
+                        : Colors.black.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.credit_card_outlined,
+                    color: textColor.withOpacity(0.6),
+                    size: 18,
+                  ),
+                ),
+                title: Text(wallet.name, style: TextStyle(color: textColor)),
+                trailing: Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: textColor.withOpacity(0.3),
+                ),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => WalletDetailScreen(wallet: wallet),
+                  ),
                 ),
               ),
             );
@@ -195,18 +258,25 @@ class _IncompleteCardsSection extends StatelessWidget {
   }
 }
 
-class _FinancialOverviewCard extends StatelessWidget {
+// --- LIQUID GLASS FINANCIAL OVERVIEW CARD ---
+class _LiquidGlassFinancialOverviewCard extends StatelessWidget {
   final double totalLimit, totalSpends, utilization, totalCashback;
-  const _FinancialOverviewCard({
+  final bool isDark;
+
+  const _LiquidGlassFinancialOverviewCard({
     required this.totalLimit,
     required this.totalSpends,
     required this.utilization,
     required this.totalCashback,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
-    return _SummaryContainer(
+    final textColor = isDark ? Colors.white : Colors.black;
+
+    return _LiquidGlassContainer(
+      isDark: isDark,
       child: Row(
         children: [
           Expanded(
@@ -216,43 +286,52 @@ class _FinancialOverviewCard extends StatelessWidget {
                 _InfoRow(
                   label: 'Total Limit',
                   value: '₹${totalLimit.toStringAsFixed(0)}',
+                  isDark: isDark,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 _InfoRow(
                   label: 'Total Spends',
                   value: '₹${totalSpends.toStringAsFixed(0)}',
+                  isDark: isDark,
                 ),
-                const SizedBox(height: 12),
-                // MODIFIED: Added total cashback display
+                const SizedBox(height: 16),
                 _InfoRow(
                   label: 'Est. Cashback',
                   value: '₹${totalCashback.toStringAsFixed(2)}',
-                  valueColor: Colors.green.shade600,
+                  isDark: isDark,
+                  valueColor: Colors.green.shade400,
                 ),
               ],
             ),
           ),
           const SizedBox(width: 16),
           CircularPercentIndicator(
-            radius: 45.0,
+            radius: 50.0,
             lineWidth: 8.0,
             percent: utilization.clamp(0.0, 1.0),
             center: Text(
               "${(utilization * 100).toStringAsFixed(1)}%",
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18.0,
+                color: textColor,
               ),
             ),
-            footer: const Padding(
-              padding: EdgeInsets.only(top: 8.0),
-              child: Text("Utilization", style: TextStyle(fontSize: 12)),
+            footer: Padding(
+              padding: const EdgeInsets.only(top: 12.0),
+              child: Text(
+                "Utilization",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: textColor.withOpacity(0.5),
+                ),
+              ),
             ),
             circularStrokeCap: CircularStrokeCap.round,
-            progressColor: Theme.of(context).colorScheme.primary,
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.primary.withAlpha(51),
+            progressColor: isDark ? Colors.white : Colors.black,
+            backgroundColor: (isDark ? Colors.white : Colors.black).withOpacity(
+              0.15,
+            ),
           ),
         ],
       ),
@@ -260,30 +339,50 @@ class _FinancialOverviewCard extends StatelessWidget {
   }
 }
 
-class _CardDistributionSection extends StatelessWidget {
+// --- LIQUID GLASS CARD DISTRIBUTION SECTION ---
+class _LiquidGlassCardDistributionSection extends StatelessWidget {
   final Map<String, int> networkCounts;
   final Map<String, int> issuerCounts;
   final Map<String, int> cardTypeCounts;
+  final bool isDark;
 
-  const _CardDistributionSection({
+  const _LiquidGlassCardDistributionSection({
     required this.networkCounts,
     required this.issuerCounts,
     required this.cardTypeCounts,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
-    return _SummarySection(
+    final textColor = isDark ? Colors.white : Colors.black;
+
+    return _LiquidGlassSummarySection(
       title: "Portfolio Breakdown",
       icon: Icons.pie_chart_outline_rounded,
+      isDark: isDark,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildDistributionRow("Networks", networkCounts, context),
-          const Divider(height: 24),
-          _buildDistributionRow("Issuers", issuerCounts, context),
-          const Divider(height: 24),
-          _buildDistributionRow("Types", cardTypeCounts, context),
+          _buildDistributionRow("Networks", networkCounts, textColor),
+          if (issuerCounts.isNotEmpty) ...[
+            Divider(
+              height: 32,
+              color: isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.08),
+            ),
+            _buildDistributionRow("Issuers", issuerCounts, textColor),
+          ],
+          if (cardTypeCounts.isNotEmpty) ...[
+            Divider(
+              height: 32,
+              color: isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.08),
+            ),
+            _buildDistributionRow("Types", cardTypeCounts, textColor),
+          ],
         ],
       ),
     );
@@ -292,25 +391,42 @@ class _CardDistributionSection extends StatelessWidget {
   Widget _buildDistributionRow(
     String title,
     Map<String, int> counts,
-    BuildContext context,
+    Color textColor,
   ) {
     if (counts.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
+        Text(
+          title,
+          style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+        ),
+        const SizedBox(height: 12),
         Wrap(
           spacing: 8.0,
-          runSpacing: 4.0,
+          runSpacing: 8.0,
           children: counts.entries.map((entry) {
-            return Chip(
-              label: Text('${entry.key} (${entry.value})'),
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.primary.withAlpha(26),
-              side: BorderSide.none,
-              labelPadding: const EdgeInsets.symmetric(horizontal: 4.0),
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withOpacity(0.08)
+                    : Colors.black.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.08),
+                ),
+              ),
+              child: Text(
+                '${entry.key} (${entry.value})',
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             );
           }).toList(),
         ),
@@ -319,19 +435,26 @@ class _CardDistributionSection extends StatelessWidget {
   }
 }
 
-// --- EXISTING WIDGETS (with minor style consistency changes) ---
-
-class _UpcomingBillsSection extends StatelessWidget {
+// --- LIQUID GLASS UPCOMING BILLS SECTION ---
+class _LiquidGlassUpcomingBillsSection extends StatelessWidget {
   final List<Map<String, dynamic>> upcomingBills;
-  const _UpcomingBillsSection({required this.upcomingBills});
+  final bool isDark;
+
+  const _LiquidGlassUpcomingBillsSection({
+    required this.upcomingBills,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return _SummarySection(
+    final textColor = isDark ? Colors.white : Colors.black;
+
+    return _LiquidGlassSummarySection(
       title: "Upcoming Bill Dates",
       icon: Icons.event_note_outlined,
+      isDark: isDark,
       child: SizedBox(
-        height: 60,
+        height: 80,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           itemCount: upcomingBills.length,
@@ -340,24 +463,34 @@ class _UpcomingBillsSection extends StatelessWidget {
             final wallet = item['wallet'] as Wallet;
             return Container(
               margin: const EdgeInsets.only(right: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: BoxDecoration(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.withAlpha(51)),
+                color: isDark
+                    ? Colors.white.withOpacity(0.06)
+                    : Colors.black.withOpacity(0.03),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.06),
+                ),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     wallet.name,
-                    style: const TextStyle(
-                      fontSize: 12,
+                    style: TextStyle(
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
+                      color: textColor,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text("Day ${item['date']} of month"),
+                  const SizedBox(height: 6),
+                  Text(
+                    "Day ${item['date']}",
+                    style: TextStyle(color: textColor.withOpacity(0.6)),
+                  ),
                 ],
               ),
             );
@@ -368,16 +501,24 @@ class _UpcomingBillsSection extends StatelessWidget {
   }
 }
 
-class _InsightsSection extends StatelessWidget {
+// --- LIQUID GLASS INSIGHTS SECTION ---
+class _LiquidGlassInsightsSection extends StatelessWidget {
   final Wallet? topCashbackCard;
   final Wallet? highestLimitCard;
-  const _InsightsSection({this.topCashbackCard, this.highestLimitCard});
+  final bool isDark;
+
+  const _LiquidGlassInsightsSection({
+    this.topCashbackCard,
+    this.highestLimitCard,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return _SummarySection(
+    return _LiquidGlassSummarySection(
       title: "Insights",
       icon: Icons.insights_rounded,
+      isDark: isDark,
       child: Column(
         children: [
           if (topCashbackCard != null)
@@ -385,14 +526,21 @@ class _InsightsSection extends StatelessWidget {
               label: 'Top Earner',
               value:
                   "${topCashbackCard!.name} (${topCashbackCard!.rewards ?? '0'}%)",
+              isDark: isDark,
             ),
           if (topCashbackCard != null && highestLimitCard != null)
-            const Divider(height: 24, thickness: 0.5),
+            Divider(
+              height: 28,
+              color: isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.08),
+            ),
           if (highestLimitCard != null)
             _InfoRow(
               label: 'Highest Limit',
               value:
                   "${highestLimitCard!.name} (₹${highestLimitCard!.maxlimit ?? '0'})",
+              isDark: isDark,
             ),
         ],
       ),
@@ -400,15 +548,24 @@ class _InsightsSection extends StatelessWidget {
   }
 }
 
-class _FeeWaiverSection extends StatelessWidget {
+// --- LIQUID GLASS FEE WAIVER SECTION ---
+class _LiquidGlassFeeWaiverSection extends StatelessWidget {
   final List<Wallet> feeWaiverCards;
-  const _FeeWaiverSection({required this.feeWaiverCards});
+  final bool isDark;
+
+  const _LiquidGlassFeeWaiverSection({
+    required this.feeWaiverCards,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return _SummarySection(
+    final textColor = isDark ? Colors.white : Colors.black;
+
+    return _LiquidGlassSummarySection(
       title: "Fee Waiver Tracker",
       icon: Icons.verified_outlined,
+      isDark: isDark,
       child: Column(
         children: feeWaiverCards.map((wallet) {
           double spends = double.tryParse(wallet.spends ?? '0') ?? 0;
@@ -418,30 +575,50 @@ class _FeeWaiverSection extends StatelessWidget {
               : 1.0;
 
           return Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
+            padding: const EdgeInsets.only(bottom: 16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   wallet.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
                 ),
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 6,
-                  borderRadius: BorderRadius.circular(3),
-                  backgroundColor: Theme.of(
-                    context,
-                  ).colorScheme.primary.withAlpha(51),
-                  color: Theme.of(context).colorScheme.primary,
+                const SizedBox(height: 10),
+                Container(
+                  height: 8,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(4),
+                    color: (isDark ? Colors.white : Colors.black).withOpacity(
+                      0.1,
+                    ),
+                  ),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: progress,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? [Colors.white.withOpacity(0.8), Colors.white]
+                              : [Colors.black.withOpacity(0.7), Colors.black],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Align(
                   alignment: Alignment.centerRight,
                   child: Text(
                     "₹${spends.toStringAsFixed(0)} / ₹${waiver.toStringAsFixed(0)}",
-                    style: const TextStyle(fontSize: 12),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: textColor.withOpacity(0.6),
+                    ),
                   ),
                 ),
               ],
@@ -453,60 +630,92 @@ class _FeeWaiverSection extends StatelessWidget {
   }
 }
 
-// --- Base Widgets for consistent styling ---
+// --- BASE LIQUID GLASS WIDGETS ---
 
-class _SummarySection extends StatelessWidget {
+class _LiquidGlassSummarySection extends StatelessWidget {
   final String title;
   final IconData? icon;
   final Widget child;
-  const _SummarySection({required this.title, this.icon, required this.child});
+  final bool isDark;
+
+  const _LiquidGlassSummarySection({
+    required this.title,
+    this.icon,
+    required this.child,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final textColor = isDark ? Colors.white : Colors.black;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            if (icon != null)
-              Icon(
-                icon,
-                size: 16,
-                color: Theme.of(context).textTheme.bodySmall?.color,
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
+          child: Row(
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 16, color: textColor.withOpacity(0.4)),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                title.toUpperCase(),
+                style: TextStyle(
+                  color: textColor.withOpacity(0.4),
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                  fontSize: 12,
+                ),
               ),
-            if (icon != null) const SizedBox(width: 8),
-            Text(
-              title.toUpperCase(),
-              style: TextStyle(
-                color: Theme.of(context).textTheme.bodySmall?.color,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.8,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
-        const SizedBox(height: 12),
-        _SummaryContainer(child: child),
+        _LiquidGlassContainer(isDark: isDark, child: child),
         const SizedBox(height: 24),
       ],
     );
   }
 }
 
-class _SummaryContainer extends StatelessWidget {
+class _LiquidGlassContainer extends StatelessWidget {
   final Widget child;
-  const _SummaryContainer({required this.child});
+  final bool isDark;
+
+  const _LiquidGlassContainer({required this.child, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withAlpha(51)),
+        borderRadius: BorderRadius.circular(20),
+        color: isDark
+            ? Colors.white.withOpacity(0.06)
+            : Colors.black.withOpacity(0.03),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: child,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: child,
+        ),
+      ),
     );
   }
 }
@@ -515,27 +724,29 @@ class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
   final Color? valueColor;
-  const _InfoRow({required this.label, required this.value, this.valueColor});
+  final bool isDark;
+
+  const _InfoRow({
+    required this.label,
+    required this.value,
+    this.valueColor,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final textColor = isDark ? Colors.white : Colors.black;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.color?.withAlpha(204),
-          ),
-        ),
+        Text(label, style: TextStyle(color: textColor.withOpacity(0.6))),
         Text(
           value,
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 16,
-            color: valueColor,
+            color: valueColor ?? textColor,
           ),
         ),
       ],

@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,7 +12,7 @@ import '../models/provider_helper.dart';
 import '../models/theme_provider.dart';
 import '../widgets/glass_credit_card.dart';
 
-// (FullScreenImageViewer class remains the same)
+// FullScreenImageViewer with liquid glass theme
 class FullScreenImageViewer extends StatelessWidget {
   final File imageFile;
   const FullScreenImageViewer({super.key, required this.imageFile});
@@ -24,6 +25,17 @@ class FullScreenImageViewer extends StatelessWidget {
         backgroundColor: Colors.black,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
       ),
       body: Center(
         child: InteractiveViewer(
@@ -37,7 +49,7 @@ class FullScreenImageViewer extends StatelessWidget {
   }
 }
 
-// (WalletDetailScreen class remains the same)
+// WalletDetailScreen with liquid glass design
 class WalletDetailScreen extends StatefulWidget {
   final Wallet wallet;
   const WalletDetailScreen({super.key, required this.wallet});
@@ -76,7 +88,7 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
     return "₹${(waiverRequirement - spends).toStringAsFixed(2)} more to waive";
   }
 
-  Widget _buildImageThumbnail(String imagePath, String label) {
+  Widget _buildImageThumbnail(String imagePath, String label, bool isDark) {
     final imageFile = File(imagePath);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
@@ -90,24 +102,54 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
                     FullScreenImageViewer(imageFile: imageFile),
               ),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.file(
-                imageFile,
-                height: 100,
-                width: 150,
-                fit: BoxFit.cover,
-                errorBuilder: (c, e, s) => Container(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.08),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark
+                        ? Colors.black.withOpacity(0.3)
+                        : Colors.black.withOpacity(0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.file(
+                  imageFile,
                   height: 100,
                   width: 150,
-                  color: Colors.grey.shade200,
-                  child: const Icon(Icons.error_outline),
+                  fit: BoxFit.cover,
+                  errorBuilder: (c, e, s) => Container(
+                    height: 100,
+                    width: 150,
+                    color: isDark
+                        ? Colors.white.withOpacity(0.05)
+                        : Colors.black.withOpacity(0.03),
+                    child: Icon(
+                      Icons.error_outline,
+                      color: isDark ? Colors.white38 : Colors.black38,
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
           const SizedBox(height: 8),
-          Text(label),
+          Text(
+            label,
+            style: TextStyle(
+              color: isDark ? Colors.white60 : Colors.black54,
+              fontSize: 12,
+            ),
+          ),
         ],
       ),
     );
@@ -115,28 +157,60 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
     bool isPathValid(String? path) => path != null && path.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(currentWallet.name),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withOpacity(0.08)
+                : Colors.black.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: isDark ? Colors.white : Colors.black,
+              size: 20,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: () async {
-              final updatedWallet = await Navigator.push<Wallet>(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => WalletEditScreen(wallet: currentWallet),
-                ),
-              );
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.black.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.edit_outlined,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+              onPressed: () async {
+                final updatedWallet = await Navigator.push<Wallet>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        WalletEditScreen(wallet: currentWallet),
+                  ),
+                );
 
-              if (updatedWallet != null && mounted) {
-                setState(() {
-                  currentWallet = updatedWallet;
-                });
-              }
-            },
+                if (updatedWallet != null && mounted) {
+                  setState(() {
+                    currentWallet = updatedWallet;
+                  });
+                }
+              },
+            ),
           ),
         ],
       ),
@@ -156,11 +230,12 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
               },
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           if (isPathValid(currentWallet.frontImagePath) ||
               isPathValid(currentWallet.backImagePath))
-            _DetailSection(
+            _LiquidGlassDetailSection(
               title: "Card Images",
+              icon: Icons.photo_library_outlined,
               children: [
                 Center(
                   child: Row(
@@ -170,55 +245,60 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
                         _buildImageThumbnail(
                           currentWallet.frontImagePath!,
                           'Front',
+                          isDark,
                         ),
                       if (isPathValid(currentWallet.backImagePath))
                         _buildImageThumbnail(
                           currentWallet.backImagePath!,
                           'Back',
+                          isDark,
                         ),
                     ],
                   ),
                 ),
               ],
             ),
-          _DetailSection(
+          _LiquidGlassDetailSection(
             title: "Financials",
+            icon: Icons.account_balance_wallet_outlined,
             children: [
-              _DetailTile(
-                icon: Icons.account_balance_wallet_outlined,
+              _LiquidGlassDetailTile(
+                icon: Icons.credit_score_outlined,
                 title: 'Max Limit',
                 value: '₹${currentWallet.maxlimit ?? 'N/A'}',
               ),
-              _DetailTile(
+              _LiquidGlassDetailTile(
                 icon: Icons.receipt_long_outlined,
                 title: 'Annual Spends',
                 value: '₹${currentWallet.spends ?? '0.00'}',
               ),
-              _DetailTile(
+              _LiquidGlassDetailTile(
                 icon: Icons.card_giftcard_outlined,
                 title: 'Estimated Cashback',
                 value: _formatCashback(
                   currentWallet.spends,
                   currentWallet.rewards,
                 ),
+                valueColor: Colors.green.shade400,
               ),
             ],
           ),
-          _DetailSection(
+          _LiquidGlassDetailSection(
             title: "Billing & Terms",
+            icon: Icons.event_note_outlined,
             children: [
-              _DetailTile(
-                icon: Icons.event_note_outlined,
+              _LiquidGlassDetailTile(
+                icon: Icons.calendar_today_outlined,
                 title: 'Bill Generation Date',
                 value: 'Every ${currentWallet.billdate ?? 'N/A'}',
               ),
-              _DetailTile(
+              _LiquidGlassDetailTile(
                 icon: Icons.verified_outlined,
                 title: 'Annual Fee Waiver',
                 value: _getFeeWaiverStatus(currentWallet),
               ),
-              _DetailTile(
-                icon: Icons.credit_card,
+              _LiquidGlassDetailTile(
+                icon: Icons.credit_card_outlined,
                 title: 'Card Type',
                 value: currentWallet.cardtype ?? 'N/A',
               ),
@@ -226,10 +306,11 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
           ),
           if (currentWallet.customFields != null &&
               currentWallet.customFields!.isNotEmpty)
-            _DetailSection(
+            _LiquidGlassDetailSection(
               title: "Custom Fields",
+              icon: Icons.tune_outlined,
               children: currentWallet.customFields!.entries.map((entry) {
-                return _DetailTile(
+                return _LiquidGlassDetailTile(
                   icon: Icons.info_outline,
                   title: entry.key,
                   value: entry.value,
@@ -242,8 +323,7 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
   }
 }
 
-// --- MODIFIED: WalletEditScreen ---
-
+// --- WalletEditScreen with liquid glass design ---
 class WalletEditScreen extends StatefulWidget {
   final Wallet wallet;
   const WalletEditScreen({super.key, required this.wallet});
@@ -269,7 +349,6 @@ class WalletEditScreenState extends State<WalletEditScreen> {
   final List<TextEditingController> _customFieldNameControllers = [];
   final List<TextEditingController> _customFieldValueControllers = [];
 
-  // FIXED: Added state for image files and the picker
   File? _frontImageFile;
   File? _backImageFile;
   final ImagePicker _picker = ImagePicker();
@@ -294,7 +373,6 @@ class WalletEditScreenState extends State<WalletEditScreen> {
     _rewardsController = TextEditingController(text: wallet.rewards);
     _selectedColor = wallet.color ?? 'default';
 
-    // FIXED: Initialize image files if they already exist
     if (wallet.frontImagePath != null && wallet.frontImagePath!.isNotEmpty) {
       _frontImageFile = File(wallet.frontImagePath!);
     }
@@ -345,7 +423,6 @@ class WalletEditScreenState extends State<WalletEditScreen> {
     }
   }
 
-  // FIXED: Added image picker logic
   Future<void> _pickImage(ImageSource source, bool isFront) async {
     final pickedFile = await _picker.pickImage(source: source);
     if (pickedFile != null) {
@@ -386,13 +463,12 @@ class WalletEditScreenState extends State<WalletEditScreen> {
         }
       }
 
-      // FIXED: Save new images if they were picked, otherwise keep the old ones.
       String? frontImagePath = widget.wallet.frontImagePath;
       if (_frontImageFile != null &&
           _frontImageFile!.path != widget.wallet.frontImagePath) {
         frontImagePath = await saveImageToAppDirectory(_frontImageFile!);
       } else if (_frontImageFile == null) {
-        frontImagePath = null; // Handle image removal
+        frontImagePath = null;
       }
 
       String? backImagePath = widget.wallet.backImagePath;
@@ -400,7 +476,7 @@ class WalletEditScreenState extends State<WalletEditScreen> {
           _backImageFile!.path != widget.wallet.backImagePath) {
         backImagePath = await saveImageToAppDirectory(_backImageFile!);
       } else if (_backImageFile == null) {
-        backImagePath = null; // Handle image removal
+        backImagePath = null;
       }
 
       final updatedWallet = Wallet(
@@ -433,6 +509,9 @@ class WalletEditScreenState extends State<WalletEditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
     final previewWallet = Wallet(
       id: widget.wallet.id,
       name: _nameController.text.isEmpty ? 'CARD NAME' : _nameController.text,
@@ -445,11 +524,32 @@ class WalletEditScreenState extends State<WalletEditScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Edit Card"),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withOpacity(0.08)
+                : Colors.black.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: isDark ? Colors.white : Colors.black,
+              size: 20,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: TextButton(
+          Container(
+            margin: const EdgeInsets.all(8),
+            child: FilledButton(
               onPressed: _saveUpdatedDetails,
+              style: FilledButton.styleFrom(
+                backgroundColor: isDark ? Colors.white : Colors.black,
+                foregroundColor: isDark ? Colors.black : Colors.white,
+              ),
               child: const Text("SAVE"),
             ),
           ),
@@ -466,8 +566,9 @@ class WalletEditScreenState extends State<WalletEditScreen> {
               onCardTap: () {},
             ),
             const SizedBox(height: 24),
-            _DetailSection(
+            _LiquidGlassDetailSection(
               title: "Primary Details",
+              icon: Icons.credit_card_outlined,
               children: [
                 ColorPicker(
                   selectedColor: _selectedColor,
@@ -476,15 +577,12 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                   },
                 ),
                 const SizedBox(height: 24),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Card Name'),
-                  validator: (v) => v!.isEmpty ? 'Cannot be empty' : null,
-                ),
+                _buildTextField(_nameController, 'Card Name', isDark),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _numberController,
-                  decoration: const InputDecoration(labelText: 'Card Number'),
+                _buildTextField(
+                  _numberController,
+                  'Card Number',
+                  isDark,
                   keyboardType: TextInputType.number,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
@@ -494,9 +592,10 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                       v!.length < 15 ? 'Enter a valid number' : null,
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _expiryController,
-                  decoration: const InputDecoration(labelText: 'Expiry (MMYY)'),
+                _buildTextField(
+                  _expiryController,
+                  'Expiry (MMYY)',
+                  isDark,
                   keyboardType: TextInputType.number,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
@@ -505,78 +604,64 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                   validator: (v) => v!.length != 4 ? 'Must be 4 digits' : null,
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _issuerController,
-                  decoration: const InputDecoration(
-                    labelText: 'Card Issuer (e.g. HDFC)',
-                  ),
-                  validator: (v) => v!.isEmpty ? 'Cannot be empty' : null,
+                _buildTextField(
+                  _issuerController,
+                  'Card Issuer (e.g. HDFC)',
+                  isDark,
                 ),
                 const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: _network,
-                  decoration: const InputDecoration(labelText: 'Card Network'),
-                  items: ['visa', 'mastercard', 'rupay', 'amex', 'discover']
-                      .map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value.toUpperCase()),
-                        );
-                      })
-                      .toList(),
-                  onChanged: (newValue) {
-                    if (newValue != null) {
-                      setState(() {
-                        _network = newValue;
-                      });
-                    }
-                  },
-                ),
+                _buildDropdown('Card Network', _network, isDark, (newValue) {
+                  if (newValue != null) {
+                    setState(() => _network = newValue);
+                  }
+                }),
               ],
             ),
-            // FIXED: Added image picker section
-            _DetailSection(
+            _LiquidGlassDetailSection(
               title: "Card Images",
+              icon: Icons.photo_library_outlined,
               children: [
-                ImagePickerWidget(
-                  title: 'Front Image',
-                  imageFile: _frontImageFile,
-                  onPickImage: () => _pickImage(ImageSource.gallery, true),
-                  onRemoveImage: () => setState(() => _frontImageFile = null),
+                _buildImagePicker(
+                  'Front Image',
+                  _frontImageFile,
+                  isDark,
+                  () => _pickImage(ImageSource.gallery, true),
+                  () => setState(() => _frontImageFile = null),
                 ),
                 const SizedBox(height: 16),
-                ImagePickerWidget(
-                  title: 'Back Image',
-                  imageFile: _backImageFile,
-                  onPickImage: () => _pickImage(ImageSource.gallery, false),
-                  onRemoveImage: () => setState(() => _backImageFile = null),
+                _buildImagePicker(
+                  'Back Image',
+                  _backImageFile,
+                  isDark,
+                  () => _pickImage(ImageSource.gallery, false),
+                  () => setState(() => _backImageFile = null),
                 ),
               ],
             ),
-            _DetailSection(
+            _LiquidGlassDetailSection(
               title: "Financials",
+              icon: Icons.account_balance_wallet_outlined,
               children: [
-                TextFormField(
-                  controller: _maxlimitController,
-                  decoration: const InputDecoration(labelText: 'Max Limit (₹)'),
+                _buildTextField(
+                  _maxlimitController,
+                  'Max Limit (₹)',
+                  isDark,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _spendsController,
-                  decoration: const InputDecoration(
-                    labelText: 'Current Spends (₹)',
-                  ),
+                _buildTextField(
+                  _spendsController,
+                  'Current Spends (₹)',
+                  isDark,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _rewardsController,
-                  decoration: const InputDecoration(
-                    labelText: 'Cashback Rate (%)',
-                  ),
+                _buildTextField(
+                  _rewardsController,
+                  'Cashback Rate (%)',
+                  isDark,
                   keyboardType: TextInputType.number,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
@@ -585,14 +670,14 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                 ),
               ],
             ),
-            _DetailSection(
+            _LiquidGlassDetailSection(
               title: "Billing & Terms",
+              icon: Icons.event_note_outlined,
               children: [
-                TextFormField(
-                  controller: _billdateController,
-                  decoration: const InputDecoration(
-                    labelText: 'Bill Date (e.g., 15)',
-                  ),
+                _buildTextField(
+                  _billdateController,
+                  'Bill Date (e.g., 15)',
+                  isDark,
                   keyboardType: TextInputType.number,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
@@ -600,25 +685,24 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _annualFeeWaiverController,
-                  decoration: const InputDecoration(
-                    labelText: 'Annual Fee Waiver on Spends of (₹)',
-                  ),
+                _buildTextField(
+                  _annualFeeWaiverController,
+                  'Annual Fee Waiver on Spends of (₹)',
+                  isDark,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _cardtypeController,
-                  decoration: const InputDecoration(
-                    labelText: 'Card Type (e.g., LTF, Paid)',
-                  ),
+                _buildTextField(
+                  _cardtypeController,
+                  'Card Type (e.g., LTF, Paid)',
+                  isDark,
                 ),
               ],
             ),
-            _DetailSection(
+            _LiquidGlassDetailSection(
               title: "Custom Fields",
+              icon: Icons.tune_outlined,
               children: [
                 ListView.builder(
                   shrinkWrap: true,
@@ -630,24 +714,25 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                       child: Row(
                         children: [
                           Expanded(
-                            child: TextFormField(
-                              controller: _customFieldNameControllers[index],
-                              decoration: const InputDecoration(
-                                labelText: 'Field Name',
-                              ),
+                            child: _buildTextField(
+                              _customFieldNameControllers[index],
+                              'Field Name',
+                              isDark,
                             ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: TextFormField(
-                              controller: _customFieldValueControllers[index],
-                              decoration: const InputDecoration(
-                                labelText: 'Value',
-                              ),
+                            child: _buildTextField(
+                              _customFieldValueControllers[index],
+                              'Value',
+                              isDark,
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.remove_circle_outline),
+                            icon: Icon(
+                              Icons.remove_circle_outline,
+                              color: Colors.red.shade400,
+                            ),
                             onPressed: () => _removeCustomField(index),
                           ),
                         ],
@@ -657,8 +742,16 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                 ),
                 Center(
                   child: TextButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: const Text("Add Custom Field"),
+                    icon: Icon(
+                      Icons.add_rounded,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    label: Text(
+                      "Add Custom Field",
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                    ),
                     onPressed: _addCustomField,
                   ),
                 ),
@@ -669,68 +762,303 @@ class WalletEditScreenState extends State<WalletEditScreen> {
       ),
     );
   }
-}
 
-// (Rest of the file remains the same: _DetailSection, _DetailTile)
-class _DetailSection extends StatelessWidget {
-  final String title;
-  final List<Widget> children;
-  const _DetailSection({required this.title, required this.children});
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label,
+    bool isDark, {
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    String? Function(String?)? validator,
+  }) {
+    final textColor = isDark ? Colors.white : Colors.black;
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withAlpha(51)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 10),
-        ],
+        color: isDark
+            ? Colors.white.withOpacity(0.06)
+            : Colors.black.withOpacity(0.03),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.08),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Provider.of<ThemeProvider>(
-              context,
-            ).getTextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        validator: validator ?? (v) => v!.isEmpty ? 'Cannot be empty' : null,
+        style: TextStyle(color: textColor),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: textColor.withOpacity(0.5)),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
           ),
-          const SizedBox(height: 12),
-          ...children,
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildDropdown(
+    String label,
+    String value,
+    bool isDark,
+    ValueChanged<String?> onChanged,
+  ) {
+    final textColor = isDark ? Colors.white : Colors.black;
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: isDark
+            ? Colors.white.withOpacity(0.06)
+            : Colors.black.withOpacity(0.03),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.08),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: textColor.withOpacity(0.5)),
+          border: InputBorder.none,
+        ),
+        dropdownColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+        style: TextStyle(color: textColor),
+        items: ['visa', 'mastercard', 'rupay', 'amex', 'discover'].map((
+          String value,
+        ) {
+          return DropdownMenuItem<String>(
+            value: value,
+            child: Text(value.toUpperCase()),
+          );
+        }).toList(),
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _buildImagePicker(
+    String title,
+    File? imageFile,
+    bool isDark,
+    VoidCallback onPick,
+    VoidCallback onRemove,
+  ) {
+    final textColor = isDark ? Colors.white : Colors.black;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4.0, bottom: 12.0),
+          child: Text(
+            title,
+            style: TextStyle(color: textColor.withOpacity(0.5), fontSize: 14),
+          ),
+        ),
+        Center(
+          child: imageFile == null
+              ? OutlinedButton.icon(
+                  icon: const Icon(Icons.add_photo_alternate_outlined),
+                  label: const Text("Select Image"),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(200, 50),
+                    side: BorderSide(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.2)
+                          : Colors.black.withOpacity(0.15),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  onPressed: onPick,
+                )
+              : Stack(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white.withOpacity(0.1)
+                              : Colors.black.withOpacity(0.08),
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.file(
+                          imageFile,
+                          height: 150,
+                          width: 250,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.6),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          onPressed: onRemove,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ],
     );
   }
 }
 
-class _DetailTile extends StatelessWidget {
-  final IconData icon;
+// --- LIQUID GLASS DETAIL SECTION ---
+class _LiquidGlassDetailSection extends StatelessWidget {
   final String title;
-  final String value;
-  const _DetailTile({
-    required this.icon,
+  final IconData? icon;
+  final List<Widget> children;
+
+  const _LiquidGlassDetailSection({
     required this.title,
-    required this.value,
+    this.icon,
+    required this.children,
   });
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+    final textColor = isDark ? Colors.white : Colors.black;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 12, top: 8),
+          child: Row(
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 16, color: textColor.withOpacity(0.4)),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                title.toUpperCase(),
+                style: TextStyle(
+                  color: textColor.withOpacity(0.4),
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          margin: const EdgeInsets.only(bottom: 24),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: isDark
+                ? Colors.white.withOpacity(0.06)
+                : Colors.black.withOpacity(0.03),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.05),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? Colors.black.withOpacity(0.3)
+                    : Colors.black.withOpacity(0.04),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: children,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// --- LIQUID GLASS DETAIL TILE ---
+class _LiquidGlassDetailTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+  final Color? valueColor;
+
+  const _LiquidGlassDetailTile({
+    required this.icon,
+    required this.title,
+    required this.value,
+    this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+    final textColor = isDark ? Colors.white : Colors.black;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 10.0),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: 20,
-            color: themeProvider.getTextStyle().color?.withAlpha(153),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.black.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: textColor.withOpacity(0.6)),
           ),
           const SizedBox(width: 16),
-          Expanded(child: Text(title)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(color: textColor.withOpacity(0.7)),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: valueColor ?? textColor,
+            ),
+          ),
         ],
       ),
     );

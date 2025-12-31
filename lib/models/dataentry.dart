@@ -16,17 +16,96 @@ import 'db_helper.dart';
 // Enum to define the type of card we are creating
 enum BarcodeCardType { identity, loyalty }
 
-// --- Color Picker Widget and Color Definitions ---
-const Map<String, Color> cardColors = {
-  'default': Colors.black,
-  'blue': Color(0xFF1565C0),
-  'green': Color(0xFF2E7D32),
-  'red': Color(0xFFC62828),
-  'purple': Color(0xFF6A1B9A),
-  'orange': Color(0xFFEF6C00),
+// --- Premium Liquid Glass Color Palette ---
+// These colors are carefully chosen to complement the liquid glass aesthetic
+// with deep, sophisticated tones that work beautifully with transparency effects
+
+class CardColorData {
+  final Color primary;
+  final Color secondary;
+  final Color accent;
+  final String name;
+
+  const CardColorData({
+    required this.primary,
+    required this.secondary,
+    required this.accent,
+    required this.name,
+  });
+}
+
+// Premium color palette for liquid glass cards
+const Map<String, CardColorData> cardColorPalette = {
+  'obsidian': CardColorData(
+    primary: Color(0xFF0D0D0D),
+    secondary: Color(0xFF1A1A2E),
+    accent: Color(0xFF2D2D44),
+    name: 'Obsidian',
+  ),
+  'midnight': CardColorData(
+    primary: Color(0xFF0F0F23),
+    secondary: Color(0xFF1A1A3E),
+    accent: Color(0xFF2E2E5A),
+    name: 'Midnight',
+  ),
+  'graphite': CardColorData(
+    primary: Color(0xFF1C1C1C),
+    secondary: Color(0xFF2D2D2D),
+    accent: Color(0xFF404040),
+    name: 'Graphite',
+  ),
+  'titanium': CardColorData(
+    primary: Color(0xFF3A3A4A),
+    secondary: Color(0xFF4A4A5C),
+    accent: Color(0xFF5C5C70),
+    name: 'Titanium',
+  ),
+  'cosmic': CardColorData(
+    primary: Color(0xFF1A0A2E),
+    secondary: Color(0xFF2D1B4E),
+    accent: Color(0xFF4A2C7A),
+    name: 'Cosmic',
+  ),
+  'ocean': CardColorData(
+    primary: Color(0xFF0A1628),
+    secondary: Color(0xFF142640),
+    accent: Color(0xFF1E3A5F),
+    name: 'Ocean',
+  ),
+  'emerald': CardColorData(
+    primary: Color(0xFF0A1F1A),
+    secondary: Color(0xFF14332C),
+    accent: Color(0xFF1E4D40),
+    name: 'Emerald',
+  ),
+  'rose': CardColorData(
+    primary: Color(0xFF2A1A1F),
+    secondary: Color(0xFF3D2832),
+    accent: Color(0xFF5C3D48),
+    name: 'Rose Gold',
+  ),
 };
 
-// ... (ColorPicker widget remains the same) ...
+// Legacy support - map old color names to new palette
+const Map<String, Color> cardColors = {
+  'default': Color(0xFF0D0D0D),
+  'obsidian': Color(0xFF0D0D0D),
+  'midnight': Color(0xFF0F0F23),
+  'graphite': Color(0xFF1C1C1C),
+  'titanium': Color(0xFF3A3A4A),
+  'cosmic': Color(0xFF1A0A2E),
+  'ocean': Color(0xFF0A1628),
+  'emerald': Color(0xFF0A1F1A),
+  'rose': Color(0xFF2A1A1F),
+  // Legacy colors mapping to new palette
+  'blue': Color(0xFF0A1628),
+  'green': Color(0xFF0A1F1A),
+  'red': Color(0xFF2A1A1F),
+  'purple': Color(0xFF1A0A2E),
+  'orange': Color(0xFF3A3A4A),
+};
+
+// --- Enhanced Color Picker Widget with Gradient Preview ---
 class ColorPicker extends StatelessWidget {
   final String selectedColor;
   final ValueChanged<String> onColorSelected;
@@ -39,47 +118,142 @@ class ColorPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+    final textColor = isDark ? Colors.white : Colors.black;
+
+    // Use the new premium palette
+    final colorOptions = cardColorPalette.entries.toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4.0, bottom: 12.0),
+          padding: const EdgeInsets.only(left: 4.0, bottom: 16.0),
           child: Text(
-            'Card Color',
+            'Card Style',
             style: TextStyle(
-              color: Theme.of(context).textTheme.bodySmall?.color,
-              fontSize: 16,
+              color: textColor.withOpacity(0.5),
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: cardColors.entries.map((entry) {
-            final colorKey = entry.key;
-            final colorValue = entry.value;
-            final isSelected = selectedColor == colorKey;
+        SizedBox(
+          height: 80,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: colorOptions.length,
+            itemBuilder: (context, index) {
+              final entry = colorOptions[index];
+              final colorKey = entry.key;
+              final colorData = entry.value;
+              final isSelected =
+                  selectedColor == colorKey ||
+                  (selectedColor == 'default' && colorKey == 'obsidian');
 
-            return GestureDetector(
-              onTap: () => onColorSelected(colorKey),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: colorValue,
-                  shape: BoxShape.circle,
-                  border: isSelected
-                      ? Border.all(
-                          color: Theme.of(context).colorScheme.primary,
-                          width: 3,
-                        )
-                      : Border.all(color: Colors.grey.withAlpha(51)),
+              return Padding(
+                padding: EdgeInsets.only(
+                  right: index < colorOptions.length - 1 ? 12 : 0,
                 ),
-                child: isSelected
-                    ? const Icon(Icons.check, color: Colors.white, size: 20)
-                    : null,
-              ),
-            );
-          }).toList(),
+                child: GestureDetector(
+                  onTap: () => onColorSelected(colorKey),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 70,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          colorData.accent,
+                          colorData.secondary,
+                          colorData.primary,
+                        ],
+                      ),
+                      border: Border.all(
+                        color: isSelected
+                            ? (isDark ? Colors.white : Colors.black)
+                            : Colors.white.withOpacity(0.15),
+                        width: isSelected ? 2.5 : 1,
+                      ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: colorData.secondary.withOpacity(0.4),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Stack(
+                      children: [
+                        // Glass shine effect
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            height: 30,
+                            decoration: BoxDecoration(
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(15),
+                              ),
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.white.withOpacity(0.2),
+                                  Colors.white.withOpacity(0.0),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Selection indicator
+                        if (isSelected)
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              width: 20,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: isDark ? Colors.white : Colors.black,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.check,
+                                color: isDark ? Colors.black : Colors.white,
+                                size: 14,
+                              ),
+                            ),
+                          ),
+                        // Color name
+                        Positioned(
+                          bottom: 8,
+                          left: 0,
+                          right: 0,
+                          child: Text(
+                            colorData.name,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ],
     );

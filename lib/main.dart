@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
@@ -7,38 +8,33 @@ import 'package:wallet/models/startup_settings_provider.dart';
 import 'models/provider_helper.dart';
 import 'screens/homescreen.dart';
 import 'package:provider/provider.dart';
-// This is for testing Only
 // import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:io' show Platform;
 
 void main() async {
-  // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
 
   // This is for testing Only
   // databaseFactory = databaseFactoryFfi;
 
-  // Initialize providers and load saved preferences
   final themeProvider = ThemeProvider();
   final startupProvider = StartupSettingsProvider();
 
   await Future.wait([
-    themeProvider.init(), // Use the new init method
+    themeProvider.init(),
     startupProvider.loadStartupSettings(),
   ]);
 
-  // Initialize the database before the app starts
   await Future.wait([
-    DatabaseHelper.instance.database, // Initialize wallet.db
-    IdentityDatabaseHelper.instance.database, // Initialize identity.db
-    LoyaltyDatabaseHelper.instance.database, // Initialize loyalty.db
+    DatabaseHelper.instance.database,
+    IdentityDatabaseHelper.instance.database,
+    LoyaltyDatabaseHelper.instance.database,
   ]);
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => WalletProvider()),
-        // MODIFIED: Added new providers
         ChangeNotifierProvider(create: (context) => LoyaltyProvider()),
         ChangeNotifierProvider(create: (context) => IdentityProvider()),
         ChangeNotifierProvider.value(value: themeProvider),
@@ -59,8 +55,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Wallet',
       debugShowCheckedModeBanner: false,
-      theme: themeProvider.lightTheme, // Use the new light theme
-      darkTheme: themeProvider.darkTheme, // Use the new dark theme
+      theme: themeProvider.lightTheme,
+      darkTheme: themeProvider.darkTheme,
       themeMode: themeProvider.currentTheme,
       home: const SplashScreen(),
     );
@@ -74,21 +70,57 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+
   @override
   void initState() {
     super.initState();
+
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+      ),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOutBack),
+      ),
+    );
+
+    _animationController.forward();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkStartupSettings();
     });
   }
 
-  // MODIFIED: Simplified startup logic
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
   Future<void> _checkStartupSettings() async {
     final startupProvider = Provider.of<StartupSettingsProvider>(
       context,
       listen: false,
     );
+
+    // Small delay for splash animation
+    await Future.delayed(const Duration(milliseconds: 800));
+
     if (startupProvider.showAuthenticationScreen) {
       await _performAuthentication();
     } else {
@@ -96,17 +128,22 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
-  // MODIFIED: Renamed and simplified navigation
   void _navigateToHomeScreen() {
     if (mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              const HomeScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 400),
+        ),
       );
     }
   }
 
-  // MODIFIED: Renamed for clarity
   Future<void> _performAuthentication() async {
     if (Platform.isLinux || kIsWeb) {
       _navigateToHomeScreen();
@@ -123,18 +160,115 @@ class _SplashScreenState extends State<SplashScreen> {
       );
       if (authenticated) {
         _navigateToHomeScreen();
-      } else {
-        // User failed to authenticate. You might want to close the app or show an error.
       }
     } else {
-      // If biometrics aren't set up, just proceed.
       _navigateToHomeScreen();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // The splash screen can be a simple loading indicator while settings are checked.
-    return const Scaffold(body: Center(child: Text("Authentication Needed")));
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+    final textColor = isDark ? Colors.white : Colors.black;
+
+    return Scaffold(
+      backgroundColor: isDark ? Colors.black : Colors.white,
+      body: Center(
+        child: AnimatedBuilder(
+          animation: _animationController,
+          builder: (context, child) {
+            return FadeTransition(
+              opacity: _fadeAnimation,
+              child: ScaleTransition(
+                scale: _scaleAnimation,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Liquid glass icon container
+                    Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(32),
+                        color: isDark
+                            ? Colors.white.withOpacity(0.08)
+                            : Colors.black.withOpacity(0.05),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white.withOpacity(0.15)
+                              : Colors.black.withOpacity(0.08),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDark
+                                ? Colors.white.withOpacity(0.05)
+                                : Colors.black.withOpacity(0.1),
+                            blurRadius: 40,
+                            offset: const Offset(0, 15),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(32),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          child: Center(
+                            child: Icon(
+                              Icons.wallet_rounded,
+                              size: 56,
+                              color: textColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    // App name
+                    Text(
+                      'WALLET',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                        letterSpacing: 8,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Secure • Simple • Smart',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: textColor.withOpacity(0.5),
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 48),
+                    // Loading indicator with glass effect
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isDark
+                            ? Colors.white.withOpacity(0.06)
+                            : Colors.black.withOpacity(0.03),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: textColor.withOpacity(0.5),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 }
