@@ -1,8 +1,5 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:wallet/models/db_helper.dart';
-import '../models/theme_provider.dart';
 import '../models/dataentry.dart';
 
 class BarcodeCard extends StatelessWidget {
@@ -25,11 +22,7 @@ class BarcodeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDark = themeProvider.isDarkMode;
-    const tapHint = "Tap to show barcode";
-
-    // Get data from the correct object
+    // Shared data extraction logic
     final String cardName = cardType == BarcodeCardType.loyalty
         ? loyalty!.loyaltyName
         : identity!.identityName;
@@ -40,243 +33,493 @@ class BarcodeCard extends StatelessWidget {
         ? loyalty!.color
         : identity!.color;
 
-    // Get color data from premium palette
     final String colorKey = colorString ?? 'obsidian';
     final CardColorData colorData =
         cardColorPalette[colorKey] ?? cardColorPalette['obsidian']!;
 
-    // For light theme with default color, use a light variant
-    final bool useLightCard =
-        !isDark && (colorKey == 'default' || colorKey == 'obsidian');
+    if (cardType == BarcodeCardType.loyalty) {
+      return _PremiumLoyaltyCard(
+        name: cardName,
+        number: cardNumber,
+        colorData: colorData,
+        onTap: onCardTap,
+        onCopy: onCopyTap,
+        onDelete: onDeleteTap,
+      );
+    } else {
+      return _PremiumIdentityCard(
+        name: cardName,
+        number: cardNumber,
+        colorData: colorData,
+        onTap: onCardTap,
+        onCopy: onCopyTap,
+        onDelete: onDeleteTap,
+      );
+    }
+  }
+}
 
-    // Card gradient colors
-    final Color primaryColor = useLightCard ? Colors.white : colorData.primary;
-    final Color secondaryColor = useLightCard
-        ? const Color(0xFFF5F5F5)
-        : colorData.secondary;
-    final Color accentColor = useLightCard
-        ? const Color(0xFFE8E8E8)
-        : colorData.accent;
+// -----------------------------------------------------------------------------
+// PREMIUM LOYALTY CARD
+// -----------------------------------------------------------------------------
+class _PremiumLoyaltyCard extends StatelessWidget {
+  final String name;
+  final String number;
+  final CardColorData colorData;
+  final VoidCallback onTap;
+  final VoidCallback onCopy;
+  final VoidCallback onDelete;
 
-    // Text colors
-    final textColor = useLightCard ? Colors.black : Colors.white;
-    final mutedTextColor = useLightCard
-        ? Colors.black.withOpacity(0.5)
-        : Colors.white.withOpacity(0.6);
+  const _PremiumLoyaltyCard({
+    required this.name,
+    required this.number,
+    required this.colorData,
+    required this.onTap,
+    required this.onCopy,
+    required this.onDelete,
+  });
 
-    // Border color
-    final borderColor = useLightCard
-        ? Colors.black.withOpacity(0.08)
-        : Colors.white.withOpacity(0.12);
-
-    // Shadow color
-    final shadowColor = useLightCard
-        ? Colors.black.withOpacity(0.1)
-        : colorData.secondary.withOpacity(0.4);
-
-    return InkWell(
-      onTap: onCardTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        height: 180,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: shadowColor,
-              blurRadius: 25,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    accentColor,
-                    secondaryColor,
-                    primaryColor,
-                    primaryColor,
-                  ],
-                  stops: const [0.0, 0.3, 0.7, 1.0],
-                ),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: borderColor),
-              ),
-              child: Stack(
-                children: [
-                  // Glass shine effect at top
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      height: 60,
-                      decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(19),
-                        ),
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            (useLightCard ? Colors.black : Colors.white)
-                                .withOpacity(0.08),
-                            Colors.transparent,
-                          ],
-                        ),
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 150,
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          child: Stack(
+            children: [
+              // 1. Main Card Body with Ticket Shape
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [colorData.primary, colorData.secondary],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colorData.primary.withAlpha(80),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
                       ),
-                    ),
+                    ],
                   ),
-                  // Card content
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 20,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Stack(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                cardName,
-                                style: TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.bold,
-                                  color: textColor,
-                                  letterSpacing: 0.5,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: textColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: PopupMenuButton<String>(
-                                onSelected: (value) {
-                                  if (value == 'copy') {
-                                    onCopyTap();
-                                  } else if (value == 'delete') {
-                                    onDeleteTap();
-                                  }
-                                },
-                                itemBuilder: (BuildContext context) =>
-                                    <PopupMenuEntry<String>>[
-                                      PopupMenuItem<String>(
-                                        value: 'copy',
-                                        child: ListTile(
-                                          contentPadding: EdgeInsets.zero,
-                                          leading: Icon(
-                                            Icons.copy_outlined,
-                                            color: isDark
-                                                ? Colors.white70
-                                                : Colors.black54,
-                                          ),
-                                          title: Text(
-                                            'Copy Number',
-                                            style: TextStyle(
-                                              color: isDark
-                                                  ? Colors.white
-                                                  : Colors.black,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      PopupMenuItem<String>(
-                                        value: 'delete',
-                                        child: ListTile(
-                                          contentPadding: EdgeInsets.zero,
-                                          leading: Icon(
-                                            Icons.delete_outline,
-                                            color: Colors.red.shade400,
-                                          ),
-                                          title: Text(
-                                            'Delete Card',
-                                            style: TextStyle(
-                                              color: Colors.red.shade400,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                icon: Icon(
-                                  Icons.more_vert,
-                                  color: textColor.withOpacity(0.7),
-                                ),
-                              ),
-                            ),
-                          ],
+                        // Background Pattern
+                        Positioned(
+                          right: -50,
+                          top: -50,
+                          child: Icon(
+                            Icons.stars_rounded,
+                            size: 200,
+                            color: Colors.white.withAlpha(10),
+                          ),
                         ),
-                        const Spacer(),
-                        // Glass indicator line
-                        Container(
-                          height: 3,
-                          width: 50,
-                          margin: const EdgeInsets.only(bottom: 12),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(2),
-                            gradient: LinearGradient(
-                              colors: [
-                                textColor.withOpacity(0.4),
-                                textColor.withOpacity(0.1),
+
+                        // Content Layout
+                        Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Row(
+                            children: [
+                              // Details
+                              Expanded(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      name,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.5,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withAlpha(30),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        "POINTS: --", // Placeholder for specific point tracking
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Right: Action Area
+                              Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _GlassMenuButton(
+                                    onCopy: onCopy,
+                                    onDelete: onDelete,
+                                  ),
+                                  Icon(
+                                    Icons.qr_code_2_rounded,
+                                    color: Colors.white.withAlpha(200),
+                                    size: 32,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Bottom "tear-off" section visual with dashed line
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          height: 40,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withAlpha(30),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.confirmation_number_outlined,
+                                  color: Colors.white.withAlpha(150),
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    number,
+                                    style: TextStyle(
+                                      color: Colors.white.withAlpha(200),
+                                      fontSize: 14,
+                                      fontFamily: 'Courier',
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 2,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
                         ),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            cardNumber,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: 'ZSpace',
-                              color: textColor.withOpacity(0.85),
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.touch_app_outlined,
-                              size: 14,
-                              color: mutedTextColor,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              tapHint,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: mutedTextColor,
-                              ),
-                            ),
-                          ],
-                        ),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// PREMIUM IDENTITY CARD
+// -----------------------------------------------------------------------------
+class _PremiumIdentityCard extends StatelessWidget {
+  final String name;
+  final String number;
+  final CardColorData colorData;
+  final VoidCallback onTap;
+  final VoidCallback onCopy;
+  final VoidCallback onDelete;
+
+  const _PremiumIdentityCard({
+    required this.name,
+    required this.number,
+    required this.colorData,
+    required this.onTap,
+    required this.onCopy,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 160, // Slightly taller for ID
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: Colors.white, // Most IDs have white/light base
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(20),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Stack(
+              children: [
+                // 1. Guilloche Security Pattern (CustomPainter)
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _GuillochePainter(
+                      color: colorData.primary.withAlpha(15),
+                    ),
+                  ),
+                ),
+
+                // 2. Holographic Strip (Gradient)
+                Positioned(
+                  left: 20,
+                  top: 0,
+                  bottom: 0,
+                  width: 5,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          colorData.primary,
+                          colorData.accent,
+                          Colors.cyanAccent,
+                          colorData.primary,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 4. Header & Details
+                Positioned(
+                  left: 35,
+                  top: 20,
+                  right: 20,
+                  bottom: 16,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorData.primary,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              "OFFICIAL ID",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ),
+                          _LightMenuButton(onCopy: onCopy, onDelete: onDelete),
+                        ],
+                      ),
+
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Name Label
+                          Text(
+                            "NAME",
+                            style: TextStyle(
+                              color: colorData.secondary.withAlpha(150),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            name.toUpperCase(),
+                            style: TextStyle(
+                              color: colorData.primary,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Number Label
+                          Text(
+                            "ID NUMBER",
+                            style: TextStyle(
+                              color: colorData.secondary.withAlpha(150),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              number,
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontSize: 16,
+                                fontFamily: 'Courier',
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // 5. Watermark / Overlay (Secure Stamp)
+                Positioned(
+                  right: -20,
+                  bottom: -20,
+                  child: Opacity(
+                    opacity: 0.1,
+                    child: Container(
+                      width: 150,
+                      height: 150,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: colorData.primary, width: 10),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.security,
+                          size: 80,
+                          color: colorData.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
   }
+}
+
+// -----------------------------------------------------------------------------
+// HELPERS & PAINTERS
+// -----------------------------------------------------------------------------
+
+class _GlassMenuButton extends StatelessWidget {
+  final VoidCallback onCopy;
+  final VoidCallback onDelete;
+
+  const _GlassMenuButton({required this.onCopy, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      onSelected: (value) {
+        if (value == 'copy') onCopy();
+        if (value == 'delete') onDelete();
+      },
+      icon: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Colors.white.withAlpha(30),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.more_horiz, color: Colors.white, size: 20),
+      ),
+      itemBuilder: (context) => [
+        const PopupMenuItem(value: 'copy', child: Text('Copy Number')),
+        PopupMenuItem(
+          value: 'delete',
+          child: Text('Delete', style: TextStyle(color: Colors.red.shade400)),
+        ),
+      ],
+    );
+  }
+}
+
+class _LightMenuButton extends StatelessWidget {
+  final VoidCallback onCopy;
+  final VoidCallback onDelete;
+
+  const _LightMenuButton({required this.onCopy, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      onSelected: (value) {
+        if (value == 'copy') onCopy();
+        if (value == 'delete') onDelete();
+      },
+      icon: Icon(Icons.more_horiz, color: Colors.grey.shade400, size: 24),
+      itemBuilder: (context) => [
+        const PopupMenuItem(value: 'copy', child: Text('Copy Number')),
+        PopupMenuItem(
+          value: 'delete',
+          child: Text('Delete', style: TextStyle(color: Colors.red.shade400)),
+        ),
+      ],
+    );
+  }
+}
+
+class _GuillochePainter extends CustomPainter {
+  final Color color;
+  _GuillochePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5;
+
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+
+    for (double i = 0; i < size.width; i += 10) {
+      final path = Path();
+      path.moveTo(i, 0);
+      path.quadraticBezierTo(cx, cy, size.width - i, size.height);
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -1,7 +1,6 @@
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -947,7 +946,7 @@ class _LiquidGlassDetailSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
-    final textColor = isDark ? Colors.white : Colors.black;
+    final textColor = isDark ? Colors.white38 : Colors.black38;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -957,13 +956,13 @@ class _LiquidGlassDetailSection extends StatelessWidget {
           child: Row(
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 16, color: textColor.withOpacity(0.4)),
+                Icon(icon, size: 16, color: textColor),
                 const SizedBox(width: 8),
               ],
               Text(
                 title.toUpperCase(),
                 style: TextStyle(
-                  color: textColor.withOpacity(0.4),
+                  color: textColor,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
                   fontSize: 12,
@@ -977,33 +976,15 @@ class _LiquidGlassDetailSection extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            color: isDark
-                ? Colors.white.withOpacity(0.06)
-                : Colors.black.withOpacity(0.03),
+            color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
             border: Border.all(
-              color: isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
+              color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8),
+              width: 0.5,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: isDark
-                    ? Colors.black.withOpacity(0.3)
-                    : Colors.black.withOpacity(0.04),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: children,
-              ),
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: children,
           ),
         ),
       ],

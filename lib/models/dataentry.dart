@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/widgets/glass_credit_card.dart';
+import 'package:wallet/widgets/barcode_card.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 import 'db_helper.dart';
@@ -34,55 +35,67 @@ class CardColorData {
   });
 }
 
-// Premium color palette for liquid glass cards
+// Premium color palette - Modern 2024 Design
 const Map<String, CardColorData> cardColorPalette = {
   'obsidian': CardColorData(
-    primary: Color(0xFF0D0D0D),
-    secondary: Color(0xFF1A1A2E),
-    accent: Color(0xFF2D2D44),
+    primary: Color(0xFF0F0F0F),
+    secondary: Color(0xFF1A1A1A),
+    accent: Color(0xFF262626),
     name: 'Obsidian',
   ),
   'midnight': CardColorData(
-    primary: Color(0xFF0F0F23),
-    secondary: Color(0xFF1A1A3E),
-    accent: Color(0xFF2E2E5A),
+    primary: Color(0xFF0F172A),
+    secondary: Color(0xFF1E293B),
+    accent: Color(0xFF334155),
     name: 'Midnight',
   ),
-  'graphite': CardColorData(
-    primary: Color(0xFF1C1C1C),
-    secondary: Color(0xFF2D2D2D),
-    accent: Color(0xFF404040),
-    name: 'Graphite',
+  'slate': CardColorData(
+    primary: Color(0xFF1E293B),
+    secondary: Color(0xFF334155),
+    accent: Color(0xFF475569),
+    name: 'Slate',
   ),
-  'titanium': CardColorData(
-    primary: Color(0xFF3A3A4A),
-    secondary: Color(0xFF4A4A5C),
-    accent: Color(0xFF5C5C70),
-    name: 'Titanium',
+  'indigo': CardColorData(
+    primary: Color(0xFF1E1B4B),
+    secondary: Color(0xFF312E81),
+    accent: Color(0xFF4338CA),
+    name: 'Indigo',
   ),
-  'cosmic': CardColorData(
-    primary: Color(0xFF1A0A2E),
-    secondary: Color(0xFF2D1B4E),
-    accent: Color(0xFF4A2C7A),
-    name: 'Cosmic',
+  'violet': CardColorData(
+    primary: Color(0xFF2E1065),
+    secondary: Color(0xFF4C1D95),
+    accent: Color(0xFF6D28D9),
+    name: 'Violet',
   ),
   'ocean': CardColorData(
-    primary: Color(0xFF0A1628),
-    secondary: Color(0xFF142640),
-    accent: Color(0xFF1E3A5F),
+    primary: Color(0xFF0C4A6E),
+    secondary: Color(0xFF075985),
+    accent: Color(0xFF0284C7),
     name: 'Ocean',
   ),
+  'teal': CardColorData(
+    primary: Color(0xFF134E4A),
+    secondary: Color(0xFF115E59),
+    accent: Color(0xFF0D9488),
+    name: 'Teal',
+  ),
   'emerald': CardColorData(
-    primary: Color(0xFF0A1F1A),
-    secondary: Color(0xFF14332C),
-    accent: Color(0xFF1E4D40),
+    primary: Color(0xFF064E3B),
+    secondary: Color(0xFF065F46),
+    accent: Color(0xFF059669),
     name: 'Emerald',
   ),
+  'amber': CardColorData(
+    primary: Color(0xFF78350F),
+    secondary: Color(0xFF92400E),
+    accent: Color(0xFFD97706),
+    name: 'Amber',
+  ),
   'rose': CardColorData(
-    primary: Color(0xFF2A1A1F),
-    secondary: Color(0xFF3D2832),
-    accent: Color(0xFF5C3D48),
-    name: 'Rose Gold',
+    primary: Color(0xFF4C0519),
+    secondary: Color(0xFF881337),
+    accent: Color(0xFFE11D48),
+    name: 'Rose',
   ),
 };
 
@@ -889,79 +902,43 @@ class _BarcodeCardPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use the cardColors map to get the actual color from the name
-    final Color cardBGColor = cardColors[colorName] ?? Colors.black;
-    final String typeLabel = cardType == BarcodeCardType.identity
-        ? 'Identity Card'
-        : 'Loyalty Card';
+    if (cardType == BarcodeCardType.identity) {
+      // Create dummy identity for preview
+      final identity = Identity(
+        identityName: name.isEmpty ? namePlaceholder : name,
+        identityNumber: number.isEmpty ? numberPlaceholder : number,
+        color: colorName,
+      );
 
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 20.0, top: 20.0),
-      padding: const EdgeInsets.only(
-        top: 20.0,
-        left: 20.0,
-        right: 20.0,
-        bottom: 24.0,
-      ),
-      decoration: BoxDecoration(
-        color: cardBGColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: cardBGColor.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                typeLabel,
-                style: const TextStyle(
-                  color: Color.fromRGBO(255, 255, 255, 0.8),
-                  fontSize: 14,
-                ),
-              ),
-              // This is just a visual icon to match your home screen's card
-              const Icon(
-                Icons.copy_all_outlined,
-                color: Color.fromRGBO(255, 255, 255, 0.8),
-                size: 20,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            name.isEmpty ? namePlaceholder : name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Bebas', // Assuming you use this font
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            number.isEmpty ? numberPlaceholder : number,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20.0),
+        child: BarcodeCard(
+          cardType: BarcodeCardType.identity,
+          identity: identity,
+          onCardTap: () {},
+          onCopyTap: () {},
+          onDeleteTap: () {},
+        ),
+      );
+    } else {
+      // Create dummy loyalty for preview
+      final loyalty = Loyalty(
+        loyaltyName: name.isEmpty ? namePlaceholder : name,
+        loyaltyNumber: number.isEmpty ? numberPlaceholder : number,
+        color: colorName,
+      );
+
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20.0),
+        child: BarcodeCard(
+          cardType: BarcodeCardType.loyalty,
+          loyalty: loyalty, // Pass loyalty object
+          onCardTap: () {},
+          onCopyTap: () {},
+          onDeleteTap: () {},
+        ),
+      );
+    }
   }
 }
 

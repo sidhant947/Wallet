@@ -1,6 +1,5 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -35,9 +34,7 @@ class SettingsPage extends StatelessWidget {
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withOpacity(0.08)
-                : Colors.black.withOpacity(0.05),
+            color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0),
             borderRadius: BorderRadius.circular(12),
           ),
           child: IconButton(
@@ -85,8 +82,8 @@ class SettingsPage extends StatelessWidget {
               ),
               Divider(
                 color: isDark
-                    ? Colors.white.withOpacity(0.08)
-                    : Colors.black.withOpacity(0.05),
+                    ? const Color(0xFF2A2A2A)
+                    : const Color(0xFFE8E8E8),
                 height: 1,
               ),
               _LiquidGlassTile(
@@ -116,8 +113,8 @@ class SettingsPage extends StatelessWidget {
               ),
               Divider(
                 color: isDark
-                    ? Colors.white.withOpacity(0.08)
-                    : Colors.black.withOpacity(0.05),
+                    ? const Color(0xFF2A2A2A)
+                    : const Color(0xFFE8E8E8),
                 height: 1,
               ),
               _LiquidGlassTile(
@@ -159,69 +156,57 @@ class SettingsPage extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
-          title: Text(
-            'Choose Theme',
-            style: TextStyle(
-              color: isDark ? Colors.white : Colors.black,
-              fontWeight: FontWeight.bold,
-            ),
+      barrierColor: isDark ? Colors.black54 : Colors.black26,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+        title: Text(
+          'Choose Theme',
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black,
+            fontWeight: FontWeight.bold,
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: ThemePreference.values.map((preference) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: themeProvider.themePreference == preference
-                      ? (isDark
-                            ? Colors.white.withOpacity(0.1)
-                            : Colors.black.withOpacity(0.05))
-                      : Colors.transparent,
-                  border: Border.all(
-                    color: themeProvider.themePreference == preference
-                        ? (isDark
-                              ? Colors.white.withOpacity(0.2)
-                              : Colors.black.withOpacity(0.1))
-                        : Colors.transparent,
-                  ),
-                ),
-                child: RadioListTile<ThemePreference>(
-                  title: Text(
-                    _getThemeDisplayName(preference),
-                    style: TextStyle(
-                      color: isDark ? Colors.white : Colors.black,
-                    ),
-                  ),
-                  value: preference,
-                  groupValue: themeProvider.themePreference,
-                  activeColor: isDark ? Colors.white : Colors.black,
-                  onChanged: (ThemePreference? value) {
-                    if (value != null) {
-                      themeProvider.setThemePreference(value);
-                      Navigator.pop(context);
-                    }
-                  },
-                ),
-              );
-            }).toList(),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'Cancel',
-                style: TextStyle(
-                  color: isDark ? Colors.white60 : Colors.black54,
-                ),
-              ),
-            ),
-          ],
         ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: ThemePreference.values.map((preference) {
+            final isSelected = themeProvider.themePreference == preference;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: isSelected
+                    ? (isDark
+                          ? const Color(0xFF2A2A2A)
+                          : const Color(0xFFF0F0F0))
+                    : Colors.transparent,
+              ),
+              child: RadioListTile<ThemePreference>(
+                title: Text(
+                  _getThemeDisplayName(preference),
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                ),
+                value: preference,
+                groupValue: themeProvider.themePreference,
+                activeColor: isDark ? Colors.white : Colors.black,
+                onChanged: (ThemePreference? value) {
+                  if (value != null) {
+                    themeProvider.setThemePreference(value);
+                    Navigator.pop(context);
+                  }
+                },
+              ),
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: isDark ? Colors.white60 : Colors.black54),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -234,41 +219,39 @@ class SettingsPage extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: _LiquidGlassPasswordDialog(
-          title: 'Create Backup',
-          content:
-              'Enter a strong password to encrypt your backup file. Do not forget this password.',
-          buttonText: 'Create Backup',
-          passwordController: passwordController,
-          isDark: isDark,
-          onConfirm: () async {
-            if (passwordController.text.isEmpty) return;
-            try {
-              final backupPath = await BackupService.createBackup(
-                passwordController.text,
-              );
+      barrierColor: isDark ? Colors.black54 : Colors.black26,
+      builder: (context) => _LiquidGlassPasswordDialog(
+        title: 'Create Backup',
+        content:
+            'Enter a strong password to encrypt your backup file. Do not forget this password.',
+        buttonText: 'Create Backup',
+        passwordController: passwordController,
+        isDark: isDark,
+        onConfirm: () async {
+          if (passwordController.text.isEmpty) return;
+          try {
+            final backupPath = await BackupService.createBackup(
+              passwordController.text,
+            );
 
-              navigator.pop();
-              messenger.showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Backup created successfully! Saved to: $backupPath',
-                  ),
-                  backgroundColor: Colors.green.shade600,
+            navigator.pop();
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Backup created successfully! Saved to: $backupPath',
                 ),
-              );
-            } catch (e) {
-              messenger.showSnackBar(
-                SnackBar(
-                  content: Text('Backup failed: $e'),
-                  backgroundColor: Colors.red.shade600,
-                ),
-              );
-            }
-          },
-        ),
+                backgroundColor: Colors.green.shade600,
+              ),
+            );
+          } catch (e) {
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text('Backup failed: $e'),
+                backgroundColor: Colors.red.shade600,
+              ),
+            );
+          }
+        },
       ),
     );
   }
@@ -285,41 +268,39 @@ class SettingsPage extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: _LiquidGlassPasswordDialog(
-          title: 'Restore Backup',
-          content:
-              'This will replace all current data. Enter the password for the backup file.',
-          buttonText: 'Restore & Overwrite',
-          isDestructive: true,
-          passwordController: passwordController,
-          isDark: isDark,
-          onConfirm: () async {
-            if (passwordController.text.isEmpty) return;
-            try {
-              await BackupService.restoreBackup(passwordController.text);
-              await context.read<WalletProvider>().fetchWallets();
-              await context.read<LoyaltyProvider>().fetchLoyalties();
-              await context.read<IdentityProvider>().fetchIdentities();
+      barrierColor: isDark ? Colors.black54 : Colors.black26,
+      builder: (context) => _LiquidGlassPasswordDialog(
+        title: 'Restore Backup',
+        content:
+            'This will replace all current data. Enter the password for the backup file.',
+        buttonText: 'Restore & Overwrite',
+        isDestructive: true,
+        passwordController: passwordController,
+        isDark: isDark,
+        onConfirm: () async {
+          if (passwordController.text.isEmpty) return;
+          try {
+            await BackupService.restoreBackup(passwordController.text);
+            await context.read<WalletProvider>().fetchWallets();
+            await context.read<LoyaltyProvider>().fetchLoyalties();
+            await context.read<IdentityProvider>().fetchIdentities();
 
-              navigator.pop();
-              messenger.showSnackBar(
-                SnackBar(
-                  content: const Text('Backup restored successfully!'),
-                  backgroundColor: Colors.green.shade600,
-                ),
-              );
-            } catch (e) {
-              messenger.showSnackBar(
-                SnackBar(
-                  content: Text('Restore failed: $e'),
-                  backgroundColor: Colors.red.shade600,
-                ),
-              );
-            }
-          },
-        ),
+            navigator.pop();
+            messenger.showSnackBar(
+              SnackBar(
+                content: const Text('Backup restored successfully!'),
+                backgroundColor: Colors.green.shade600,
+              ),
+            );
+          } catch (e) {
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text('Restore failed: $e'),
+                backgroundColor: Colors.red.shade600,
+              ),
+            );
+          }
+        },
       ),
     );
   }
@@ -339,9 +320,9 @@ class _LiquidGlassSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final isDark = themeProvider.isDarkMode;
-    final textColor = isDark ? Colors.white : Colors.black;
+    final textColor = isDark ? Colors.white38 : Colors.black38;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -351,13 +332,13 @@ class _LiquidGlassSection extends StatelessWidget {
           child: Row(
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 16, color: textColor.withOpacity(0.4)),
+                Icon(icon, size: 16, color: textColor),
                 const SizedBox(width: 8),
               ],
               Text(
                 title.toUpperCase(),
                 style: TextStyle(
-                  color: textColor.withOpacity(0.4),
+                  color: textColor,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
                   fontSize: 12,
@@ -369,31 +350,13 @@ class _LiquidGlassSection extends StatelessWidget {
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            color: isDark
-                ? Colors.white.withOpacity(0.06)
-                : Colors.black.withOpacity(0.03),
+            color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
             border: Border.all(
-              color: isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: isDark
-                    ? Colors.black.withOpacity(0.3)
-                    : Colors.black.withOpacity(0.04),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Column(children: children),
+              color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8),
+              width: 0.5,
             ),
           ),
+          child: Column(children: children),
         ),
         const SizedBox(height: 24),
       ],
@@ -419,7 +382,7 @@ class _LiquidGlassTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final isDark = themeProvider.isDarkMode;
     final textColor = isDark ? Colors.white : Colors.black;
 
@@ -429,12 +392,10 @@ class _LiquidGlassTile extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withOpacity(0.08)
-              : Colors.black.withOpacity(0.05),
+          color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(icon, color: textColor.withOpacity(0.8), size: 22),
+        child: Icon(icon, color: textColor, size: 22),
       ),
       title: Text(
         title,
@@ -442,7 +403,10 @@ class _LiquidGlassTile extends StatelessWidget {
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(color: textColor.withOpacity(0.5), fontSize: 13),
+        style: TextStyle(
+          color: isDark ? Colors.white54 : Colors.black54,
+          fontSize: 13,
+        ),
       ),
       trailing:
           trailing ??
@@ -450,7 +414,7 @@ class _LiquidGlassTile extends StatelessWidget {
               ? Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 16,
-                  color: textColor.withOpacity(0.3),
+                  color: isDark ? Colors.white30 : Colors.black26,
                 )
               : null),
     );
@@ -511,20 +475,17 @@ class _LiquidGlassPasswordDialogState
         children: [
           Text(
             widget.content,
-            style: TextStyle(color: textColor.withOpacity(0.7)),
+            style: TextStyle(
+              color: widget.isDark ? Colors.white70 : Colors.black87,
+            ),
           ),
           const SizedBox(height: 20),
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               color: widget.isDark
-                  ? Colors.white.withOpacity(0.06)
-                  : Colors.black.withOpacity(0.03),
-              border: Border.all(
-                color: widget.isDark
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.08),
-              ),
+                  ? const Color(0xFF1A1A1A)
+                  : const Color(0xFFF5F5F5),
             ),
             child: TextField(
               controller: widget.passwordController,
@@ -532,7 +493,9 @@ class _LiquidGlassPasswordDialogState
               style: TextStyle(color: textColor),
               decoration: InputDecoration(
                 labelText: 'Password',
-                labelStyle: TextStyle(color: textColor.withOpacity(0.5)),
+                labelStyle: TextStyle(
+                  color: widget.isDark ? Colors.white54 : Colors.black54,
+                ),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -543,7 +506,7 @@ class _LiquidGlassPasswordDialogState
                     _obscurePassword
                         ? Icons.visibility_outlined
                         : Icons.visibility_off_outlined,
-                    color: textColor.withOpacity(0.5),
+                    color: widget.isDark ? Colors.white54 : Colors.black54,
                   ),
                   onPressed: () {
                     setState(() {
@@ -561,7 +524,9 @@ class _LiquidGlassPasswordDialogState
           onPressed: _isLoading ? null : () => Navigator.pop(context),
           child: Text(
             'Cancel',
-            style: TextStyle(color: textColor.withOpacity(0.5)),
+            style: TextStyle(
+              color: widget.isDark ? Colors.white54 : Colors.black54,
+            ),
           ),
         ),
         FilledButton(

@@ -1,6 +1,5 @@
 // lib/screens/summary.dart
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/db_helper.dart';
@@ -691,31 +690,13 @@ class _LiquidGlassContainer extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        color: isDark
-            ? Colors.white.withOpacity(0.06)
-            : Colors.black.withOpacity(0.03),
+        color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
         border: Border.all(
-          color: isDark
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.05),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.3)
-                : Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: child,
+          color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8),
+          width: 0.5,
         ),
       ),
+      child: child,
     );
   }
 }
@@ -736,11 +717,12 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textColor = isDark ? Colors.white : Colors.black;
+    final mutedColor = isDark ? Colors.white60 : Colors.black54;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(color: textColor.withOpacity(0.6))),
+        Text(label, style: TextStyle(color: mutedColor)),
         Text(
           value,
           style: TextStyle(

@@ -1,10 +1,8 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wallet/pages/add_card_screen.dart';
@@ -76,51 +74,49 @@ class _HomeScreenState extends State<HomeScreen> {
 
     showDialog(
       context: context,
+      barrierColor: isDark ? Colors.black54 : Colors.black26,
       builder: (BuildContext ctx) {
-        return BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: AlertDialog(
-            backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
-            title: Text(
-              'Delete Card?',
-              style: TextStyle(
-                color: isDark ? Colors.white : Colors.black,
-                fontWeight: FontWeight.bold,
-              ),
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+          title: Text(
+            'Delete Card?',
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontWeight: FontWeight.bold,
             ),
-            content: Text(
-              'Are you sure you want to delete "$name"? This action cannot be undone.',
-              style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(
-                    color: isDark ? Colors.white60 : Colors.black54,
-                  ),
-                ),
-              ),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.error,
-                ),
-                onPressed: () {
-                  if (type == BarcodeCardType.loyalty) {
-                    context.read<LoyaltyProvider>().deleteLoyalty(id);
-                  } else {
-                    context.read<IdentityProvider>().deleteIdentity(id);
-                  }
-                  Navigator.of(ctx).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Card Deleted!')),
-                  );
-                },
-                child: const Text('Delete'),
-              ),
-            ],
           ),
+          content: Text(
+            'Are you sure you want to delete "$name"? This action cannot be undone.',
+            style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: isDark ? Colors.white60 : Colors.black54,
+                ),
+              ),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: () {
+                if (type == BarcodeCardType.loyalty) {
+                  context.read<LoyaltyProvider>().deleteLoyalty(id);
+                } else {
+                  context.read<IdentityProvider>().deleteIdentity(id);
+                }
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Card Deleted!')));
+              },
+              child: const Text('Delete'),
+            ),
+          ],
         );
       },
     );
@@ -221,6 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: pages[_selectedIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
+          color: isDark ? Colors.black : Colors.white,
           border: Border(
             top: BorderSide(
               color: isDark
@@ -229,32 +226,27 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-        child: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: NavigationBar(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: _onItemTapped,
-              elevation: 0,
-              destinations: const <Widget>[
-                NavigationDestination(
-                  icon: Icon(Icons.credit_card_outlined),
-                  selectedIcon: Icon(Icons.credit_card),
-                  label: 'Payments',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.loyalty_outlined),
-                  selectedIcon: Icon(Icons.loyalty),
-                  label: 'Loyalty',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.badge_outlined),
-                  selectedIcon: Icon(Icons.badge),
-                  label: 'Identity',
-                ),
-              ],
+        child: NavigationBar(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: _onItemTapped,
+          elevation: 0,
+          destinations: const <Widget>[
+            NavigationDestination(
+              icon: Icon(Icons.credit_card_outlined),
+              selectedIcon: Icon(Icons.credit_card),
+              label: 'Payments',
             ),
-          ),
+            NavigationDestination(
+              icon: Icon(Icons.loyalty_outlined),
+              selectedIcon: Icon(Icons.loyalty),
+              label: 'Loyalty',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.badge_outlined),
+              selectedIcon: Icon(Icons.badge),
+              label: 'Identity',
+            ),
+          ],
         ),
       ),
     );
@@ -268,7 +260,11 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Lottie.asset("assets/loading.json", width: 200),
+          Icon(
+            Icons.credit_card_outlined,
+            size: 80,
+            color: isDark ? Colors.white24 : Colors.black26,
+          ),
           const SizedBox(height: 20),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -288,7 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildPaymentsTab(BuildContext context) {
     final walletProvider = Provider.of<WalletProvider>(context);
-    final themeProvider = Provider.of<ThemeProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final isDark = themeProvider.isDarkMode;
 
     if (walletProvider.wallets.isEmpty) {
@@ -334,39 +330,33 @@ class _HomeScreenState extends State<HomeScreen> {
                     : Colors.black.withOpacity(0.06),
               ),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: TextField(
-                  controller: _searchController,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                  decoration: InputDecoration(
-                    filled: false,
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    hintText: 'Search by name, number, issuer...',
-                    hintStyle: TextStyle(
-                      color: isDark ? Colors.white38 : Colors.black38,
-                    ),
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
-                      color: isDark ? Colors.white54 : Colors.black45,
-                    ),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.clear_rounded,
-                              color: isDark ? Colors.white54 : Colors.black45,
-                            ),
-                            onPressed: () {
-                              _searchController.clear();
-                            },
-                          )
-                        : null,
-                  ),
+            child: TextField(
+              controller: _searchController,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+              decoration: InputDecoration(
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                hintText: 'Search by name, number, issuer...',
+                hintStyle: TextStyle(
+                  color: isDark ? Colors.white38 : Colors.black38,
                 ),
+                prefixIcon: Icon(
+                  Icons.search_rounded,
+                  color: isDark ? Colors.white54 : Colors.black45,
+                ),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.clear_rounded,
+                          color: isDark ? Colors.white54 : Colors.black45,
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      )
+                    : null,
               ),
             ),
           ),

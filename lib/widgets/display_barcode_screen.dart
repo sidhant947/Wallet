@@ -1,7 +1,7 @@
-// lib/widgets/display_barcode_screen.dart
+// lib/widgets/display_barcode_screen.dart - MODERN 2024 DESIGN
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import '../models/theme_provider.dart';
@@ -21,238 +21,285 @@ class DisplayBarcodeScreen extends StatefulWidget {
 }
 
 class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
-  late final List<Map<String, dynamic>> _barcodeFormats;
-  late Barcode _selectedFormat;
-  late String _selectedFormatName;
+  late final List<_BarcodeFormat> _formats;
+  int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
-
-    _barcodeFormats = [
-      {'format': Barcode.code128(), 'name': 'Code 128'},
-      {'format': Barcode.qrCode(), 'name': 'QR Code'},
-      {'format': Barcode.aztec(), 'name': 'Aztec'},
-      {'format': Barcode.dataMatrix(), 'name': 'Data Matrix'},
+    _formats = [
+      _BarcodeFormat(Barcode.code128(), 'Barcode', Icons.view_week_rounded),
+      _BarcodeFormat(Barcode.qrCode(), 'QR Code', Icons.qr_code_2_rounded),
+      _BarcodeFormat(Barcode.aztec(), 'Aztec', Icons.blur_circular_rounded),
+      _BarcodeFormat(Barcode.dataMatrix(), 'Matrix', Icons.grid_4x4_rounded),
     ];
 
-    _selectedFormat = _barcodeFormats.first['format'] as Barcode;
-    _selectedFormatName = _barcodeFormats.first['name'] as String;
+    // Set to max brightness for easy scanning
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(statusBarBrightness: Brightness.light),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final isDark = themeProvider.isDarkMode;
+    final bgColor = isDark ? const Color(0xFF0A0A0A) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.black : Colors.white,
+      backgroundColor: bgColor,
       body: SafeArea(
-        child: Stack(
+        child: Column(
           children: [
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Card name with glass container
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 32),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 12,
-                      horizontal: 24,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      color: isDark
-                          ? Colors.white.withOpacity(0.06)
-                          : Colors.black.withOpacity(0.03),
-                      border: Border.all(
-                        color: isDark
-                            ? Colors.white.withOpacity(0.1)
-                            : Colors.black.withOpacity(0.05),
-                      ),
-                    ),
-                    child: Text(
-                      widget.cardName,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 40),
+            // Header
+            _buildHeader(context, isDark, textColor),
 
-                  // Barcode display with liquid glass effect
-                  _buildBarcodeWidget(
-                    context,
-                    _selectedFormat,
-                    widget.barcodeData,
-                    isDark,
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // Format selector with glass effect
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        color: isDark
-                            ? Colors.white.withOpacity(0.06)
-                            : Colors.black.withOpacity(0.03),
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.white.withOpacity(0.1)
-                              : Colors.black.withOpacity(0.05),
-                        ),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: SegmentedButton<String>(
-                            segments: _barcodeFormats.map((item) {
-                              return ButtonSegment<String>(
-                                value: item['name'] as String,
-                                label: Text(
-                                  item['name'] as String,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              );
-                            }).toList(),
-                            selected: <String>{_selectedFormatName},
-                            onSelectionChanged: (Set<String> newSelection) {
-                              final selectedName = newSelection.first;
-                              final selectedItem = _barcodeFormats.firstWhere(
-                                (item) => item['name'] == selectedName,
-                              );
-
-                              setState(() {
-                                _selectedFormatName = selectedName;
-                                _selectedFormat =
-                                    selectedItem['format'] as Barcode;
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const Spacer(),
-                ],
-              ),
-            ),
-            // Close button with glass effect
-            Positioned(
-              top: 8,
-              right: 8,
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isDark
-                      ? Colors.white.withOpacity(0.1)
-                      : Colors.black.withOpacity(0.05),
-                ),
-                child: IconButton(
-                  icon: Icon(Icons.close_rounded, color: textColor),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
+            // Barcode Display
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: _buildBarcodeCard(isDark),
                 ),
               ),
             ),
+
+            // Format Selector
+            _buildFormatSelector(isDark, textColor),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBarcodeWidget(
-    BuildContext context,
-    Barcode barcode,
-    String data,
-    bool isDark,
-  ) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isQr =
-            barcode.name.contains('qr') ||
-            barcode.name.contains('aztec') ||
-            barcode.name.contains('matrix');
-        final double containerWidth = constraints.maxWidth * 0.9;
-        final double barcodeSize = containerWidth - 48;
-
-        return Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: containerWidth,
+  Widget _buildHeader(BuildContext context, bool isDark, Color textColor) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          // Close button
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: isDark
-                        ? Colors.white.withOpacity(0.05)
-                        : Colors.black.withOpacity(0.12),
-                    blurRadius: 40,
-                    offset: const Offset(0, 15),
-                  ),
-                ],
+                color: isDark
+                    ? Colors.white.withAlpha(15)
+                    : Colors.black.withAlpha(8),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: isDark
-                            ? Colors.white.withOpacity(0.1)
-                            : Colors.black.withOpacity(0.05),
-                      ),
-                    ),
-                    child: BarcodeWidget(
-                      barcode: barcode,
-                      data: data,
-                      width: barcodeSize,
-                      height: isQr ? barcodeSize : barcodeSize / 2.5,
-                      color: Colors.black,
-                      errorBuilder: (context, error) => Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.error_outline_rounded,
-                                size: 48,
-                                color: Colors.red.shade400,
-                              ),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'Invalid Data for this Barcode Type',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+              child: Icon(Icons.close_rounded, color: textColor, size: 22),
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Title
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.cardName,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  "Show this to cashier",
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? Colors.white54 : Colors.black45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Copy button
+          GestureDetector(
+            onTap: () {
+              Clipboard.setData(ClipboardData(text: widget.barcodeData));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  behavior: SnackBarBehavior.floating,
+                  margin: const EdgeInsets.all(16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  content: const Text('Copied to clipboard'),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withAlpha(15)
+                    : Colors.black.withAlpha(8),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.copy_rounded, color: textColor, size: 20),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBarcodeCard(bool isDark) {
+    final format = _formats[_selectedIndex];
+    final isSquare = _selectedIndex > 0; // QR, Aztec, Matrix are square
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withAlpha(10),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Barcode
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            constraints: BoxConstraints(
+              maxWidth: isSquare ? 200 : double.infinity,
+              minHeight: isSquare ? 200 : 80,
+            ),
+            child: BarcodeWidget(
+              barcode: format.barcode,
+              data: widget.barcodeData,
+              color: Colors.black,
+              height: isSquare ? 200 : 80,
+              errorBuilder: (context, error) => _buildError(),
+            ),
+          ),
+
+          const SizedBox(height: 28),
+
+          // Separator
+          Container(height: 1, color: Colors.grey.shade200),
+
+          const SizedBox(height: 20),
+
+          // Number
+          SelectableText(
+            widget.barcodeData,
+            style: const TextStyle(
+              fontFamily: 'ZSpace',
+              fontSize: 18,
+              letterSpacing: 2,
+              color: Colors.black87,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildError() {
+    return Container(
+      height: 100,
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.error_outline_rounded,
+            size: 40,
+            color: Colors.red.shade400,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Cannot display in this format',
+            style: TextStyle(color: Colors.red.shade400, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormatSelector(bool isDark, Color textColor) {
+    return Container(
+      margin: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withAlpha(12) : Colors.black.withAlpha(8),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: List.generate(_formats.length, (index) {
+          final format = _formats[index];
+          final isSelected = index == _selectedIndex;
+
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedIndex = index),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? (isDark ? Colors.white : Colors.black)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      format.icon,
+                      size: 22,
+                      color: isSelected
+                          ? (isDark ? Colors.black : Colors.white)
+                          : (isDark ? Colors.white54 : Colors.black45),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      format.name,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: isSelected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: isSelected
+                            ? (isDark ? Colors.black : Colors.white)
+                            : (isDark ? Colors.white54 : Colors.black45),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
-        );
-      },
+          );
+        }),
+      ),
     );
   }
+}
+
+class _BarcodeFormat {
+  final Barcode barcode;
+  final String name;
+  final IconData icon;
+
+  _BarcodeFormat(this.barcode, this.name, this.icon);
 }

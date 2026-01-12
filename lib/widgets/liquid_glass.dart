@@ -1,21 +1,15 @@
-// lib/widgets/liquid_glass.dart
+// lib/widgets/liquid_glass.dart - PERFORMANCE OPTIMIZED
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/theme_provider.dart';
 
-/// A container with a liquid glass/frosted glass effect
-/// that adapts to the current theme (pure black or pure white)
+/// Optimized glass container - no blur, solid colors
 class LiquidGlassContainer extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
   final double borderRadius;
-  final double blur;
-  final bool showBorder;
-  final bool showHighlight;
-  final Color? customColor;
   final VoidCallback? onTap;
 
   const LiquidGlassContainer({
@@ -24,78 +18,29 @@ class LiquidGlassContainer extends StatelessWidget {
     this.padding,
     this.margin,
     this.borderRadius = 20,
-    this.blur = 10,
-    this.showBorder = true,
-    this.showHighlight = true,
-    this.customColor,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final isDark = themeProvider.isDarkMode;
 
-    // Glass colors based on theme
-    final glassColor =
-        customColor ??
-        (isDark
-            ? Colors.white.withOpacity(0.06)
-            : Colors.black.withOpacity(0.03));
-
+    // Solid colors - no opacity calculations
+    final bgColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5);
     final borderColor = isDark
-        ? Colors.white.withOpacity(0.12)
-        : Colors.black.withOpacity(0.06);
-
-    final highlightColor = isDark
-        ? Colors.white.withOpacity(0.15)
-        : Colors.white.withOpacity(0.8);
+        ? const Color(0xFF2A2A2A)
+        : const Color(0xFFE8E8E8);
 
     Widget container = Container(
       margin: margin,
+      padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
-        gradient: showHighlight
-            ? LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [highlightColor, glassColor, glassColor],
-                stops: const [0.0, 0.03, 1.0],
-              )
-            : null,
-        color: showHighlight ? null : glassColor,
-        border: showBorder ? Border.all(color: borderColor, width: 1) : null,
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.3)
-                : Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        color: bgColor,
+        border: Border.all(color: borderColor, width: 0.5),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-          child: Container(
-            padding: padding ?? const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(borderRadius),
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  glassColor.withOpacity(glassColor.opacity * 0.8),
-                  glassColor,
-                ],
-              ),
-            ),
-            child: child,
-          ),
-        ),
-      ),
+      child: child,
     );
 
     if (onTap != null) {
@@ -105,7 +50,7 @@ class LiquidGlassContainer extends StatelessWidget {
   }
 }
 
-/// A section container with liquid glass effect and a title
+/// Section with title - optimized
 class LiquidGlassSection extends StatelessWidget {
   final String title;
   final IconData? icon;
@@ -122,9 +67,9 @@ class LiquidGlassSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final isDark = themeProvider.isDarkMode;
-    final textColor = isDark ? Colors.white : Colors.black;
+    final textColor = isDark ? Colors.white38 : Colors.black38;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,13 +79,13 @@ class LiquidGlassSection extends StatelessWidget {
           child: Row(
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 16, color: textColor.withOpacity(0.5)),
+                Icon(icon, size: 16, color: textColor),
                 const SizedBox(width: 8),
               ],
               Text(
                 title.toUpperCase(),
                 style: TextStyle(
-                  color: textColor.withOpacity(0.5),
+                  color: textColor,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
@@ -160,13 +105,12 @@ class LiquidGlassSection extends StatelessWidget {
   }
 }
 
-/// A card with liquid glass effect - perfect for credit cards
+/// Card widget - optimized
 class LiquidGlassCard extends StatelessWidget {
   final Widget child;
   final double aspectRatio;
   final VoidCallback? onTap;
   final Color? backgroundColor;
-  final bool showGlassEffect;
 
   const LiquidGlassCard({
     super.key,
@@ -174,18 +118,17 @@ class LiquidGlassCard extends StatelessWidget {
     this.aspectRatio = 1.586,
     this.onTap,
     this.backgroundColor,
-    this.showGlassEffect = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final isDark = themeProvider.isDarkMode;
 
-    final baseColor = backgroundColor ?? (isDark ? Colors.black : Colors.white);
+    final bgColor = backgroundColor ?? (isDark ? Colors.black : Colors.white);
     final borderColor = isDark
-        ? Colors.white.withOpacity(0.15)
-        : Colors.black.withOpacity(0.08);
+        ? const Color(0xFF2A2A2A)
+        : const Color(0xFFE8E8E8);
 
     return GestureDetector(
       onTap: onTap,
@@ -194,51 +137,17 @@ class LiquidGlassCard extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: isDark
-                    ? Colors.white.withOpacity(0.03)
-                    : Colors.black.withOpacity(0.1),
-                blurRadius: 30,
-                offset: const Offset(0, 10),
-              ),
-            ],
+            color: bgColor,
+            border: Border.all(color: borderColor, width: 0.5),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: showGlassEffect
-                  ? ImageFilter.blur(sigmaX: 10, sigmaY: 10)
-                  : ImageFilter.blur(),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: baseColor,
-                  border: Border.all(color: borderColor),
-                  gradient: showGlassEffect
-                      ? LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            baseColor,
-                            isDark
-                                ? Colors.grey.shade900.withOpacity(0.8)
-                                : Colors.grey.shade50,
-                          ],
-                        )
-                      : null,
-                ),
-                child: child,
-              ),
-            ),
-          ),
+          child: child,
         ),
       ),
     );
   }
 }
 
-/// A tile widget with liquid glass effect
+/// Tile widget - optimized
 class LiquidGlassTile extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -257,21 +166,22 @@ class LiquidGlassTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final isDark = themeProvider.isDarkMode;
     final textColor = isDark ? Colors.white : Colors.black;
+    final iconBgColor = isDark
+        ? const Color(0xFF2A2A2A)
+        : const Color(0xFFEEEEEE);
 
     return ListTile(
       onTap: onTap,
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withOpacity(0.08)
-              : Colors.black.withOpacity(0.05),
+          color: iconBgColor,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(icon, color: textColor.withOpacity(0.8), size: 22),
+        child: Icon(icon, color: textColor, size: 22),
       ),
       title: Text(
         title,
@@ -280,7 +190,10 @@ class LiquidGlassTile extends StatelessWidget {
       subtitle: subtitle != null
           ? Text(
               subtitle!,
-              style: TextStyle(color: textColor.withOpacity(0.5), fontSize: 13),
+              style: TextStyle(
+                color: isDark ? Colors.white54 : Colors.black54,
+                fontSize: 13,
+              ),
             )
           : null,
       trailing:
@@ -289,14 +202,14 @@ class LiquidGlassTile extends StatelessWidget {
               ? Icon(
                   Icons.arrow_forward_ios,
                   size: 16,
-                  color: textColor.withOpacity(0.3),
+                  color: isDark ? Colors.white30 : Colors.black26,
                 )
               : null),
     );
   }
 }
 
-/// Navigation bar with liquid glass effect
+/// Navigation bar - optimized (no blur)
 class LiquidGlassNavigationBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onDestinationSelected;
@@ -311,7 +224,7 @@ class LiquidGlassNavigationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final isDark = themeProvider.isDarkMode;
 
     return Container(
@@ -319,21 +232,15 @@ class LiquidGlassNavigationBar extends StatelessWidget {
         color: isDark ? Colors.black : Colors.white,
         border: Border(
           top: BorderSide(
-            color: isDark
-                ? Colors.white.withOpacity(0.08)
-                : Colors.black.withOpacity(0.05),
+            color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8),
+            width: 0.5,
           ),
         ),
       ),
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: NavigationBar(
-            selectedIndex: selectedIndex,
-            onDestinationSelected: onDestinationSelected,
-            destinations: destinations,
-          ),
-        ),
+      child: NavigationBar(
+        selectedIndex: selectedIndex,
+        onDestinationSelected: onDestinationSelected,
+        destinations: destinations,
       ),
     );
   }

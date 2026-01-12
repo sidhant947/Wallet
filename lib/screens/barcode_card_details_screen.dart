@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:provider/provider.dart';
@@ -43,9 +42,7 @@ class BarcodeCardDetailScreen extends StatelessWidget {
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withOpacity(0.08)
-                : Colors.black.withOpacity(0.05),
+            color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0),
             borderRadius: BorderRadius.circular(12),
           ),
           child: IconButton(
@@ -61,66 +58,41 @@ class BarcodeCardDetailScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // Barcode Section with liquid glass effect
+          // Barcode Section
           Container(
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
+              color: Colors.white,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: isDark
-                      ? Colors.white.withOpacity(0.05)
-                      : Colors.black.withOpacity(0.1),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
+                  color: Colors.black.withAlpha(15),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
                 ),
               ],
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isDark
-                          ? Colors.white.withOpacity(0.1)
-                          : Colors.black.withOpacity(0.05),
-                    ),
-                  ),
-                  child: BarcodeWidget(
-                    barcode: Barcode.code128(),
-                    data: barcodeData,
-                    color: Colors.black,
-                    height: 100,
-                    errorBuilder: (context, error) => const Center(
-                      child: Text(
-                        'Invalid Data for this Barcode Type',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  ),
+            child: BarcodeWidget(
+              barcode: Barcode.code128(),
+              data: barcodeData,
+              color: Colors.black,
+              height: 100,
+              errorBuilder: (context, error) => const Center(
+                child: Text(
+                  'Invalid Data for this Barcode Type',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.red),
                 ),
               ),
             ),
           ),
           const SizedBox(height: 16),
-          // Barcode number display with glass effect
+          // Barcode number display
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              color: isDark
-                  ? Colors.white.withOpacity(0.06)
-                  : Colors.black.withOpacity(0.03),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.05),
-              ),
+              color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
             ),
             child: Center(
               child: Text(
@@ -174,7 +146,6 @@ class BarcodeCardDetailScreen extends StatelessWidget {
     bool isDark,
   ) {
     final imageFile = File(imagePath);
-    final textColor = isDark ? Colors.white : Colors.black;
 
     return Padding(
       padding: const EdgeInsets.all(8.0),
@@ -191,18 +162,11 @@ class BarcodeCardDetailScreen extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.white.withOpacity(0.1)
-                      : Colors.black.withOpacity(0.08),
-                ),
                 boxShadow: [
                   BoxShadow(
-                    color: isDark
-                        ? Colors.black.withOpacity(0.3)
-                        : Colors.black.withOpacity(0.08),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
+                    color: Colors.black.withAlpha(20),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
@@ -213,18 +177,20 @@ class BarcodeCardDetailScreen extends StatelessWidget {
                   height: 100,
                   width: 150,
                   fit: BoxFit.cover,
+                  cacheHeight: 200,
+                  cacheWidth: 300,
                   errorBuilder: (c, e, s) => Container(
                     height: 100,
                     width: 150,
                     decoration: BoxDecoration(
                       color: isDark
-                          ? Colors.white.withOpacity(0.05)
-                          : Colors.black.withOpacity(0.03),
+                          ? const Color(0xFF1A1A1A)
+                          : const Color(0xFFF5F5F5),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(
                       Icons.error_outline,
-                      color: textColor.withOpacity(0.3),
+                      color: isDark ? Colors.white38 : Colors.black38,
                     ),
                   ),
                 ),
@@ -234,7 +200,10 @@ class BarcodeCardDetailScreen extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             label,
-            style: TextStyle(color: textColor.withOpacity(0.6), fontSize: 13),
+            style: TextStyle(
+              color: isDark ? Colors.white60 : Colors.black54,
+              fontSize: 13,
+            ),
           ),
         ],
       ),
@@ -257,8 +226,6 @@ class _LiquidGlassSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = isDark ? Colors.white : Colors.black;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -266,12 +233,16 @@ class _LiquidGlassSection extends StatelessWidget {
           padding: const EdgeInsets.only(left: 4, bottom: 12),
           child: Row(
             children: [
-              Icon(icon, size: 16, color: textColor.withOpacity(0.4)),
+              Icon(
+                icon,
+                size: 16,
+                color: isDark ? Colors.white38 : Colors.black38,
+              ),
               const SizedBox(width: 8),
               Text(
                 title.toUpperCase(),
                 style: TextStyle(
-                  color: textColor.withOpacity(0.4),
+                  color: isDark ? Colors.white38 : Colors.black38,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
                   fontSize: 12,
@@ -284,22 +255,9 @@ class _LiquidGlassSection extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            color: isDark
-                ? Colors.white.withOpacity(0.06)
-                : Colors.black.withOpacity(0.03),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
-            ),
+            color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: child,
-            ),
-          ),
+          child: child,
         ),
       ],
     );

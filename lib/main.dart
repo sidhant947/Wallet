@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
@@ -185,41 +184,27 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Liquid glass icon container
+                    // Icon container
                     Container(
                       width: 120,
                       height: 120,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(32),
                         color: isDark
-                            ? Colors.white.withOpacity(0.08)
-                            : Colors.black.withOpacity(0.05),
+                            ? const Color(0xFF1A1A1A)
+                            : const Color(0xFFF0F0F0),
                         border: Border.all(
                           color: isDark
-                              ? Colors.white.withOpacity(0.15)
-                              : Colors.black.withOpacity(0.08),
+                              ? const Color(0xFF2A2A2A)
+                              : const Color(0xFFE0E0E0),
+                          width: 0.5,
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: isDark
-                                ? Colors.white.withOpacity(0.05)
-                                : Colors.black.withOpacity(0.1),
-                            blurRadius: 40,
-                            offset: const Offset(0, 15),
-                          ),
-                        ],
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(32),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: Center(
-                            child: Icon(
-                              Icons.wallet_rounded,
-                              size: 56,
-                              color: textColor,
-                            ),
-                          ),
+                      child: Center(
+                        child: Icon(
+                          Icons.wallet_rounded,
+                          size: 56,
+                          color: textColor,
                         ),
                       ),
                     ),
@@ -239,26 +224,26 @@ class _SplashScreenState extends State<SplashScreen>
                       'Secure • Simple • Smart',
                       style: TextStyle(
                         fontSize: 14,
-                        color: textColor.withOpacity(0.5),
+                        color: isDark ? Colors.white54 : Colors.black45,
                         letterSpacing: 2,
                       ),
                     ),
                     const SizedBox(height: 48),
-                    // Loading indicator with glass effect
+                    // Loading indicator
                     Container(
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: isDark
-                            ? Colors.white.withOpacity(0.06)
-                            : Colors.black.withOpacity(0.03),
+                            ? const Color(0xFF1A1A1A)
+                            : const Color(0xFFF5F5F5),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: textColor.withOpacity(0.5),
+                          color: isDark ? Colors.white54 : Colors.black45,
                         ),
                       ),
                     ),
