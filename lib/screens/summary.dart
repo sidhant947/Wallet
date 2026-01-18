@@ -13,149 +13,75 @@ class Summary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final wallets = Provider.of<WalletProvider>(context).wallets;
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final isDark = themeProvider.isDarkMode;
-
-    if (wallets.isEmpty) {
-      return Scaffold(
-        appBar: _buildAppBar(context, isDark),
-        body: Center(
-          child: Text(
-            "Add credit cards to see a summary.",
-            style: TextStyle(color: isDark ? Colors.white54 : Colors.black45),
-          ),
-        ),
-      );
-    }
-
-    // --- Data Aggregation & Calculation ---
-    double totalLimit = 0;
-    double totalSpends = 0;
-    double totalEstimatedCashback = 0;
-    Wallet? topCashbackCard;
-    Wallet? highestLimitCard;
-    List<Wallet> feeWaiverCards = [];
-    List<Map<String, dynamic>> upcomingBills = [];
-    List<Wallet> incompleteCards = [];
-
-    Map<String, int> networkCounts = {};
-    Map<String, int> issuerCounts = {};
-    Map<String, int> cardTypeCounts = {};
-
-    for (var wallet in wallets) {
-      final limit = double.tryParse(wallet.maxlimit ?? '0') ?? 0;
-      final spends = double.tryParse(wallet.spends ?? '0') ?? 0;
-      final rewardsRate = double.tryParse(wallet.rewards ?? '0') ?? 0;
-      final waiver = double.tryParse(wallet.annualFeeWaiver ?? '0') ?? 0;
-      final billDate = int.tryParse(wallet.billdate ?? '');
-
-      totalLimit += limit;
-      totalSpends += spends;
-      totalEstimatedCashback += (spends * rewardsRate) / 100;
-
-      if ((wallet.maxlimit ?? '').isEmpty ||
-          (wallet.spends ?? '').isEmpty ||
-          (wallet.rewards ?? '').isEmpty ||
-          (wallet.billdate ?? '').isEmpty) {
-        incompleteCards.add(wallet);
-      }
-
-      if ((wallet.network ?? '').isNotEmpty) {
-        networkCounts.update(
-          wallet.network!.toUpperCase(),
-          (val) => val + 1,
-          ifAbsent: () => 1,
-        );
-      }
-      if ((wallet.issuer ?? '').isNotEmpty) {
-        issuerCounts.update(
-          wallet.issuer!,
-          (val) => val + 1,
-          ifAbsent: () => 1,
-        );
-      }
-      if ((wallet.cardtype ?? '').isNotEmpty) {
-        cardTypeCounts.update(
-          wallet.cardtype!,
-          (val) => val + 1,
-          ifAbsent: () => 1,
-        );
-      }
-
-      if (topCashbackCard == null ||
-          rewardsRate >
-              (double.tryParse(topCashbackCard.rewards ?? '0') ?? 0)) {
-        topCashbackCard = wallet;
-      }
-      if (highestLimitCard == null ||
-          limit > (double.tryParse(highestLimitCard.maxlimit ?? '0') ?? 0)) {
-        highestLimitCard = wallet;
-      }
-      if (waiver > 0) {
-        feeWaiverCards.add(wallet);
-      }
-      if (billDate != null) {
-        upcomingBills.add({'wallet': wallet, 'date': billDate});
-      }
-    }
-
-    final utilization = totalLimit > 0 ? (totalSpends / totalLimit) : 0.0;
-    final today = DateTime.now().day;
-    upcomingBills.sort((a, b) {
-      int dayA = a['date'];
-      int dayB = b['date'];
-      int diffA = dayA >= today ? dayA - today : dayA + 30 - today;
-      int diffB = dayB >= today ? dayB - today : dayB + 30 - today;
-      return diffA.compareTo(diffB);
-    });
 
     return Scaffold(
       appBar: _buildAppBar(context, isDark),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          if (incompleteCards.isNotEmpty)
-            _LiquidGlassIncompleteCardsSection(
-              incompleteCards: incompleteCards,
-              isDark: isDark,
-            ),
+      body: Selector<WalletProvider, WalletSummary>(
+        selector: (_, provider) => provider.summary,
+        builder: (context, summary, child) {
+          if (Provider.of<WalletProvider>(
+            context,
+            listen: false,
+          ).wallets.isEmpty) {
+            return Center(
+              child: Text(
+                "Add credit cards to see a summary.",
+                style: TextStyle(
+                  color: isDark ? Colors.white54 : Colors.black45,
+                ),
+              ),
+            );
+          }
 
-          _LiquidGlassFinancialOverviewCard(
-            totalLimit: totalLimit,
-            totalSpends: totalSpends,
-            utilization: utilization,
-            totalCashback: totalEstimatedCashback,
-            isDark: isDark,
-          ),
-          const SizedBox(height: 24),
+          return ListView(
+            padding: const EdgeInsets.all(16.0),
+            children: [
+              if (summary.incompleteCards.isNotEmpty)
+                _LiquidGlassIncompleteCardsSection(
+                  incompleteCards: summary.incompleteCards,
+                  isDark: isDark,
+                ),
 
-          _LiquidGlassCardDistributionSection(
-            networkCounts: networkCounts,
-            issuerCounts: issuerCounts,
-            cardTypeCounts: cardTypeCounts,
-            isDark: isDark,
-          ),
+              _LiquidGlassFinancialOverviewCard(
+                totalLimit: summary.totalLimit,
+                totalSpends: summary.totalSpends,
+                utilization: summary.utilization,
+                totalCashback: summary.totalCashback,
+                isDark: isDark,
+              ),
+              const SizedBox(height: 24),
 
-          if (upcomingBills.isNotEmpty)
-            _LiquidGlassUpcomingBillsSection(
-              upcomingBills: upcomingBills,
-              isDark: isDark,
-            ),
+              _LiquidGlassCardDistributionSection(
+                networkCounts: summary.networkCounts,
+                issuerCounts: summary.issuerCounts,
+                cardTypeCounts: summary.cardTypeCounts,
+                isDark: isDark,
+              ),
 
-          if (topCashbackCard != null || highestLimitCard != null)
-            _LiquidGlassInsightsSection(
-              topCashbackCard: topCashbackCard,
-              highestLimitCard: highestLimitCard,
-              isDark: isDark,
-            ),
+              if (summary.upcomingBills.isNotEmpty)
+                _LiquidGlassUpcomingBillsSection(
+                  upcomingBills: summary.upcomingBills,
+                  isDark: isDark,
+                ),
 
-          if (feeWaiverCards.isNotEmpty)
-            _LiquidGlassFeeWaiverSection(
-              feeWaiverCards: feeWaiverCards,
-              isDark: isDark,
-            ),
-        ],
+              if (summary.topCashbackCard != null ||
+                  summary.highestLimitCard != null)
+                _LiquidGlassInsightsSection(
+                  topCashbackCard: summary.topCashbackCard,
+                  highestLimitCard: summary.highestLimitCard,
+                  isDark: isDark,
+                ),
+
+              if (summary.feeWaiverCards.isNotEmpty)
+                _LiquidGlassFeeWaiverSection(
+                  feeWaiverCards: summary.feeWaiverCards,
+                  isDark: isDark,
+                ),
+            ],
+          );
+        },
       ),
     );
   }

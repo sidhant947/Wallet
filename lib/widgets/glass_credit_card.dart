@@ -133,7 +133,7 @@ class GlassCreditCard extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            _RealisticChip(),
+                            const _RealisticChip(),
                             Icon(
                               Icons.contactless_rounded,
                               color: Colors.white.withAlpha(200),
@@ -270,6 +270,8 @@ class GlassCreditCard extends StatelessWidget {
 
 // Realistic EMV Chip Widget
 class _RealisticChip extends StatelessWidget {
+  const _RealisticChip();
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -297,12 +299,14 @@ class _RealisticChip extends StatelessWidget {
           ),
         ],
       ),
-      child: CustomPaint(painter: _ChipCircuitPainter()),
+      child: const CustomPaint(painter: _ChipCircuitPainter()),
     );
   }
 }
 
 class _ChipCircuitPainter extends CustomPainter {
+  const _ChipCircuitPainter();
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -335,7 +339,7 @@ class _ChipCircuitPainter extends CustomPainter {
 class _AbstractWavePainter extends CustomPainter {
   final Color color;
 
-  _AbstractWavePainter({required this.color});
+  const _AbstractWavePainter({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -386,7 +390,7 @@ class _AbstractWavePainter extends CustomPainter {
 
 class _NoisePatternPainter extends CustomPainter {
   final Color color;
-  _NoisePatternPainter({required this.color});
+  const _NoisePatternPainter({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {

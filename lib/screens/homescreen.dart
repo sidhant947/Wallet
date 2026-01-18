@@ -141,12 +141,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
 
-    final List<Widget> pages = [
-      _buildPaymentsTab(context),
-      _buildLoyaltyTab(context),
-      _buildIdentityTab(context),
-    ];
-
     return Scaffold(
       appBar: AppBar(
         leading: GestureDetector(
@@ -203,7 +197,10 @@ class _HomeScreenState extends State<HomeScreen> {
           onPressed: () async {
             final result = await Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const AddCardScreen()),
+              MaterialPageRoute(
+                builder: (context) =>
+                    AddCardScreen(initialTabIndex: _selectedIndex),
+              ),
             );
             if (result == true && mounted) {
               context.read<WalletProvider>().fetchWallets();
@@ -214,7 +211,14 @@ class _HomeScreenState extends State<HomeScreen> {
           child: const Icon(Icons.add_rounded),
         ),
       ),
-      body: pages[_selectedIndex],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          _buildPaymentsTab(context),
+          _buildLoyaltyTab(context),
+          _buildIdentityTab(context),
+        ],
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: isDark ? Colors.black : Colors.white,
@@ -283,314 +287,328 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildPaymentsTab(BuildContext context) {
-    final walletProvider = Provider.of<WalletProvider>(context);
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final isDark = themeProvider.isDarkMode;
 
-    if (walletProvider.wallets.isEmpty) {
-      return _buildEmptyState(
-        context,
-        "No credit or debit cards yet.\nTap the '+' to add one.",
-      );
-    }
+    return Selector<WalletProvider, List<Wallet>>(
+      selector: (_, provider) => provider.wallets,
+      builder: (context, wallets, child) {
+        if (wallets.isEmpty) {
+          return _buildEmptyState(
+            context,
+            "No credit or debit cards yet.\nTap the '+' to add one.",
+          );
+        }
 
-    // 1. First, filter by the search query.
-    final List<Wallet> searchedWallets = _searchQuery.isEmpty
-        ? walletProvider.wallets
-        : walletProvider.wallets.where((wallet) {
-            final query = _searchQuery.toLowerCase();
-            return (wallet.name.toLowerCase().contains(query)) ||
-                (wallet.number.contains(query)) ||
-                (wallet.network?.toLowerCase().contains(query) ?? false) ||
-                (wallet.issuer?.toLowerCase().contains(query) ?? false) ||
-                (wallet.cardtype?.toLowerCase().contains(query) ?? false);
-          }).toList();
+        // 1. First, filter by the search query.
+        final List<Wallet> searchedWallets = _searchQuery.isEmpty
+            ? wallets
+            : wallets.where((wallet) {
+                final query = _searchQuery.toLowerCase();
+                return (wallet.name.toLowerCase().contains(query)) ||
+                    (wallet.number.contains(query)) ||
+                    (wallet.network?.toLowerCase().contains(query) ?? false) ||
+                    (wallet.issuer?.toLowerCase().contains(query) ?? false) ||
+                    (wallet.cardtype?.toLowerCase().contains(query) ?? false);
+              }).toList();
 
-    // 2. Then, filter the result by the network button.
-    final List<Wallet> filteredWallets = searchedWallets.where((wallet) {
-      if (_selectedFilter == 'all') return true;
-      return wallet.network?.toLowerCase() == _selectedFilter;
-    }).toList();
+        // 2. Then, filter the result by the network button.
+        final List<Wallet> filteredWallets = searchedWallets.where((wallet) {
+          if (_selectedFilter == 'all') return true;
+          return wallet.network?.toLowerCase() == _selectedFilter;
+        }).toList();
 
-    return ListView(
-      padding: const EdgeInsets.only(top: 16, bottom: 80),
-      children: [
-        // Search field with liquid glass effect
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: isDark
-                  ? Colors.white.withOpacity(0.06)
-                  : Colors.black.withOpacity(0.03),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.06),
-              ),
-            ),
-            child: TextField(
-              controller: _searchController,
-              style: TextStyle(color: isDark ? Colors.white : Colors.black),
-              decoration: InputDecoration(
-                filled: false,
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                hintText: 'Search by name, number, issuer...',
-                hintStyle: TextStyle(
-                  color: isDark ? Colors.white38 : Colors.black38,
-                ),
-                prefixIcon: Icon(
-                  Icons.search_rounded,
-                  color: isDark ? Colors.white54 : Colors.black45,
-                ),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(
-                          Icons.clear_rounded,
-                          color: isDark ? Colors.white54 : Colors.black45,
-                        ),
-                        onPressed: () {
-                          _searchController.clear();
-                        },
-                      )
-                    : null,
-              ),
-            ),
-          ),
-        ),
-        // Filter chips
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SegmentedButton<String>(
-              segments: const [
-                ButtonSegment<String>(value: 'all', label: Text('ALL')),
-                ButtonSegment<String>(value: 'visa', label: Text('VISA')),
-                ButtonSegment<String>(
-                  value: 'mastercard',
-                  label: Text('MASTERCARD'),
-                ),
-                ButtonSegment<String>(value: 'rupay', label: Text('RUPAY')),
-                ButtonSegment<String>(value: 'amex', label: Text('AMEX')),
-                ButtonSegment<String>(
-                  value: 'discover',
-                  label: Text('DISCOVER'),
-                ),
-              ],
-              showSelectedIcon: false,
-              selected: <String>{_selectedFilter},
-              onSelectionChanged: (Set<String> newSelection) {
-                setState(() => _selectedFilter = newSelection.first);
-              },
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        if (filteredWallets.isEmpty)
-          Padding(
-            padding: const EdgeInsets.all(48.0),
-            child: Center(
-              child: Text(
-                'No cards found.',
-                style: TextStyle(
-                  color: isDark ? Colors.white54 : Colors.black45,
-                ),
-              ),
-            ),
-          )
-        else
-          Column(
-            children: filteredWallets.map((wallet) {
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: Slidable(
-                  key: ValueKey(wallet.id),
-                  endActionPane: ActionPane(
-                    motion: const ScrollMotion(),
-                    extentRatio: 0.25,
-                    children: [
-                      SlidableAction(
-                        onPressed: (context) async {
-                          await context.read<WalletProvider>().deleteWallet(
-                            wallet.id!,
-                          );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Card deleted')),
-                          );
-                        },
-                        backgroundColor: Colors.transparent,
-                        foregroundColor: Colors.red,
-                        icon: Icons.delete_outline_rounded,
-                        label: 'Delete',
-                      ),
-                    ],
+        return ListView(
+          padding: const EdgeInsets.only(top: 16, bottom: 80),
+          children: [
+            // Search field with liquid glass effect
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  color: isDark
+                      ? Colors.white.withOpacity(0.06)
+                      : Colors.black.withOpacity(0.03),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.1)
+                        : Colors.black.withOpacity(0.06),
                   ),
-                  child: GestureDetector(
-                    child: GlassCreditCard(
-                      wallet: wallet,
-                      isMasked: true,
-                      onCardTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              WalletDetailScreen(wallet: wallet),
-                        ),
-                      ),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    hintText: 'Search by name, number, issuer...',
+                    hintStyle: TextStyle(
+                      color: isDark ? Colors.white38 : Colors.black38,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      color: isDark ? Colors.white54 : Colors.black45,
+                    ),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.clear_rounded,
+                              color: isDark ? Colors.white54 : Colors.black45,
+                            ),
+                            onPressed: () {
+                              _searchController.clear();
+                            },
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+            ),
+            // Filter chips
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment<String>(value: 'all', label: Text('ALL')),
+                    ButtonSegment<String>(value: 'visa', label: Text('VISA')),
+                    ButtonSegment<String>(
+                      value: 'mastercard',
+                      label: Text('MASTERCARD'),
+                    ),
+                    ButtonSegment<String>(value: 'rupay', label: Text('RUPAY')),
+                    ButtonSegment<String>(value: 'amex', label: Text('AMEX')),
+                    ButtonSegment<String>(
+                      value: 'discover',
+                      label: Text('DISCOVER'),
+                    ),
+                  ],
+                  showSelectedIcon: false,
+                  selected: <String>{_selectedFilter},
+                  onSelectionChanged: (Set<String> newSelection) {
+                    setState(() => _selectedFilter = newSelection.first);
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (filteredWallets.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(48.0),
+                child: Center(
+                  child: Text(
+                    'No cards found.',
+                    style: TextStyle(
+                      color: isDark ? Colors.white54 : Colors.black45,
                     ),
                   ),
                 ),
-              );
-            }).toList(),
-          ),
+              )
+            else
+              Column(
+                children: filteredWallets.map((wallet) {
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: Slidable(
+                      key: ValueKey(wallet.id),
+                      endActionPane: ActionPane(
+                        motion: const ScrollMotion(),
+                        extentRatio: 0.25,
+                        children: [
+                          SlidableAction(
+                            onPressed: (context) async {
+                              await context.read<WalletProvider>().deleteWallet(
+                                wallet.id!,
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Card deleted')),
+                              );
+                            },
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.red,
+                            icon: Icons.delete_outline_rounded,
+                            label: 'Delete',
+                          ),
+                        ],
+                      ),
+                      child: GestureDetector(
+                        child: GlassCreditCard(
+                          wallet: wallet,
+                          isMasked: true,
+                          onCardTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  WalletDetailScreen(wallet: wallet),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
 
-        if (_selectedFilter == 'all')
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 16.0,
-            ),
-            child: LiquidGlassContainer(
-              padding: EdgeInsets.zero,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const Summary()),
-                );
-              },
-              child: ListTile(
-                leading: null,
-                title: Text(
-                  'View Financial Summary',
-                  style: TextStyle(
-                    color: isDark ? Colors.white : Colors.black,
-                    fontWeight: FontWeight.w500,
+            if (_selectedFilter == 'all')
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 16.0,
+                ),
+                child: LiquidGlassContainer(
+                  padding: EdgeInsets.zero,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const Summary()),
+                    );
+                  },
+                  child: ListTile(
+                    leading: null,
+                    title: Text(
+                      'View Financial Summary',
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    trailing: const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 16,
+                      color: Colors.white38,
+                    ),
                   ),
                 ),
-                trailing: Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 16,
-                  color: isDark ? Colors.white38 : Colors.black38,
-                ),
               ),
-            ),
-          ),
-      ],
+          ],
+        );
+      },
     );
   }
 
   Widget _buildLoyaltyTab(BuildContext context) {
-    final loyaltyProvider = Provider.of<LoyaltyProvider>(context);
-    if (loyaltyProvider.loyalties.isEmpty) {
-      return _buildEmptyState(
-        context,
-        "No loyalty cards added yet.\nTap the '+' to add one.",
-      );
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      itemCount: loyaltyProvider.loyalties.length,
-      itemBuilder: (context, index) {
-        final loyalty = loyaltyProvider.loyalties[index];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
-          child: Slidable(
-            key: ValueKey(loyalty.id),
-            endActionPane: ActionPane(
-              motion: const ScrollMotion(),
-              extentRatio: 0.25,
-              children: [
-                SlidableAction(
-                  onPressed: (context) => _showBarcodeDeleteConfirmationDialog(
+    return Selector<LoyaltyProvider, List<Loyalty>>(
+      selector: (_, provider) => provider.loyalties,
+      builder: (context, loyalties, child) {
+        if (loyalties.isEmpty) {
+          return _buildEmptyState(
+            context,
+            "No loyalty cards added yet.\nTap the '+' to add one.",
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          itemCount: loyalties.length,
+          itemBuilder: (context, index) {
+            final loyalty = loyalties[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: Slidable(
+                key: ValueKey(loyalty.id),
+                endActionPane: ActionPane(
+                  motion: const ScrollMotion(),
+                  extentRatio: 0.25,
+                  children: [
+                    SlidableAction(
+                      onPressed: (context) =>
+                          _showBarcodeDeleteConfirmationDialog(
+                            id: loyalty.id!,
+                            name: loyalty.loyaltyName,
+                            type: BarcodeCardType.loyalty,
+                          ),
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.red,
+                      icon: Icons.delete_outline_rounded,
+                      label: 'Delete',
+                    ),
+                  ],
+                ),
+                child: BarcodeCard(
+                  loyalty: loyalty,
+                  cardType: BarcodeCardType.loyalty,
+                  onCardTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          BarcodeCardDetailScreen(loyalty: loyalty),
+                    ),
+                  ),
+                  onCopyTap: () => _copyToClipboard(loyalty.loyaltyNumber),
+                  onDeleteTap: () => _showBarcodeDeleteConfirmationDialog(
                     id: loyalty.id!,
                     name: loyalty.loyaltyName,
                     type: BarcodeCardType.loyalty,
                   ),
-                  backgroundColor: Colors.transparent,
-                  foregroundColor: Colors.red,
-                  icon: Icons.delete_outline_rounded,
-                  label: 'Delete',
-                ),
-              ],
-            ),
-            child: BarcodeCard(
-              loyalty: loyalty,
-              cardType: BarcodeCardType.loyalty,
-              onCardTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      BarcodeCardDetailScreen(loyalty: loyalty),
                 ),
               ),
-              onCopyTap: () => _copyToClipboard(loyalty.loyaltyNumber),
-              onDeleteTap: () => _showBarcodeDeleteConfirmationDialog(
-                id: loyalty.id!,
-                name: loyalty.loyaltyName,
-                type: BarcodeCardType.loyalty,
-              ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
   }
 
   Widget _buildIdentityTab(BuildContext context) {
-    final identityProvider = Provider.of<IdentityProvider>(context);
-    if (identityProvider.identities.isEmpty) {
-      return _buildEmptyState(
-        context,
-        "No identity cards added yet.\nTap the '+' to add one.",
-      );
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      itemCount: identityProvider.identities.length,
-      itemBuilder: (context, index) {
-        final identity = identityProvider.identities[index];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
-          child: Slidable(
-            key: ValueKey(identity.id),
-            endActionPane: ActionPane(
-              motion: const ScrollMotion(),
-              extentRatio: 0.25,
-              children: [
-                SlidableAction(
-                  onPressed: (context) => _showBarcodeDeleteConfirmationDialog(
+    return Selector<IdentityProvider, List<Identity>>(
+      selector: (_, provider) => provider.identities,
+      builder: (context, identities, child) {
+        if (identities.isEmpty) {
+          return _buildEmptyState(
+            context,
+            "No identity cards added yet.\nTap the '+' to add one.",
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          itemCount: identities.length,
+          itemBuilder: (context, index) {
+            final identity = identities[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: Slidable(
+                key: ValueKey(identity.id),
+                endActionPane: ActionPane(
+                  motion: const ScrollMotion(),
+                  extentRatio: 0.25,
+                  children: [
+                    SlidableAction(
+                      onPressed: (context) =>
+                          _showBarcodeDeleteConfirmationDialog(
+                            id: identity.id!,
+                            name: identity.identityName,
+                            type: BarcodeCardType.identity,
+                          ),
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.red,
+                      icon: Icons.delete_outline_rounded,
+                      label: 'Delete',
+                    ),
+                  ],
+                ),
+                child: BarcodeCard(
+                  identity: identity,
+                  cardType: BarcodeCardType.identity,
+                  onCardTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          BarcodeCardDetailScreen(identity: identity),
+                    ),
+                  ),
+                  onCopyTap: () => _copyToClipboard(identity.identityNumber),
+                  onDeleteTap: () => _showBarcodeDeleteConfirmationDialog(
                     id: identity.id!,
                     name: identity.identityName,
                     type: BarcodeCardType.identity,
                   ),
-                  backgroundColor: Colors.transparent,
-                  foregroundColor: Colors.red,
-                  icon: Icons.delete_outline_rounded,
-                  label: 'Delete',
-                ),
-              ],
-            ),
-            child: BarcodeCard(
-              identity: identity,
-              cardType: BarcodeCardType.identity,
-              onCardTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      BarcodeCardDetailScreen(identity: identity),
                 ),
               ),
-              onCopyTap: () => _copyToClipboard(identity.identityNumber),
-              onDeleteTap: () => _showBarcodeDeleteConfirmationDialog(
-                id: identity.id!,
-                name: identity.identityName,
-                type: BarcodeCardType.identity,
-              ),
-            ),
-          ),
+            );
+          },
         );
       },
     );

@@ -19,7 +19,7 @@ class BarcodeCard extends StatelessWidget {
     required this.onCardTap,
     required this.onCopyTap,
     required this.onDeleteTap,
-  }) : assert(loyalty != null || identity != null);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -283,7 +283,7 @@ class _PremiumLoyaltyCard extends StatelessWidget {
 
 class _RewardPatternPainter extends CustomPainter {
   final Color color;
-  _RewardPatternPainter({required this.color});
+  const _RewardPatternPainter({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -520,7 +520,7 @@ class _PremiumIdentityCard extends StatelessWidget {
 }
 
 class _HolographicSeal extends StatelessWidget {
-  @override
+  const _HolographicSeal();
   Widget build(BuildContext context) {
     return Container(
       width: 120,
@@ -555,7 +555,7 @@ class _HolographicSeal extends StatelessWidget {
 class _WorldMapPainter extends CustomPainter {
   final Color color;
 
-  _WorldMapPainter({required this.color});
+  const _WorldMapPainter({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {

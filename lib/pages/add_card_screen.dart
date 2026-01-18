@@ -4,7 +4,9 @@ import 'package:wallet/models/dataentry.dart';
 import 'package:wallet/models/theme_provider.dart';
 
 class AddCardScreen extends StatefulWidget {
-  const AddCardScreen({super.key});
+  final int initialTabIndex;
+
+  const AddCardScreen({super.key, this.initialTabIndex = 0});
 
   @override
   State<AddCardScreen> createState() => _AddCardScreenState();
@@ -17,7 +19,11 @@ class _AddCardScreenState extends State<AddCardScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTabIndex,
+    );
   }
 
   @override
