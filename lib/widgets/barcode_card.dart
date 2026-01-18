@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:wallet/models/db_helper.dart';
 import '../models/dataentry.dart';
@@ -43,8 +44,6 @@ class BarcodeCard extends StatelessWidget {
         number: cardNumber,
         colorData: colorData,
         onTap: onCardTap,
-        onCopy: onCopyTap,
-        onDelete: onDeleteTap,
       );
     } else {
       return _PremiumIdentityCard(
@@ -52,8 +51,6 @@ class BarcodeCard extends StatelessWidget {
         number: cardNumber,
         colorData: colorData,
         onTap: onCardTap,
-        onCopy: onCopyTap,
-        onDelete: onDeleteTap,
       );
     }
   }
@@ -67,16 +64,12 @@ class _PremiumLoyaltyCard extends StatelessWidget {
   final String number;
   final CardColorData colorData;
   final VoidCallback onTap;
-  final VoidCallback onCopy;
-  final VoidCallback onDelete;
 
   const _PremiumLoyaltyCard({
     required this.name,
     required this.number,
     required this.colorData,
     required this.onTap,
-    required this.onCopy,
-    required this.onDelete,
   });
 
   @override
@@ -84,157 +77,232 @@ class _PremiumLoyaltyCard extends StatelessWidget {
     return RepaintBoundary(
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
-          height: 150,
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          child: Stack(
-            children: [
-              // 1. Main Card Body with Ticket Shape
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [colorData.primary, colorData.secondary],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: colorData.primary.withAlpha(80),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Stack(
-                      children: [
-                        // Background Pattern
-                        Positioned(
-                          right: -50,
-                          top: -50,
-                          child: Icon(
-                            Icons.stars_rounded,
-                            size: 200,
-                            color: Colors.white.withAlpha(10),
-                          ),
+        child: AspectRatio(
+          aspectRatio: 1.586,
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: colorData.primary.withAlpha(80),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Stack(
+                children: [
+                  // 1. Background Gradient
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            colorData.secondary,
+                            colorData.primary,
+                            colorData.accent,
+                          ],
+                          stops: const [0.0, 0.6, 1.0],
                         ),
+                      ),
+                    ),
+                  ),
 
-                        // Content Layout
-                        Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Row(
-                            children: [
-                              // Details
-                              Expanded(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      name,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.5,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withAlpha(30),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        "POINTS: --", // Placeholder for specific point tracking
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                  // 2. Stars / Rewards Pattern
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _RewardPatternPainter(
+                        color: Colors.white.withAlpha(15),
+                      ),
+                    ),
+                  ),
+
+                  // 3. Floating Icon
+                  Positioned(
+                    top: -10,
+                    right: -10,
+                    child: Opacity(
+                      opacity: 0.1,
+                      child: const Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 140,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+
+                  // 4. Content
+                  Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withAlpha(25),
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(
+                                  color: Colors.white.withAlpha(50),
+                                  width: 0.5,
                                 ),
                               ),
-
-                              // Right: Action Area
-                              Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                              child: Row(
                                 children: [
-                                  _GlassMenuButton(
-                                    onCopy: onCopy,
-                                    onDelete: onDelete,
-                                  ),
                                   Icon(
-                                    Icons.qr_code_2_rounded,
-                                    color: Colors.white.withAlpha(200),
-                                    size: 32,
+                                    Icons.stars_rounded,
+                                    color: Colors.white.withAlpha(230),
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    "LOYALTY",
+                                    style: TextStyle(
+                                      color: Colors.white.withAlpha(230),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.5,
+                                    ),
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
 
-                        // Bottom "tear-off" section visual with dashed line
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          height: 40,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.black.withAlpha(30),
+                        const Spacer(),
+
+                        // Program Name
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "REWARDS PROGRAM",
+                              style: TextStyle(
+                                color: Colors.white.withAlpha(128),
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.0,
+                              ),
                             ),
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            alignment: Alignment.centerLeft,
-                            child: Row(
+                            const SizedBox(height: 2),
+                            Text(
+                              name.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Card Number
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(
-                                  Icons.confirmation_number_outlined,
-                                  color: Colors.white.withAlpha(150),
-                                  size: 16,
+                                Text(
+                                  "MEMBERSHIP NUMBER",
+                                  style: TextStyle(
+                                    color: Colors.white.withAlpha(128),
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.0,
+                                  ),
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    number,
-                                    style: TextStyle(
-                                      color: Colors.white.withAlpha(200),
-                                      fontSize: 14,
-                                      fontFamily: 'Courier',
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 2,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
+                                const SizedBox(height: 2),
+                                Text(
+                                  number,
+                                  style: TextStyle(
+                                    fontFamily: 'Courier',
+                                    color: Colors.white.withAlpha(230),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 1.5,
                                   ),
                                 ),
                               ],
                             ),
-                          ),
+                            Icon(
+                              Icons.qr_code_2_rounded,
+                              color: Colors.white.withAlpha(150),
+                              size: 32,
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                ),
+
+                  // 5. Shine Effect
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.white.withAlpha(25),
+                            Colors.transparent,
+                            Colors.transparent,
+                          ],
+                          stops: const [0.0, 0.4, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+class _RewardPatternPainter extends CustomPainter {
+  final Color color;
+  _RewardPatternPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    // Use a fixed seed for consistency
+    final random = math.Random(123);
+    for (int i = 0; i < 30; i++) {
+      double x = random.nextDouble() * size.width;
+      double y = random.nextDouble() * size.height;
+      double r = random.nextDouble() * 2 + 1;
+      canvas.drawCircle(Offset(x, y), r, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 // -----------------------------------------------------------------------------
@@ -245,16 +313,12 @@ class _PremiumIdentityCard extends StatelessWidget {
   final String number;
   final CardColorData colorData;
   final VoidCallback onTap;
-  final VoidCallback onCopy;
-  final VoidCallback onDelete;
 
   const _PremiumIdentityCard({
     required this.name,
     required this.number,
     required this.colorData,
     required this.onTap,
-    required this.onCopy,
-    required this.onDelete,
   });
 
   @override
@@ -262,173 +326,191 @@ class _PremiumIdentityCard extends StatelessWidget {
     return RepaintBoundary(
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
-          height: 160, // Slightly taller for ID
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: Colors.white, // Most IDs have white/light base
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(20),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Stack(
-              children: [
-                // 1. Guilloche Security Pattern (CustomPainter)
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _GuillochePainter(
-                      color: colorData.primary.withAlpha(15),
-                    ),
-                  ),
+        child: AspectRatio(
+          aspectRatio: 1.586,
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: colorData.primary.withAlpha(80),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
                 ),
-
-                // 2. Holographic Strip (Gradient)
-                Positioned(
-                  left: 20,
-                  top: 0,
-                  bottom: 0,
-                  width: 5,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          colorData.primary,
-                          colorData.accent,
-                          Colors.cyanAccent,
-                          colorData.primary,
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // 4. Header & Details
-                Positioned(
-                  left: 35,
-                  top: 20,
-                  right: 20,
-                  bottom: 16,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Header
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colorData.primary,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              "OFFICIAL ID",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.0,
-                              ),
-                            ),
-                          ),
-                          _LightMenuButton(onCopy: onCopy, onDelete: onDelete),
-                        ],
-                      ),
-
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Name Label
-                          Text(
-                            "NAME",
-                            style: TextStyle(
-                              color: colorData.secondary.withAlpha(150),
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            name.toUpperCase(),
-                            style: TextStyle(
-                              color: colorData.primary,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Number Label
-                          Text(
-                            "ID NUMBER",
-                            style: TextStyle(
-                              color: colorData.secondary.withAlpha(150),
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              number,
-                              style: TextStyle(
-                                color: Colors.black87,
-                                fontSize: 16,
-                                fontFamily: 'Courier',
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 1.0,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                // 5. Watermark / Overlay (Secure Stamp)
-                Positioned(
-                  right: -20,
-                  bottom: -20,
-                  child: Opacity(
-                    opacity: 0.1,
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Stack(
+                children: [
+                  // 1. Background Gradient
+                  Positioned.fill(
                     child: Container(
-                      width: 150,
-                      height: 150,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: colorData.primary, width: 10),
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Icons.security,
-                          size: 80,
-                          color: colorData.primary,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            colorData.secondary,
+                            colorData.primary,
+                            colorData.accent,
+                          ],
+                          stops: const [0.0, 0.6, 1.0],
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+
+                  // 2. World Map / Security Pattern
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _WorldMapPainter(
+                        color: Colors.white.withAlpha(15),
+                      ),
+                    ),
+                  ),
+
+                  // 3. Holographic Seal
+                  Positioned(top: -20, right: -20, child: _HolographicSeal()),
+
+                  // 4. Content
+                  Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withAlpha(25),
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(
+                                  color: Colors.white.withAlpha(50),
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.fingerprint,
+                                    color: Colors.white.withAlpha(230),
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    "IDENTITY",
+                                    style: TextStyle(
+                                      color: Colors.white.withAlpha(230),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const Spacer(),
+
+                        // Name
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "NAME",
+                              style: TextStyle(
+                                color: Colors.white.withAlpha(128),
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              name.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // ID Number
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "ID NUMBER",
+                                  style: TextStyle(
+                                    color: Colors.white.withAlpha(128),
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  number,
+                                  style: TextStyle(
+                                    fontFamily: 'Courier',
+                                    color: Colors.white.withAlpha(230),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Icon(
+                              Icons.qr_code_scanner_rounded,
+                              color: Colors.white.withAlpha(80),
+                              size: 32,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 5. Shine Effect
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.white.withAlpha(25),
+                            Colors.transparent,
+                            Colors.transparent,
+                          ],
+                          stops: const [0.0, 0.4, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -437,89 +519,90 @@ class _PremiumIdentityCard extends StatelessWidget {
   }
 }
 
-// -----------------------------------------------------------------------------
-// HELPERS & PAINTERS
-// -----------------------------------------------------------------------------
-
-class _GlassMenuButton extends StatelessWidget {
-  final VoidCallback onCopy;
-  final VoidCallback onDelete;
-
-  const _GlassMenuButton({required this.onCopy, required this.onDelete});
-
+class _HolographicSeal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      onSelected: (value) {
-        if (value == 'copy') onCopy();
-        if (value == 'delete') onDelete();
-      },
-      icon: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: Colors.white.withAlpha(30),
-          shape: BoxShape.circle,
+    return Container(
+      width: 120,
+      height: 120,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [Colors.white.withAlpha(25), Colors.white.withAlpha(0)],
         ),
-        child: const Icon(Icons.more_horiz, color: Colors.white, size: 20),
       ),
-      itemBuilder: (context) => [
-        const PopupMenuItem(value: 'copy', child: Text('Copy Number')),
-        PopupMenuItem(
-          value: 'delete',
-          child: Text('Delete', style: TextStyle(color: Colors.red.shade400)),
+      child: Center(
+        child: Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withAlpha(25), width: 1),
+          ),
+          child: Center(
+            child: Icon(
+              Icons.shield_outlined,
+              size: 40,
+              color: Colors.white.withAlpha(25),
+            ),
+          ),
         ),
-      ],
+      ),
     );
   }
 }
 
-class _LightMenuButton extends StatelessWidget {
-  final VoidCallback onCopy;
-  final VoidCallback onDelete;
-
-  const _LightMenuButton({required this.onCopy, required this.onDelete});
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      onSelected: (value) {
-        if (value == 'copy') onCopy();
-        if (value == 'delete') onDelete();
-      },
-      icon: Icon(Icons.more_horiz, color: Colors.grey.shade400, size: 24),
-      itemBuilder: (context) => [
-        const PopupMenuItem(value: 'copy', child: Text('Copy Number')),
-        PopupMenuItem(
-          value: 'delete',
-          child: Text('Delete', style: TextStyle(color: Colors.red.shade400)),
-        ),
-      ],
-    );
-  }
-}
-
-class _GuillochePainter extends CustomPainter {
+class _WorldMapPainter extends CustomPainter {
   final Color color;
-  _GuillochePainter({required this.color});
+
+  _WorldMapPainter({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.5;
+      ..strokeWidth = 1.0;
 
-    final cx = size.width / 2;
-    final cy = size.height / 2;
+    final path = Path();
+    final w = size.width;
+    final h = size.height;
 
-    for (double i = 0; i < size.width; i += 10) {
-      final path = Path();
-      path.moveTo(i, 0);
-      path.quadraticBezierTo(cx, cy, size.width - i, size.height);
-      canvas.drawPath(path, paint);
-    }
+    path.moveTo(0, h * 0.3);
+    path.cubicTo(w * 0.3, h * 0.2, w * 0.7, h * 0.4, w, h * 0.2);
+
+    path.moveTo(0, h * 0.6);
+    path.cubicTo(w * 0.3, h * 0.5, w * 0.7, h * 0.7, w, h * 0.5);
+
+    path.moveTo(w * 0.3, 0);
+    path.cubicTo(w * 0.35, h * 0.5, w * 0.25, h, w * 0.3, h);
+
+    path.moveTo(w * 0.7, 0);
+    path.cubicTo(w * 0.65, h * 0.5, w * 0.75, h, w * 0.7, h);
+
+    canvas.drawCircle(
+      Offset(w * 0.3, h * 0.3),
+      2,
+      paint..style = PaintingStyle.fill,
+    );
+    canvas.drawCircle(
+      Offset(w * 0.7, h * 0.6),
+      2,
+      paint..style = PaintingStyle.fill,
+    );
+    canvas.drawCircle(
+      Offset(w * 0.5, h * 0.5),
+      2,
+      paint..style = PaintingStyle.fill,
+    );
+
+    canvas.drawPath(path, paint..style = PaintingStyle.stroke);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
+// -----------------------------------------------------------------------------
+// HELPERS & PAINTERS
+// -----------------------------------------------------------------------------

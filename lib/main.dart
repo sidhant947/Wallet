@@ -7,14 +7,14 @@ import 'package:wallet/models/startup_settings_provider.dart';
 import 'models/provider_helper.dart';
 import 'screens/homescreen.dart';
 import 'package:provider/provider.dart';
-// import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:io' show Platform;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // This is for testing Only
-  // databaseFactory = databaseFactoryFfi;
+  databaseFactory = databaseFactoryFfi;
 
   final themeProvider = ThemeProvider();
   final startupProvider = StartupSettingsProvider();

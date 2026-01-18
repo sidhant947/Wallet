@@ -216,18 +216,15 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          SizedBox(
-            height: 235,
-            child: GlassCreditCard(
-              isMasked: false,
-              wallet: currentWallet,
-              onCardTap: () {
-                Clipboard.setData(ClipboardData(text: currentWallet.number));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Card Number Copied!')),
-                );
-              },
-            ),
+          GlassCreditCard(
+            isMasked: false,
+            wallet: currentWallet,
+            onCardTap: () {
+              Clipboard.setData(ClipboardData(text: currentWallet.number));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Card Number Copied!')),
+              );
+            },
           ),
           const SizedBox(height: 20),
           if (isPathValid(currentWallet.frontImagePath) ||

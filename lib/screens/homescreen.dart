@@ -491,26 +491,47 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       itemCount: loyaltyProvider.loyalties.length,
       itemBuilder: (context, index) {
         final loyalty = loyaltyProvider.loyalties[index];
         return Padding(
-          padding: const EdgeInsets.only(bottom: 16.0),
-          child: BarcodeCard(
-            loyalty: loyalty,
-            cardType: BarcodeCardType.loyalty,
-            onCardTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => BarcodeCardDetailScreen(loyalty: loyalty),
-              ),
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: Slidable(
+            key: ValueKey(loyalty.id),
+            endActionPane: ActionPane(
+              motion: const ScrollMotion(),
+              extentRatio: 0.25,
+              children: [
+                SlidableAction(
+                  onPressed: (context) => _showBarcodeDeleteConfirmationDialog(
+                    id: loyalty.id!,
+                    name: loyalty.loyaltyName,
+                    type: BarcodeCardType.loyalty,
+                  ),
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: Colors.red,
+                  icon: Icons.delete_outline_rounded,
+                  label: 'Delete',
+                ),
+              ],
             ),
-            onCopyTap: () => _copyToClipboard(loyalty.loyaltyNumber),
-            onDeleteTap: () => _showBarcodeDeleteConfirmationDialog(
-              id: loyalty.id!,
-              name: loyalty.loyaltyName,
-              type: BarcodeCardType.loyalty,
+            child: BarcodeCard(
+              loyalty: loyalty,
+              cardType: BarcodeCardType.loyalty,
+              onCardTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      BarcodeCardDetailScreen(loyalty: loyalty),
+                ),
+              ),
+              onCopyTap: () => _copyToClipboard(loyalty.loyaltyNumber),
+              onDeleteTap: () => _showBarcodeDeleteConfirmationDialog(
+                id: loyalty.id!,
+                name: loyalty.loyaltyName,
+                type: BarcodeCardType.loyalty,
+              ),
             ),
           ),
         );
@@ -527,27 +548,47 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       itemCount: identityProvider.identities.length,
       itemBuilder: (context, index) {
         final identity = identityProvider.identities[index];
         return Padding(
-          padding: const EdgeInsets.only(bottom: 16.0),
-          child: BarcodeCard(
-            identity: identity,
-            cardType: BarcodeCardType.identity,
-            onCardTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    BarcodeCardDetailScreen(identity: identity),
-              ),
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: Slidable(
+            key: ValueKey(identity.id),
+            endActionPane: ActionPane(
+              motion: const ScrollMotion(),
+              extentRatio: 0.25,
+              children: [
+                SlidableAction(
+                  onPressed: (context) => _showBarcodeDeleteConfirmationDialog(
+                    id: identity.id!,
+                    name: identity.identityName,
+                    type: BarcodeCardType.identity,
+                  ),
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: Colors.red,
+                  icon: Icons.delete_outline_rounded,
+                  label: 'Delete',
+                ),
+              ],
             ),
-            onCopyTap: () => _copyToClipboard(identity.identityNumber),
-            onDeleteTap: () => _showBarcodeDeleteConfirmationDialog(
-              id: identity.id!,
-              name: identity.identityName,
-              type: BarcodeCardType.identity,
+            child: BarcodeCard(
+              identity: identity,
+              cardType: BarcodeCardType.identity,
+              onCardTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      BarcodeCardDetailScreen(identity: identity),
+                ),
+              ),
+              onCopyTap: () => _copyToClipboard(identity.identityNumber),
+              onDeleteTap: () => _showBarcodeDeleteConfirmationDialog(
+                id: identity.id!,
+                name: identity.identityName,
+                type: BarcodeCardType.identity,
+              ),
             ),
           ),
         );
