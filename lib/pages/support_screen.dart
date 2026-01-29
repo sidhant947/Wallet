@@ -17,6 +17,16 @@ class SupportScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _launchRepoUrl() async {
+    const url = 'https://github.com/sidhant947/Wallet';
+    if (!await launchUrl(
+      Uri.parse(url),
+      mode: LaunchMode.externalApplication,
+    )) {
+      // Handle error if needed
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -114,6 +124,36 @@ class SupportScreen extends StatelessWidget {
                       ),
                       label: const Text(
                         'Donate to Support',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: OutlinedButton.icon(
+                      onPressed: _launchRepoUrl,
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: isDark ? Colors.white24 : Colors.black12,
+                          width: 1.5,
+                        ),
+                        foregroundColor: isDark ? Colors.white : Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      icon: const Icon(
+                        Icons.star_rounded,
+                        color: Colors.amber,
+                        size: 24,
+                      ),
+                      label: const Text(
+                        'Star on GitHub',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
