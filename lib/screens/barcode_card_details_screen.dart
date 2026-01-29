@@ -107,8 +107,57 @@ class BarcodeCardDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 32),
+          // Other Formats Section
+          _LiquidGlassSection(
+            title: "Other Formats",
+            icon: Icons.qr_code_2_rounded,
+            isDark: isDark,
+            child: SizedBox(
+              height: 140, // Height for the horizontal scroll
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  _buildAlternativeBarcode(
+                    context,
+                    Barcode.qrCode(),
+                    barcodeData,
+                    'QR Code',
+                    isDark,
+                  ),
+                  _buildAlternativeBarcode(
+                    context,
+                    Barcode.code128(),
+                    barcodeData,
+                    'Code 128',
+                    isDark,
+                  ),
+                  _buildAlternativeBarcode(
+                    context,
+                    Barcode.aztec(),
+                    barcodeData,
+                    'Aztec',
+                    isDark,
+                  ),
+                  _buildAlternativeBarcode(
+                    context,
+                    Barcode.pdf417(),
+                    barcodeData,
+                    'PDF417',
+                    isDark,
+                  ),
+                  _buildAlternativeBarcode(
+                    context,
+                    Barcode.dataMatrix(),
+                    barcodeData,
+                    'Data Matrix',
+                    isDark,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
 
-          // Images Section
           if (isPathValid(frontImagePath) || isPathValid(backImagePath))
             _LiquidGlassSection(
               title: "Card Images",
@@ -135,6 +184,114 @@ class BarcodeCardDetailScreen extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAlternativeBarcode(
+    BuildContext context,
+    Barcode barcode,
+    String data,
+    String label,
+    bool isDark,
+  ) {
+    return GestureDetector(
+      onTap: () => _showFullScreenBarcode(context, barcode, data, label),
+      child: Padding(
+        padding: const EdgeInsets.only(right: 16.0),
+        child: Column(
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark ? Colors.white24 : Colors.black12,
+                ),
+              ),
+              child: BarcodeWidget(
+                barcode: barcode,
+                data: data,
+                color: Colors.black,
+                errorBuilder: (context, error) => Center(
+                  child: Icon(
+                    Icons.error_outline_rounded,
+                    color: Colors.red.shade300,
+                    size: 32,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.white70 : Colors.black87,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showFullScreenBarcode(
+    BuildContext context,
+    Barcode barcode,
+    String data,
+    String label,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                height: 200,
+                width: 200,
+                child: BarcodeWidget(
+                  barcode: barcode,
+                  data: data,
+                  color: Colors.black,
+                  errorBuilder: (context, error) => const Center(
+                    child: Text(
+                      'Could not generate barcode',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                data,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black54,
+                  letterSpacing: 1,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

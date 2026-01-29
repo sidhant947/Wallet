@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:wallet/models/startup_settings_provider.dart';
 import 'package:wallet/pages/add_card_screen.dart';
 import 'package:wallet/pages/settings_page.dart';
 import 'package:wallet/screens/barcode_card_details_screen.dart';
@@ -12,6 +12,7 @@ import 'package:wallet/screens/summary.dart';
 import 'package:wallet/widgets/barcode_card.dart';
 import 'package:wallet/widgets/glass_credit_card.dart';
 import 'package:wallet/widgets/liquid_glass.dart';
+import 'package:wallet/pages/support_screen.dart';
 import '../models/dataentry.dart';
 import '../models/db_helper.dart';
 import '../models/provider_helper.dart';
@@ -41,6 +42,14 @@ class _HomeScreenState extends State<HomeScreen> {
       context.read<WalletProvider>().fetchWallets();
       context.read<LoyaltyProvider>().fetchLoyalties();
       context.read<IdentityProvider>().fetchIdentities();
+
+      // Initialize selected index from startup settings
+      final startupProvider = context.read<StartupSettingsProvider>();
+      if (startupProvider.hideIdentityAndLoyalty) {
+        setState(() => _selectedIndex = 0);
+      } else {
+        setState(() => _selectedIndex = startupProvider.defaultScreenIndex);
+      }
     });
 
     _searchController.addListener(() {
@@ -129,22 +138,25 @@ class _HomeScreenState extends State<HomeScreen> {
     ).showSnackBar(const SnackBar(content: Text('Card number copied!')));
   }
 
-  Future<void> _launchUrl(String url) async {
-    final Uri uri = Uri.parse(url);
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      // You can add a snackbar or alert here to notify the user of an error
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final startupProvider = Provider.of<StartupSettingsProvider>(context);
     final isDark = themeProvider.isDarkMode;
+
+    // Force index to 0 (Payments) if Identity/Loyalty are hidden
+    final isHiddenMode = startupProvider.hideIdentityAndLoyalty;
+    final effectiveIndex = isHiddenMode ? 0 : _selectedIndex;
 
     return Scaffold(
       appBar: AppBar(
         leading: GestureDetector(
-          onTap: () => _launchUrl('https://github.com/sidhant947/Wallet'),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SupportScreen()),
+            );
+          },
           child: Container(
             margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -153,7 +165,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   : Colors.black.withOpacity(0.05),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(Icons.star_rounded, color: Colors.amber.shade400),
+            child: Icon(
+              Icons.volunteer_activism_rounded,
+              color: Colors.pink.shade300,
+            ),
           ),
         ),
         actions: [
@@ -199,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
               context,
               MaterialPageRoute(
                 builder: (context) =>
-                    AddCardScreen(initialTabIndex: _selectedIndex),
+                    AddCardScreen(initialTabIndex: effectiveIndex),
               ),
             );
             if (result == true && mounted) {
@@ -212,47 +227,49 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       body: IndexedStack(
-        index: _selectedIndex,
+        index: effectiveIndex,
         children: [
           _buildPaymentsTab(context),
           _buildLoyaltyTab(context),
           _buildIdentityTab(context),
         ],
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: isDark ? Colors.black : Colors.white,
-          border: Border(
-            top: BorderSide(
-              color: isDark
-                  ? Colors.white.withOpacity(0.08)
-                  : Colors.black.withOpacity(0.05),
+      bottomNavigationBar: isHiddenMode
+          ? null
+          : Container(
+              decoration: BoxDecoration(
+                color: isDark ? Colors.black : Colors.white,
+                border: Border(
+                  top: BorderSide(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.08)
+                        : Colors.black.withOpacity(0.05),
+                  ),
+                ),
+              ),
+              child: NavigationBar(
+                selectedIndex: effectiveIndex,
+                onDestinationSelected: _onItemTapped,
+                elevation: 0,
+                destinations: const <Widget>[
+                  NavigationDestination(
+                    icon: Icon(Icons.credit_card_outlined),
+                    selectedIcon: Icon(Icons.credit_card),
+                    label: 'Payments',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.loyalty_outlined),
+                    selectedIcon: Icon(Icons.loyalty),
+                    label: 'Loyalty',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.badge_outlined),
+                    selectedIcon: Icon(Icons.badge),
+                    label: 'Identity',
+                  ),
+                ],
+              ),
             ),
-          ),
-        ),
-        child: NavigationBar(
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: _onItemTapped,
-          elevation: 0,
-          destinations: const <Widget>[
-            NavigationDestination(
-              icon: Icon(Icons.credit_card_outlined),
-              selectedIcon: Icon(Icons.credit_card),
-              label: 'Payments',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.loyalty_outlined),
-              selectedIcon: Icon(Icons.loyalty),
-              label: 'Loyalty',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.badge_outlined),
-              selectedIcon: Icon(Icons.badge),
-              label: 'Identity',
-            ),
-          ],
-        ),
-      ),
     );
   }
 

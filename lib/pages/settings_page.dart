@@ -22,6 +22,19 @@ class SettingsPage extends StatelessWidget {
     }
   }
 
+  String _getDefaultScreenName(int index) {
+    switch (index) {
+      case 0:
+        return 'Payments';
+      case 1:
+        return 'Loyalty';
+      case 2:
+        return 'Identity';
+      default:
+        return 'Payments';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -50,9 +63,9 @@ class SettingsPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // --- Startup Settings Section ---
+          // --- Startup & Layout Settings Section ---
           _LiquidGlassSection(
-            title: 'Startup',
+            title: 'Startup & Layout',
             icon: Icons.rocket_launch_outlined,
             children: [
               _LiquidGlassTile(
@@ -63,6 +76,40 @@ class SettingsPage extends StatelessWidget {
                   value: startupProvider.showAuthenticationScreen,
                   onChanged: (_) {
                     startupProvider.toggleAuthenticationScreen();
+                  },
+                ),
+              ),
+              Divider(
+                color: isDark
+                    ? const Color(0xFF2A2A2A)
+                    : const Color(0xFFE8E8E8),
+                height: 1,
+              ),
+              if (!startupProvider.hideIdentityAndLoyalty) ...[
+                _LiquidGlassTile(
+                  icon: Icons.home_filled,
+                  title: 'Default Screen',
+                  subtitle: _getDefaultScreenName(
+                    startupProvider.defaultScreenIndex,
+                  ),
+                  onTap: () =>
+                      _showDefaultScreenDialog(context, startupProvider),
+                ),
+                Divider(
+                  color: isDark
+                      ? const Color(0xFF2A2A2A)
+                      : const Color(0xFFE8E8E8),
+                  height: 1,
+                ),
+              ],
+              _LiquidGlassTile(
+                icon: Icons.credit_card_rounded,
+                title: 'Payments Only Mode',
+                subtitle: 'Hide Loyalty and Identity screens',
+                trailing: Switch(
+                  value: startupProvider.hideIdentityAndLoyalty,
+                  onChanged: (_) {
+                    startupProvider.toggleHideIdentityAndLoyalty();
                   },
                 ),
               ),
@@ -131,22 +178,113 @@ class SettingsPage extends StatelessWidget {
 
           // --- About Section ---
           _LiquidGlassSection(
-            title: 'Support',
+            title: 'Made with ❤️ by Sidhant',
             icon: Icons.favorite_outline_rounded,
-            children: [
-              _LiquidGlassTile(
-                icon: Icons.code_rounded,
-                title: 'Support',
-                subtitle: 'Support for App Store Release',
-                onTap: () {
-                  launchUrl(
-                    Uri.parse('https://github.com/sponsors/sidhant947'),
-                  );
-                },
-              ),
-            ],
+            children: [],
           ),
         ],
+      ),
+    );
+  }
+
+  void _showDefaultScreenDialog(
+    BuildContext context,
+    StartupSettingsProvider provider,
+  ) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDark = themeProvider.isDarkMode;
+
+    showDialog(
+      context: context,
+      barrierColor: isDark ? Colors.black54 : Colors.black26,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+        title: Text(
+          'Default Screen',
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildRadioOption(
+              context,
+              'Payments',
+              0,
+              provider.defaultScreenIndex,
+              (val) {
+                provider.setDefaultScreen(val);
+                Navigator.pop(context);
+              },
+              isDark,
+            ),
+            _buildRadioOption(
+              context,
+              'Loyalty',
+              1,
+              provider.defaultScreenIndex,
+              (val) {
+                provider.setDefaultScreen(val);
+                Navigator.pop(context);
+              },
+              isDark,
+            ),
+            _buildRadioOption(
+              context,
+              'Identity',
+              2,
+              provider.defaultScreenIndex,
+              (val) {
+                provider.setDefaultScreen(val);
+                Navigator.pop(context);
+              },
+              isDark,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: isDark ? Colors.white60 : Colors.black54),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRadioOption(
+    BuildContext context,
+    String label,
+    int value,
+    int groupValue,
+    Function(int) onChanged,
+    bool isDark,
+  ) {
+    final isSelected = value == groupValue;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: isSelected
+            ? (isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F0F0))
+            : Colors.transparent,
+      ),
+      child: RadioListTile<int>(
+        title: Text(
+          label,
+          style: TextStyle(color: isDark ? Colors.white : Colors.black),
+        ),
+        value: value,
+        groupValue: groupValue,
+        activeColor: isDark ? Colors.white : Colors.black,
+        onChanged: (val) {
+          if (val != null) onChanged(val);
+        },
       ),
     );
   }

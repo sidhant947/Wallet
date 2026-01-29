@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:wallet/models/dataentry.dart';
 import 'package:wallet/models/theme_provider.dart';
 
+import 'package:wallet/models/startup_settings_provider.dart';
+
 class AddCardScreen extends StatefulWidget {
   final int initialTabIndex;
 
@@ -14,21 +16,28 @@ class AddCardScreen extends StatefulWidget {
 
 class _AddCardScreenState extends State<AddCardScreen>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+  TabController? _tabController;
+  bool _hideIdentityAndLoyalty = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(
-      length: 3,
-      vsync: this,
-      initialIndex: widget.initialTabIndex,
-    );
+    _hideIdentityAndLoyalty = context
+        .read<StartupSettingsProvider>()
+        .hideIdentityAndLoyalty;
+
+    if (!_hideIdentityAndLoyalty) {
+      _tabController = TabController(
+        length: 3,
+        vsync: this,
+        initialIndex: widget.initialTabIndex,
+      );
+    }
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
     super.dispose();
   }
 
@@ -56,50 +65,61 @@ class _AddCardScreenState extends State<AddCardScreen>
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
-            ),
-            child: TabBar(
+        bottom: _hideIdentityAndLoyalty
+            ? null
+            : PreferredSize(
+                preferredSize: const Size.fromHeight(60),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: isDark
+                        ? const Color(0xFF1A1A1A)
+                        : const Color(0xFFF5F5F5),
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    indicator: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    indicatorPadding: const EdgeInsets.all(4),
+                    labelColor: isDark ? Colors.black : Colors.white,
+                    unselectedLabelColor: isDark
+                        ? Colors.white54
+                        : Colors.black54,
+                    labelStyle: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                    unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.normal,
+                      fontSize: 12,
+                    ),
+                    dividerColor: Colors.transparent,
+                    tabs: [
+                      _buildTab(Icons.credit_card_rounded, 'Credit/Debit'),
+                      _buildTab(Icons.shopping_basket_rounded, 'Loyalty'),
+                      _buildTab(Icons.fingerprint_rounded, 'Identity'),
+                    ],
+                  ),
+                ),
+              ),
+      ),
+      body: _hideIdentityAndLoyalty
+          ? const CreditCardEntryForm()
+          : TabBarView(
               controller: _tabController,
-              indicator: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: isDark ? Colors.white : Colors.black,
-              ),
-              indicatorSize: TabBarIndicatorSize.tab,
-              indicatorPadding: const EdgeInsets.all(4),
-              labelColor: isDark ? Colors.black : Colors.white,
-              unselectedLabelColor: isDark ? Colors.white54 : Colors.black54,
-              labelStyle: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontWeight: FontWeight.normal,
-                fontSize: 12,
-              ),
-              dividerColor: Colors.transparent,
-              tabs: [
-                _buildTab(Icons.credit_card_rounded, 'Credit/Debit'),
-                _buildTab(Icons.shopping_basket_rounded, 'Loyalty'),
-                _buildTab(Icons.fingerprint_rounded, 'Identity'),
+              children: const [
+                CreditCardEntryForm(),
+                BarcodeCardEntryForm(cardType: BarcodeCardType.loyalty),
+                BarcodeCardEntryForm(cardType: BarcodeCardType.identity),
               ],
             ),
-          ),
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: const [
-          CreditCardEntryForm(),
-          BarcodeCardEntryForm(cardType: BarcodeCardType.loyalty),
-          BarcodeCardEntryForm(cardType: BarcodeCardType.identity),
-        ],
-      ),
     );
   }
 
