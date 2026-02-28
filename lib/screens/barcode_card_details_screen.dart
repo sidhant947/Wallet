@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/pages/walletdetails.dart';
+import 'package:wallet/screens/homescreen.dart';
 
 class BarcodeCardDetailScreen extends StatelessWidget {
   final Loyalty? loyalty;
@@ -311,9 +312,8 @@ class BarcodeCardDetailScreen extends StatelessWidget {
           GestureDetector(
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    FullScreenImageViewer(imageFile: imageFile),
+              SmoothPageRoute(
+                page: FullScreenImageViewer(imageFile: imageFile),
               ),
             ),
             child: Container(

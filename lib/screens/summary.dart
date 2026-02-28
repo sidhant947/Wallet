@@ -7,6 +7,7 @@ import 'package:wallet/models/provider_helper.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:wallet/pages/walletdetails.dart';
+import 'package:wallet/screens/homescreen.dart';
 
 class Summary extends StatelessWidget {
   const Summary({super.key});
@@ -170,9 +171,7 @@ class _LiquidGlassIncompleteCardsSection extends StatelessWidget {
                 ),
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => WalletDetailScreen(wallet: wallet),
-                  ),
+                  SmoothPageRoute(page: WalletDetailScreen(wallet: wallet)),
                 ),
               ),
             );

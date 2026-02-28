@@ -83,7 +83,9 @@ class ThemeProvider with ChangeNotifier {
   static const PageTransitionsTheme _pageTransitionsTheme =
       PageTransitionsTheme(
         builders: <TargetPlatform, PageTransitionsBuilder>{
-          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.android: ZoomPageTransitionsBuilder(
+            allowEnterRouteSnapshotting: false,
+          ),
           TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
         },
       );

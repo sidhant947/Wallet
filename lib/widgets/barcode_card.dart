@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:wallet/models/db_helper.dart';
 import '../models/dataentry.dart';
 
@@ -57,9 +58,9 @@ class BarcodeCard extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// PREMIUM LOYALTY CARD
+// PREMIUM LOYALTY CARD with press animation
 // -----------------------------------------------------------------------------
-class _PremiumLoyaltyCard extends StatelessWidget {
+class _PremiumLoyaltyCard extends StatefulWidget {
   final String name;
   final String number;
   final CardColorData colorData;
@@ -73,205 +74,244 @@ class _PremiumLoyaltyCard extends StatelessWidget {
   });
 
   @override
+  State<_PremiumLoyaltyCard> createState() => _PremiumLoyaltyCardState();
+}
+
+class _PremiumLoyaltyCardState extends State<_PremiumLoyaltyCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pressController;
+  late final Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pressController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+      reverseDuration: const Duration(milliseconds: 200),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.97).animate(
+      CurvedAnimation(parent: _pressController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pressController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
       child: GestureDetector(
-        onTap: onTap,
-        child: AspectRatio(
-          aspectRatio: 1.586,
-          child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: colorData.primary.withAlpha(80),
-                  blurRadius: 16,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Stack(
-                children: [
-                  // 1. Background Gradient
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            colorData.secondary,
-                            colorData.primary,
-                            colorData.accent,
-                          ],
-                          stops: const [0.0, 0.6, 1.0],
+        onTapDown: (_) {
+          _pressController.forward();
+          HapticFeedback.lightImpact();
+        },
+        onTapUp: (_) {
+          _pressController.reverse();
+          widget.onTap();
+        },
+        onTapCancel: () => _pressController.reverse(),
+        child: ScaleTransition(
+          scale: _scaleAnimation,
+          child: AspectRatio(
+            aspectRatio: 1.586,
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: widget.colorData.primary.withAlpha(80),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Stack(
+                  children: [
+                    // 1. Background Gradient
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              widget.colorData.secondary,
+                              widget.colorData.primary,
+                              widget.colorData.accent,
+                            ],
+                            stops: const [0.0, 0.6, 1.0],
+                          ),
                         ),
                       ),
                     ),
-                  ),
 
-                  // 2. Stars / Rewards Pattern
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: _RewardPatternPainter(
-                        color: Colors.white.withAlpha(15),
+                    // 2. Stars / Rewards Pattern
+                    Positioned.fill(
+                      child: CustomPaint(
+                        painter: _RewardPatternPainter(
+                          color: Colors.white.withAlpha(15),
+                        ),
                       ),
                     ),
-                  ),
 
-                  // 3. Floating Icon
-                  Positioned(
-                    top: -10,
-                    right: -10,
-                    child: Opacity(
-                      opacity: 0.1,
-                      child: const Icon(
-                        Icons.auto_awesome_rounded,
-                        size: 140,
-                        color: Colors.white,
+                    // 3. Floating Icon
+                    Positioned(
+                      top: -10,
+                      right: -10,
+                      child: Opacity(
+                        opacity: 0.1,
+                        child: const Icon(
+                          Icons.auto_awesome_rounded,
+                          size: 140,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
-                  ),
 
-                  // 4. Content
-                  Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Header
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withAlpha(25),
-                                borderRadius: BorderRadius.circular(30),
-                                border: Border.all(
-                                  color: Colors.white.withAlpha(50),
-                                  width: 0.5,
+                    // 4. Content
+                    Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withAlpha(25),
+                                  borderRadius: BorderRadius.circular(30),
+                                  border: Border.all(
+                                    color: Colors.white.withAlpha(50),
+                                    width: 0.5,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.stars_rounded,
+                                      color: Colors.white.withAlpha(230),
+                                      size: 14,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      "LOYALTY",
+                                      style: TextStyle(
+                                        color: Colors.white.withAlpha(230),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.5,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              child: Row(
+                            ],
+                          ),
+
+                          const Spacer(),
+
+                          // Program Name
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "REWARDS PROGRAM",
+                                style: TextStyle(
+                                  color: Colors.white.withAlpha(128),
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                widget.name.toUpperCase(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Card Number
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(
-                                    Icons.stars_rounded,
-                                    color: Colors.white.withAlpha(230),
-                                    size: 14,
-                                  ),
-                                  const SizedBox(width: 6),
                                   Text(
-                                    "LOYALTY",
+                                    "MEMBERSHIP NUMBER",
                                     style: TextStyle(
-                                      color: Colors.white.withAlpha(230),
-                                      fontSize: 10,
+                                      color: Colors.white.withAlpha(128),
+                                      fontSize: 9,
                                       fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    widget.number,
+                                    style: TextStyle(
+                                      fontFamily: 'Courier',
+                                      color: Colors.white.withAlpha(230),
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
                                       letterSpacing: 1.5,
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
-                        ),
-
-                        const Spacer(),
-
-                        // Program Name
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "REWARDS PROGRAM",
-                              style: TextStyle(
-                                color: Colors.white.withAlpha(128),
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.0,
+                              Icon(
+                                Icons.qr_code_2_rounded,
+                                color: Colors.white.withAlpha(150),
+                                size: 32,
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              name.toUpperCase(),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Card Number
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "MEMBERSHIP NUMBER",
-                                  style: TextStyle(
-                                    color: Colors.white.withAlpha(128),
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.0,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  number,
-                                  style: TextStyle(
-                                    fontFamily: 'Courier',
-                                    color: Colors.white.withAlpha(230),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 1.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Icon(
-                              Icons.qr_code_2_rounded,
-                              color: Colors.white.withAlpha(150),
-                              size: 32,
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
 
-                  // 5. Shine Effect
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white.withAlpha(25),
-                            Colors.transparent,
-                            Colors.transparent,
-                          ],
-                          stops: const [0.0, 0.4, 1.0],
+                    // 5. Shine Effect
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Colors.white.withAlpha(25),
+                              Colors.transparent,
+                              Colors.transparent,
+                            ],
+                            stops: const [0.0, 0.4, 1.0],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -306,9 +346,9 @@ class _RewardPatternPainter extends CustomPainter {
 }
 
 // -----------------------------------------------------------------------------
-// PREMIUM IDENTITY CARD
+// PREMIUM IDENTITY CARD with press animation
 // -----------------------------------------------------------------------------
-class _PremiumIdentityCard extends StatelessWidget {
+class _PremiumIdentityCard extends StatefulWidget {
   final String name;
   final String number;
   final CardColorData colorData;
@@ -322,194 +362,237 @@ class _PremiumIdentityCard extends StatelessWidget {
   });
 
   @override
+  State<_PremiumIdentityCard> createState() => _PremiumIdentityCardState();
+}
+
+class _PremiumIdentityCardState extends State<_PremiumIdentityCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pressController;
+  late final Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pressController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+      reverseDuration: const Duration(milliseconds: 200),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.97).animate(
+      CurvedAnimation(parent: _pressController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pressController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
       child: GestureDetector(
-        onTap: onTap,
-        child: AspectRatio(
-          aspectRatio: 1.586,
-          child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: colorData.primary.withAlpha(80),
-                  blurRadius: 16,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Stack(
-                children: [
-                  // 1. Background Gradient
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            colorData.secondary,
-                            colorData.primary,
-                            colorData.accent,
-                          ],
-                          stops: const [0.0, 0.6, 1.0],
+        onTapDown: (_) {
+          _pressController.forward();
+          HapticFeedback.lightImpact();
+        },
+        onTapUp: (_) {
+          _pressController.reverse();
+          widget.onTap();
+        },
+        onTapCancel: () => _pressController.reverse(),
+        child: ScaleTransition(
+          scale: _scaleAnimation,
+          child: AspectRatio(
+            aspectRatio: 1.586,
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: widget.colorData.primary.withAlpha(80),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Stack(
+                  children: [
+                    // 1. Background Gradient
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              widget.colorData.secondary,
+                              widget.colorData.primary,
+                              widget.colorData.accent,
+                            ],
+                            stops: const [0.0, 0.6, 1.0],
+                          ),
                         ),
                       ),
                     ),
-                  ),
 
-                  // 2. World Map / Security Pattern
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: _WorldMapPainter(
-                        color: Colors.white.withAlpha(15),
+                    // 2. World Map / Security Pattern
+                    Positioned.fill(
+                      child: CustomPaint(
+                        painter: _WorldMapPainter(
+                          color: Colors.white.withAlpha(15),
+                        ),
                       ),
                     ),
-                  ),
 
-                  // 3. Holographic Seal
-                  Positioned(top: -20, right: -20, child: _HolographicSeal()),
+                    // 3. Holographic Seal
+                    const Positioned(
+                      top: -20,
+                      right: -20,
+                      child: _HolographicSeal(),
+                    ),
 
-                  // 4. Content
-                  Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Header
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withAlpha(25),
-                                borderRadius: BorderRadius.circular(30),
-                                border: Border.all(
-                                  color: Colors.white.withAlpha(50),
-                                  width: 0.5,
+                    // 4. Content
+                    Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withAlpha(25),
+                                  borderRadius: BorderRadius.circular(30),
+                                  border: Border.all(
+                                    color: Colors.white.withAlpha(50),
+                                    width: 0.5,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.fingerprint,
+                                      color: Colors.white.withAlpha(230),
+                                      size: 14,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      "IDENTITY",
+                                      style: TextStyle(
+                                        color: Colors.white.withAlpha(230),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.5,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              child: Row(
+                            ],
+                          ),
+
+                          const Spacer(),
+
+                          // Name
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "NAME",
+                                style: TextStyle(
+                                  color: Colors.white.withAlpha(128),
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                widget.name.toUpperCase(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // ID Number
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(
-                                    Icons.fingerprint,
-                                    color: Colors.white.withAlpha(230),
-                                    size: 14,
-                                  ),
-                                  const SizedBox(width: 6),
                                   Text(
-                                    "IDENTITY",
+                                    "ID NUMBER",
                                     style: TextStyle(
-                                      color: Colors.white.withAlpha(230),
-                                      fontSize: 10,
+                                      color: Colors.white.withAlpha(128),
+                                      fontSize: 9,
                                       fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    widget.number,
+                                    style: TextStyle(
+                                      fontFamily: 'Courier',
+                                      color: Colors.white.withAlpha(230),
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
                                       letterSpacing: 1.5,
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
-                        ),
-
-                        const Spacer(),
-
-                        // Name
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "NAME",
-                              style: TextStyle(
-                                color: Colors.white.withAlpha(128),
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.0,
+                              Icon(
+                                Icons.qr_code_scanner_rounded,
+                                color: Colors.white.withAlpha(80),
+                                size: 32,
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              name.toUpperCase(),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // ID Number
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "ID NUMBER",
-                                  style: TextStyle(
-                                    color: Colors.white.withAlpha(128),
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.0,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  number,
-                                  style: TextStyle(
-                                    fontFamily: 'Courier',
-                                    color: Colors.white.withAlpha(230),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 1.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Icon(
-                              Icons.qr_code_scanner_rounded,
-                              color: Colors.white.withAlpha(80),
-                              size: 32,
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
 
-                  // 5. Shine Effect
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white.withAlpha(25),
-                            Colors.transparent,
-                            Colors.transparent,
-                          ],
-                          stops: const [0.0, 0.4, 1.0],
+                    // 5. Shine Effect
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Colors.white.withAlpha(25),
+                              Colors.transparent,
+                              Colors.transparent,
+                            ],
+                            stops: const [0.0, 0.4, 1.0],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -521,6 +604,8 @@ class _PremiumIdentityCard extends StatelessWidget {
 
 class _HolographicSeal extends StatelessWidget {
   const _HolographicSeal();
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       width: 120,

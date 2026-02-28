@@ -19,6 +19,35 @@ import '../models/provider_helper.dart';
 import '../models/theme_provider.dart';
 import '../pages/walletdetails.dart';
 
+/// Smooth route builder — used across the app for premium transitions
+class SmoothPageRoute<T> extends PageRouteBuilder<T> {
+  final Widget page;
+
+  SmoothPageRoute({required this.page})
+    : super(
+        pageBuilder: (context, animation, secondaryAnimation) => page,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          return FadeTransition(
+            opacity: Tween<double>(begin: 0.0, end: 1.0).animate(curved),
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.04, 0),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            ),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 350),
+        reverseTransitionDuration: const Duration(milliseconds: 280),
+      );
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -26,7 +55,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _selectedIndex = 0;
   String _selectedFilter = 'all';
 
@@ -68,6 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onItemTapped(int index) {
+    HapticFeedback.selectionClick();
     setState(() {
       _selectedIndex = index;
     });
@@ -133,6 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text));
+    HapticFeedback.mediumImpact();
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Card number copied!')));
@@ -152,17 +183,18 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         leading: GestureDetector(
           onTap: () {
+            HapticFeedback.lightImpact();
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const SupportScreen()),
+              SmoothPageRoute(page: const SupportScreen()),
             );
           },
           child: Container(
             margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withOpacity(0.08)
-                  : Colors.black.withOpacity(0.05),
+                  ? Colors.white.withAlpha(20)
+                  : Colors.black.withAlpha(13),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -176,8 +208,8 @@ class _HomeScreenState extends State<HomeScreen> {
             margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withOpacity(0.08)
-                  : Colors.black.withOpacity(0.05),
+                  ? Colors.white.withAlpha(20)
+                  : Colors.black.withAlpha(13),
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
@@ -186,9 +218,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: isDark ? Colors.white : Colors.black,
               ),
               onPressed: () {
+                HapticFeedback.lightImpact();
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const SettingsPage()),
+                  SmoothPageRoute(page: const SettingsPage()),
                 );
               },
             ),
@@ -201,8 +234,8 @@ class _HomeScreenState extends State<HomeScreen> {
           boxShadow: [
             BoxShadow(
               color: isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.15),
+                  ? Colors.white.withAlpha(26)
+                  : Colors.black.withAlpha(38),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -210,11 +243,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: FloatingActionButton(
           onPressed: () async {
+            HapticFeedback.mediumImpact();
             final result = await Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    AddCardScreen(initialTabIndex: effectiveIndex),
+              SmoothPageRoute(
+                page: AddCardScreen(initialTabIndex: effectiveIndex),
               ),
             );
             if (result == true && mounted) {
@@ -226,13 +259,19 @@ class _HomeScreenState extends State<HomeScreen> {
           child: const Icon(Icons.add_rounded),
         ),
       ),
-      body: IndexedStack(
-        index: effectiveIndex,
-        children: [
-          _buildPaymentsTab(context),
-          _buildLoyaltyTab(context),
-          _buildIdentityTab(context),
-        ],
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        child: IndexedStack(
+          key: ValueKey(effectiveIndex),
+          index: effectiveIndex,
+          children: [
+            _buildPaymentsTab(context),
+            _buildLoyaltyTab(context),
+            _buildIdentityTab(context),
+          ],
+        ),
       ),
       bottomNavigationBar: isHiddenMode
           ? null
@@ -242,14 +281,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 border: Border(
                   top: BorderSide(
                     color: isDark
-                        ? Colors.white.withOpacity(0.08)
-                        : Colors.black.withOpacity(0.05),
+                        ? Colors.white.withAlpha(20)
+                        : Colors.black.withAlpha(13),
                   ),
                 ),
               ),
               child: NavigationBar(
                 selectedIndex: effectiveIndex,
                 onDestinationSelected: _onItemTapped,
+                animationDuration: const Duration(milliseconds: 400),
                 elevation: 0,
                 destinations: const <Widget>[
                   NavigationDestination(
@@ -335,172 +375,195 @@ class _HomeScreenState extends State<HomeScreen> {
           return wallet.network?.toLowerCase() == _selectedFilter;
         }).toList();
 
-        return ListView(
-          padding: const EdgeInsets.only(top: 16, bottom: 80),
-          children: [
-            // Search field with liquid glass effect
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  color: isDark
-                      ? Colors.white.withOpacity(0.06)
-                      : Colors.black.withOpacity(0.03),
-                  border: Border.all(
+        return CustomScrollView(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          slivers: [
+            // Search field
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
                     color: isDark
-                        ? Colors.white.withOpacity(0.1)
-                        : Colors.black.withOpacity(0.06),
+                        ? Colors.white.withAlpha(15)
+                        : Colors.black.withAlpha(8),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withAlpha(26)
+                          : Colors.black.withAlpha(15),
+                    ),
                   ),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                  decoration: InputDecoration(
-                    filled: false,
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    hintText: 'Search by name, number, issuer...',
-                    hintStyle: TextStyle(
-                      color: isDark ? Colors.white38 : Colors.black38,
+                  child: TextField(
+                    controller: _searchController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
                     ),
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
-                      color: isDark ? Colors.white54 : Colors.black45,
+                    decoration: InputDecoration(
+                      filled: false,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      hintText: 'Search by name, number, issuer...',
+                      hintStyle: TextStyle(
+                        color: isDark ? Colors.white38 : Colors.black38,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: isDark ? Colors.white54 : Colors.black45,
+                      ),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(
+                                Icons.clear_rounded,
+                                color: isDark ? Colors.white54 : Colors.black45,
+                              ),
+                              onPressed: () {
+                                _searchController.clear();
+                              },
+                            )
+                          : null,
                     ),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.clear_rounded,
-                              color: isDark ? Colors.white54 : Colors.black45,
-                            ),
-                            onPressed: () {
-                              _searchController.clear();
-                            },
-                          )
-                        : null,
                   ),
                 ),
               ),
             ),
             // Filter chips
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment<String>(value: 'all', label: Text('ALL')),
-                    ButtonSegment<String>(value: 'visa', label: Text('VISA')),
-                    ButtonSegment<String>(
-                      value: 'mastercard',
-                      label: Text('MASTERCARD'),
-                    ),
-                    ButtonSegment<String>(value: 'rupay', label: Text('RUPAY')),
-                    ButtonSegment<String>(value: 'amex', label: Text('AMEX')),
-                    ButtonSegment<String>(
-                      value: 'discover',
-                      label: Text('DISCOVER'),
-                    ),
-                  ],
-                  showSelectedIcon: false,
-                  selected: <String>{_selectedFilter},
-                  onSelectionChanged: (Set<String> newSelection) {
-                    setState(() => _selectedFilter = newSelection.first);
-                  },
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment<String>(value: 'all', label: Text('ALL')),
+                      ButtonSegment<String>(value: 'visa', label: Text('VISA')),
+                      ButtonSegment<String>(
+                        value: 'mastercard',
+                        label: Text('MASTERCARD'),
+                      ),
+                      ButtonSegment<String>(
+                        value: 'rupay',
+                        label: Text('RUPAY'),
+                      ),
+                      ButtonSegment<String>(value: 'amex', label: Text('AMEX')),
+                      ButtonSegment<String>(
+                        value: 'discover',
+                        label: Text('DISCOVER'),
+                      ),
+                    ],
+                    showSelectedIcon: false,
+                    selected: <String>{_selectedFilter},
+                    onSelectionChanged: (Set<String> newSelection) {
+                      HapticFeedback.selectionClick();
+                      setState(() => _selectedFilter = newSelection.first);
+                    },
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 8),
+            const SliverToBoxAdapter(child: SizedBox(height: 8)),
+            // Cards list — using SliverList for lazy loading
             if (filteredWallets.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(48.0),
-                child: Center(
-                  child: Text(
-                    'No cards found.',
-                    style: TextStyle(
-                      color: isDark ? Colors.white54 : Colors.black45,
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(48.0),
+                  child: Center(
+                    child: Text(
+                      'No cards found.',
+                      style: TextStyle(
+                        color: isDark ? Colors.white54 : Colors.black45,
+                      ),
                     ),
                   ),
                 ),
               )
             else
-              Column(
-                children: filteredWallets.map((wallet) {
-                  return Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                    child: Slidable(
-                      key: ValueKey(wallet.id),
-                      endActionPane: ActionPane(
-                        motion: const ScrollMotion(),
-                        extentRatio: 0.25,
-                        children: [
-                          SlidableAction(
-                            onPressed: (context) async {
-                              await context.read<WalletProvider>().deleteWallet(
-                                wallet.id!,
-                              );
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Card deleted')),
-                              );
-                            },
-                            backgroundColor: Colors.transparent,
-                            foregroundColor: Colors.red,
-                            icon: Icons.delete_outline_rounded,
-                            label: 'Delete',
-                          ),
-                        ],
-                      ),
-                      child: GestureDetector(
+              SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final wallet = filteredWallets[index];
+                  return _AnimatedListItem(
+                    index: index,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                      child: Slidable(
+                        key: ValueKey(wallet.id),
+                        endActionPane: ActionPane(
+                          motion: const BehindMotion(),
+                          extentRatio: 0.25,
+                          children: [
+                            SlidableAction(
+                              onPressed: (context) async {
+                                HapticFeedback.mediumImpact();
+                                await context
+                                    .read<WalletProvider>()
+                                    .deleteWallet(wallet.id!);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Card deleted')),
+                                );
+                              },
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.red,
+                              icon: Icons.delete_outline_rounded,
+                              label: 'Delete',
+                            ),
+                          ],
+                        ),
                         child: GlassCreditCard(
                           wallet: wallet,
                           isMasked: true,
                           onCardTap: () => Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  WalletDetailScreen(wallet: wallet),
+                            SmoothPageRoute(
+                              page: WalletDetailScreen(wallet: wallet),
                             ),
                           ),
                         ),
                       ),
                     ),
                   );
-                }).toList(),
+                }, childCount: filteredWallets.length),
               ),
 
+            // Financial Summary button
             if (_selectedFilter == 'all')
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 16.0,
-                ),
-                child: LiquidGlassContainer(
-                  padding: EdgeInsets.zero,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const Summary()),
-                    );
-                  },
-                  child: ListTile(
-                    leading: null,
-                    title: Text(
-                      'View Financial Summary',
-                      style: TextStyle(
-                        color: isDark ? Colors.white : Colors.black,
-                        fontWeight: FontWeight.w500,
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 16.0,
+                  ),
+                  child: LiquidGlassContainer(
+                    padding: EdgeInsets.zero,
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.push(
+                        context,
+                        SmoothPageRoute(page: const Summary()),
+                      );
+                    },
+                    child: ListTile(
+                      leading: null,
+                      title: Text(
+                        'View Financial Summary',
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    trailing: const Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 16,
-                      color: Colors.white38,
+                      trailing: Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 16,
+                        color: isDark ? Colors.white38 : Colors.black26,
+                      ),
                     ),
                   ),
                 ),
               ),
+            // Bottom padding for FAB
+            const SliverToBoxAdapter(child: SizedBox(height: 80)),
           ],
         );
       },
@@ -518,47 +581,52 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
         return ListView.builder(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           itemCount: loyalties.length,
           itemBuilder: (context, index) {
             final loyalty = loyalties[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12.0),
-              child: Slidable(
-                key: ValueKey(loyalty.id),
-                endActionPane: ActionPane(
-                  motion: const ScrollMotion(),
-                  extentRatio: 0.25,
-                  children: [
-                    SlidableAction(
-                      onPressed: (context) =>
-                          _showBarcodeDeleteConfirmationDialog(
-                            id: loyalty.id!,
-                            name: loyalty.loyaltyName,
-                            type: BarcodeCardType.loyalty,
-                          ),
-                      backgroundColor: Colors.transparent,
-                      foregroundColor: Colors.red,
-                      icon: Icons.delete_outline_rounded,
-                      label: 'Delete',
-                    ),
-                  ],
-                ),
-                child: BarcodeCard(
-                  loyalty: loyalty,
-                  cardType: BarcodeCardType.loyalty,
-                  onCardTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          BarcodeCardDetailScreen(loyalty: loyalty),
-                    ),
+            return _AnimatedListItem(
+              index: index,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: Slidable(
+                  key: ValueKey(loyalty.id),
+                  endActionPane: ActionPane(
+                    motion: const BehindMotion(),
+                    extentRatio: 0.25,
+                    children: [
+                      SlidableAction(
+                        onPressed: (context) =>
+                            _showBarcodeDeleteConfirmationDialog(
+                              id: loyalty.id!,
+                              name: loyalty.loyaltyName,
+                              type: BarcodeCardType.loyalty,
+                            ),
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: Colors.red,
+                        icon: Icons.delete_outline_rounded,
+                        label: 'Delete',
+                      ),
+                    ],
                   ),
-                  onCopyTap: () => _copyToClipboard(loyalty.loyaltyNumber),
-                  onDeleteTap: () => _showBarcodeDeleteConfirmationDialog(
-                    id: loyalty.id!,
-                    name: loyalty.loyaltyName,
-                    type: BarcodeCardType.loyalty,
+                  child: BarcodeCard(
+                    loyalty: loyalty,
+                    cardType: BarcodeCardType.loyalty,
+                    onCardTap: () => Navigator.push(
+                      context,
+                      SmoothPageRoute(
+                        page: BarcodeCardDetailScreen(loyalty: loyalty),
+                      ),
+                    ),
+                    onCopyTap: () => _copyToClipboard(loyalty.loyaltyNumber),
+                    onDeleteTap: () => _showBarcodeDeleteConfirmationDialog(
+                      id: loyalty.id!,
+                      name: loyalty.loyaltyName,
+                      type: BarcodeCardType.loyalty,
+                    ),
                   ),
                 ),
               ),
@@ -580,47 +648,52 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
         return ListView.builder(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           itemCount: identities.length,
           itemBuilder: (context, index) {
             final identity = identities[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12.0),
-              child: Slidable(
-                key: ValueKey(identity.id),
-                endActionPane: ActionPane(
-                  motion: const ScrollMotion(),
-                  extentRatio: 0.25,
-                  children: [
-                    SlidableAction(
-                      onPressed: (context) =>
-                          _showBarcodeDeleteConfirmationDialog(
-                            id: identity.id!,
-                            name: identity.identityName,
-                            type: BarcodeCardType.identity,
-                          ),
-                      backgroundColor: Colors.transparent,
-                      foregroundColor: Colors.red,
-                      icon: Icons.delete_outline_rounded,
-                      label: 'Delete',
-                    ),
-                  ],
-                ),
-                child: BarcodeCard(
-                  identity: identity,
-                  cardType: BarcodeCardType.identity,
-                  onCardTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          BarcodeCardDetailScreen(identity: identity),
-                    ),
+            return _AnimatedListItem(
+              index: index,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: Slidable(
+                  key: ValueKey(identity.id),
+                  endActionPane: ActionPane(
+                    motion: const BehindMotion(),
+                    extentRatio: 0.25,
+                    children: [
+                      SlidableAction(
+                        onPressed: (context) =>
+                            _showBarcodeDeleteConfirmationDialog(
+                              id: identity.id!,
+                              name: identity.identityName,
+                              type: BarcodeCardType.identity,
+                            ),
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: Colors.red,
+                        icon: Icons.delete_outline_rounded,
+                        label: 'Delete',
+                      ),
+                    ],
                   ),
-                  onCopyTap: () => _copyToClipboard(identity.identityNumber),
-                  onDeleteTap: () => _showBarcodeDeleteConfirmationDialog(
-                    id: identity.id!,
-                    name: identity.identityName,
-                    type: BarcodeCardType.identity,
+                  child: BarcodeCard(
+                    identity: identity,
+                    cardType: BarcodeCardType.identity,
+                    onCardTap: () => Navigator.push(
+                      context,
+                      SmoothPageRoute(
+                        page: BarcodeCardDetailScreen(identity: identity),
+                      ),
+                    ),
+                    onCopyTap: () => _copyToClipboard(identity.identityNumber),
+                    onDeleteTap: () => _showBarcodeDeleteConfirmationDialog(
+                      id: identity.id!,
+                      name: identity.identityName,
+                      type: BarcodeCardType.identity,
+                    ),
                   ),
                 ),
               ),
@@ -628,6 +701,64 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         );
       },
+    );
+  }
+}
+
+/// Staggered slide-up + fade-in animation for list items
+class _AnimatedListItem extends StatefulWidget {
+  final int index;
+  final Widget child;
+
+  const _AnimatedListItem({required this.index, required this.child});
+
+  @override
+  State<_AnimatedListItem> createState() => _AnimatedListItemState();
+}
+
+class _AnimatedListItemState extends State<_AnimatedListItem>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+  late final Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    final curved = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
+
+    _opacity = Tween<double>(begin: 0.0, end: 1.0).animate(curved);
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.06),
+      end: Offset.zero,
+    ).animate(curved);
+
+    // Stagger: delay based on index, but cap at 5 to avoid long waits
+    final delay = Duration(milliseconds: (widget.index.clamp(0, 5)) * 60);
+    Future.delayed(delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacity,
+      child: SlideTransition(position: _slide, child: widget.child),
     );
   }
 }

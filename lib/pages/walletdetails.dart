@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/dataentry.dart';
+import 'package:wallet/screens/homescreen.dart';
 import '../models/db_helper.dart';
 import '../models/provider_helper.dart';
 import '../models/theme_provider.dart';
@@ -27,7 +28,7 @@ class FullScreenImageViewer extends StatelessWidget {
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withAlpha(26),
             borderRadius: BorderRadius.circular(12),
           ),
           child: IconButton(
@@ -96,9 +97,8 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
           GestureDetector(
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    FullScreenImageViewer(imageFile: imageFile),
+              SmoothPageRoute(
+                page: FullScreenImageViewer(imageFile: imageFile),
               ),
             ),
             child: Container(
@@ -106,14 +106,14 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isDark
-                      ? Colors.white.withOpacity(0.1)
-                      : Colors.black.withOpacity(0.08),
+                      ? Colors.white.withAlpha(26)
+                      : Colors.black.withAlpha(20),
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: isDark
-                        ? Colors.black.withOpacity(0.3)
-                        : Colors.black.withOpacity(0.08),
+                        ? Colors.black.withAlpha(77)
+                        : Colors.black.withAlpha(20),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -126,12 +126,14 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
                   height: 100,
                   width: 150,
                   fit: BoxFit.cover,
+                  cacheHeight: 200,
+                  cacheWidth: 300,
                   errorBuilder: (c, e, s) => Container(
                     height: 100,
                     width: 150,
                     color: isDark
-                        ? Colors.white.withOpacity(0.05)
-                        : Colors.black.withOpacity(0.03),
+                        ? Colors.white.withAlpha(13)
+                        : Colors.black.withAlpha(8),
                     child: Icon(
                       Icons.error_outline,
                       color: isDark ? Colors.white38 : Colors.black38,
@@ -167,8 +169,8 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: isDark
-                ? Colors.white.withOpacity(0.08)
-                : Colors.black.withOpacity(0.05),
+                ? Colors.white.withAlpha(20)
+                : Colors.black.withAlpha(13),
             borderRadius: BorderRadius.circular(12),
           ),
           child: IconButton(
@@ -185,8 +187,8 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
             margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withOpacity(0.08)
-                  : Colors.black.withOpacity(0.05),
+                  ? Colors.white.withAlpha(20)
+                  : Colors.black.withAlpha(13),
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
@@ -197,9 +199,8 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
               onPressed: () async {
                 final updatedWallet = await Navigator.push<Wallet>(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        WalletEditScreen(wallet: currentWallet),
+                  SmoothPageRoute(
+                    page: WalletEditScreen(wallet: currentWallet),
                   ),
                 );
 
