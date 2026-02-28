@@ -181,28 +181,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     return Scaffold(
       appBar: AppBar(
-        leading: GestureDetector(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            Navigator.push(
-              context,
-              SmoothPageRoute(page: const SupportScreen()),
-            );
-          },
-          child: Container(
-            margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withAlpha(20)
-                  : Colors.black.withAlpha(13),
-              borderRadius: BorderRadius.circular(12),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withAlpha(20)
+                : Colors.black.withAlpha(13),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: IconButton(
+            icon: Icon(
+              Icons.favorite,
+              color: isDark ? Colors.pink.shade300 : Colors.pink,
             ),
-            child: Icon(
-              Icons.volunteer_activism_rounded,
-              color: Colors.pink.shade300,
-            ),
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              Navigator.push(
+                context,
+                SmoothPageRoute(page: const SupportScreen()),
+              );
+            },
           ),
         ),
+
         actions: [
           Container(
             margin: const EdgeInsets.all(8),
@@ -492,8 +493,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         key: ValueKey(wallet.id),
                         endActionPane: ActionPane(
                           motion: const BehindMotion(),
-                          extentRatio: 0.25,
+                          extentRatio: 0.50,
                           children: [
+                            SlidableAction(
+                              onPressed: (context) {
+                                _copyToClipboard(wallet.number);
+                              },
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.blue,
+                              icon: Icons.copy_rounded,
+                              label: 'Copy',
+                            ),
                             SlidableAction(
                               onPressed: (context) async {
                                 HapticFeedback.mediumImpact();
