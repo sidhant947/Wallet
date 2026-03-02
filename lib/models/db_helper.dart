@@ -21,7 +21,7 @@ class DatabaseHelper {
     final path = join(directory.path, 'walletbox.db');
     return openDatabase(
       path,
-      version: 5, // MODIFIED: Incremented version
+      version: 6, // MODIFIED: Incremented version
       onCreate: (db, version) {
         return db.execute('''
           CREATE TABLE wallets(
@@ -41,7 +41,9 @@ class DatabaseHelper {
             category TEXT,
             color TEXT,
             frontImagePath TEXT,
-            backImagePath TEXT
+            frontImagePath TEXT,
+            backImagePath TEXT,
+            orderIndex INTEGER DEFAULT 0
           )
           ''');
       },
@@ -75,8 +77,27 @@ class DatabaseHelper {
             'ALTER TABLE wallets ADD COLUMN backImagePath TEXT;',
           );
         }
+        if (oldVersion < 6) {
+          await db.execute(
+            'ALTER TABLE wallets ADD COLUMN orderIndex INTEGER DEFAULT 0;',
+          );
+        }
       },
     );
+  }
+
+  Future<void> updateWalletsOrder(List<Wallet> wallets) async {
+    Database db = await instance.database;
+    Batch batch = db.batch();
+    for (int i = 0; i < wallets.length; i++) {
+      batch.update(
+        'wallets',
+        {'orderIndex': i},
+        where: 'id = ?',
+        whereArgs: [wallets[i].id],
+      );
+    }
+    await batch.commit(noResult: true);
   }
 
   Future<int> insertWallet(Wallet wallet) async {
@@ -86,7 +107,10 @@ class DatabaseHelper {
 
   Future<List<Wallet>> getWallets() async {
     Database db = await instance.database;
-    final List<Map<String, dynamic>> maps = await db.query('wallets');
+    final List<Map<String, dynamic>> maps = await db.query(
+      'wallets',
+      orderBy: 'orderIndex ASC',
+    );
     return List.generate(maps.length, (i) => Wallet.fromMap(maps[i]));
   }
 
@@ -125,6 +149,7 @@ class Wallet {
   // MODIFIED: Added image path fields
   final String? frontImagePath;
   final String? backImagePath;
+  int orderIndex;
 
   Wallet({
     this.id,
@@ -142,8 +167,9 @@ class Wallet {
     this.billdate,
     this.category,
     this.color,
-    this.frontImagePath, // MODIFIED
-    this.backImagePath, // MODIFIED
+    this.frontImagePath,
+    this.backImagePath,
+    this.orderIndex = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -165,6 +191,7 @@ class Wallet {
       'color': color,
       'frontImagePath': frontImagePath, // MODIFIED
       'backImagePath': backImagePath, // MODIFIED
+      'orderIndex': orderIndex,
     };
   }
 
@@ -189,6 +216,7 @@ class Wallet {
       color: map['color'],
       frontImagePath: map['frontImagePath'], // MODIFIED
       backImagePath: map['backImagePath'], // MODIFIED
+      orderIndex: map['orderIndex'] ?? 0,
     );
   }
 }
@@ -209,7 +237,7 @@ class IdentityDatabaseHelper {
     final path = join(directory.path, 'identity.db');
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -236,8 +264,26 @@ class IdentityDatabaseHelper {
       await db.execute(
         'ALTER TABLE identities ADD COLUMN frontImagePath TEXT;',
       );
-      await db.execute('ALTER TABLE identities ADD COLUMN backImagePath TEXT;');
     }
+    if (oldVersion < 4) {
+      await db.execute(
+        'ALTER TABLE identities ADD COLUMN orderIndex INTEGER DEFAULT 0;',
+      );
+    }
+  }
+
+  Future<void> updateIdentitiesOrder(List<Identity> identities) async {
+    final db = await database;
+    Batch batch = db.batch();
+    for (int i = 0; i < identities.length; i++) {
+      batch.update(
+        'identities',
+        {'orderIndex': i},
+        where: 'id = ?',
+        whereArgs: [identities[i].id],
+      );
+    }
+    await batch.commit(noResult: true);
   }
 
   Future<int> insertIdentity(Identity identity) async {
@@ -247,7 +293,7 @@ class IdentityDatabaseHelper {
 
   Future<List<Identity>> getAllIdentities() async {
     final db = await database;
-    final result = await db.query('identities');
+    final result = await db.query('identities', orderBy: 'orderIndex ASC');
     return result.map((e) => Identity.fromMap(e)).toList();
   }
 
@@ -264,6 +310,7 @@ class Identity {
   final String? color;
   final String? frontImagePath;
   final String? backImagePath;
+  int orderIndex;
 
   Identity({
     this.id,
@@ -272,6 +319,7 @@ class Identity {
     this.color,
     this.frontImagePath,
     this.backImagePath,
+    this.orderIndex = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -282,6 +330,7 @@ class Identity {
       'color': color,
       'frontImagePath': frontImagePath,
       'backImagePath': backImagePath,
+      'orderIndex': orderIndex,
     };
   }
 
@@ -293,6 +342,7 @@ class Identity {
       color: map['color'],
       frontImagePath: map['frontImagePath'],
       backImagePath: map['backImagePath'],
+      orderIndex: map['orderIndex'] ?? 0,
     );
   }
 }
@@ -313,7 +363,7 @@ class LoyaltyDatabaseHelper {
     final path = join(directory.path, 'loyalty.db');
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -340,6 +390,25 @@ class LoyaltyDatabaseHelper {
       await db.execute('ALTER TABLE loyalties ADD COLUMN frontImagePath TEXT;');
       await db.execute('ALTER TABLE loyalties ADD COLUMN backImagePath TEXT;');
     }
+    if (oldVersion < 4) {
+      await db.execute(
+        'ALTER TABLE loyalties ADD COLUMN orderIndex INTEGER DEFAULT 0;',
+      );
+    }
+  }
+
+  Future<void> updateLoyaltiesOrder(List<Loyalty> loyalties) async {
+    final db = await database;
+    Batch batch = db.batch();
+    for (int i = 0; i < loyalties.length; i++) {
+      batch.update(
+        'loyalties',
+        {'orderIndex': i},
+        where: 'id = ?',
+        whereArgs: [loyalties[i].id],
+      );
+    }
+    await batch.commit(noResult: true);
   }
 
   Future<int> insertLoyalty(Loyalty loyalty) async {
@@ -349,7 +418,7 @@ class LoyaltyDatabaseHelper {
 
   Future<List<Loyalty>> getAllLoyalties() async {
     final db = await database;
-    final result = await db.query('loyalties');
+    final result = await db.query('loyalties', orderBy: 'orderIndex ASC');
     return result.map((e) => Loyalty.fromMap(e)).toList();
   }
 
@@ -366,6 +435,7 @@ class Loyalty {
   final String? color;
   final String? frontImagePath;
   final String? backImagePath;
+  int orderIndex;
 
   Loyalty({
     this.id,
@@ -374,6 +444,7 @@ class Loyalty {
     this.color,
     this.frontImagePath,
     this.backImagePath,
+    this.orderIndex = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -384,6 +455,7 @@ class Loyalty {
       'color': color,
       'frontImagePath': frontImagePath,
       'backImagePath': backImagePath,
+      'orderIndex': orderIndex,
     };
   }
 
@@ -395,6 +467,7 @@ class Loyalty {
       color: map['color'],
       frontImagePath: map['frontImagePath'],
       backImagePath: map['backImagePath'],
+      orderIndex: map['orderIndex'] ?? 0,
     );
   }
 }

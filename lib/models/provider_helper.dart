@@ -159,6 +159,22 @@ class WalletProvider with ChangeNotifier {
     _cachedSummary = null; // Invalidate cache
     notifyListeners();
   }
+
+  Future<void> reorderWallets(int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+    final wallet = wallets.removeAt(oldIndex);
+    wallets.insert(newIndex, wallet);
+
+    // Update order indices internally
+    for (int i = 0; i < wallets.length; i++) {
+      wallets[i].orderIndex = i;
+    }
+
+    notifyListeners();
+    await DatabaseHelper.instance.updateWalletsOrder(wallets);
+  }
 }
 
 class LoyaltyProvider with ChangeNotifier {
@@ -173,6 +189,22 @@ class LoyaltyProvider with ChangeNotifier {
     await LoyaltyDatabaseHelper.instance.deleteLoyalty(id);
     await fetchLoyalties();
   }
+
+  Future<void> reorderLoyalties(int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+    final loyalty = loyalties.removeAt(oldIndex);
+    loyalties.insert(newIndex, loyalty);
+
+    // Update order indices internally
+    for (int i = 0; i < loyalties.length; i++) {
+      loyalties[i].orderIndex = i;
+    }
+
+    notifyListeners();
+    await LoyaltyDatabaseHelper.instance.updateLoyaltiesOrder(loyalties);
+  }
 }
 
 class IdentityProvider with ChangeNotifier {
@@ -186,5 +218,21 @@ class IdentityProvider with ChangeNotifier {
   Future<void> deleteIdentity(int id) async {
     await IdentityDatabaseHelper.instance.deleteIdentity(id);
     await fetchIdentities();
+  }
+
+  Future<void> reorderIdentities(int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+    final identity = identities.removeAt(oldIndex);
+    identities.insert(newIndex, identity);
+
+    // Update order indices internally
+    for (int i = 0; i < identities.length; i++) {
+      identities[i].orderIndex = i;
+    }
+
+    notifyListeners();
+    await IdentityDatabaseHelper.instance.updateIdentitiesOrder(identities);
   }
 }

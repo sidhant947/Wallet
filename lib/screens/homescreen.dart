@@ -348,9 +348,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final isDark = themeProvider.isDarkMode;
 
-    return Selector<WalletProvider, List<Wallet>>(
-      selector: (_, provider) => provider.wallets,
-      builder: (context, wallets, child) {
+    return Consumer<WalletProvider>(
+      builder: (context, provider, child) {
+        final wallets = provider.wallets;
         if (wallets.isEmpty) {
           return _buildEmptyState(
             context,
@@ -481,11 +481,82 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
               )
+            else if (_searchQuery.isEmpty && _selectedFilter == 'all')
+              SliverReorderableList(
+                itemCount: filteredWallets.length,
+                onReorder: (oldIndex, newIndex) {
+                  HapticFeedback.lightImpact();
+                  context.read<WalletProvider>().reorderWallets(
+                    oldIndex,
+                    newIndex,
+                  );
+                },
+                itemBuilder: (context, index) {
+                  final wallet = filteredWallets[index];
+                  return ReorderableDelayedDragStartListener(
+                    key: ValueKey(wallet.id),
+                    index: index,
+                    child: _AnimatedListItem(
+                      key: ValueKey('anim_${wallet.id}'),
+                      index: index,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                        child: Slidable(
+                          key: ValueKey(wallet.id),
+                          endActionPane: ActionPane(
+                            motion: const BehindMotion(),
+                            extentRatio: 0.50,
+                            children: [
+                              SlidableAction(
+                                onPressed: (context) {
+                                  _copyToClipboard(wallet.number);
+                                },
+                                backgroundColor: Colors.transparent,
+                                foregroundColor: Colors.blue,
+                                icon: Icons.copy_rounded,
+                                label: 'Copy',
+                              ),
+                              SlidableAction(
+                                onPressed: (context) async {
+                                  HapticFeedback.mediumImpact();
+                                  await context
+                                      .read<WalletProvider>()
+                                      .deleteWallet(wallet.id!);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Card deleted'),
+                                    ),
+                                  );
+                                },
+                                backgroundColor: Colors.transparent,
+                                foregroundColor: Colors.red,
+                                icon: Icons.delete_outline_rounded,
+                                label: 'Delete',
+                              ),
+                            ],
+                          ),
+                          child: GlassCreditCard(
+                            wallet: wallet,
+                            isMasked: true,
+                            onCardTap: () => Navigator.push(
+                              context,
+                              SmoothPageRoute(
+                                page: WalletDetailScreen(wallet: wallet),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              )
             else
               SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
                   final wallet = filteredWallets[index];
                   return _AnimatedListItem(
+                    key: ValueKey('anim_${wallet.id}'),
                     index: index,
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -581,24 +652,32 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildLoyaltyTab(BuildContext context) {
-    return Selector<LoyaltyProvider, List<Loyalty>>(
-      selector: (_, provider) => provider.loyalties,
-      builder: (context, loyalties, child) {
+    return Consumer<LoyaltyProvider>(
+      builder: (context, provider, child) {
+        final loyalties = provider.loyalties;
         if (loyalties.isEmpty) {
           return _buildEmptyState(
             context,
             "No loyalty cards added yet.\nTap the '+' to add one.",
           );
         }
-        return ListView.builder(
+        return ReorderableListView.builder(
           physics: const BouncingScrollPhysics(
             parent: AlwaysScrollableScrollPhysics(),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           itemCount: loyalties.length,
+          onReorder: (oldIndex, newIndex) {
+            HapticFeedback.lightImpact();
+            context.read<LoyaltyProvider>().reorderLoyalties(
+              oldIndex,
+              newIndex,
+            );
+          },
           itemBuilder: (context, index) {
             final loyalty = loyalties[index];
             return _AnimatedListItem(
+              key: ValueKey(loyalty.id),
               index: index,
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 12.0),
@@ -648,24 +727,32 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildIdentityTab(BuildContext context) {
-    return Selector<IdentityProvider, List<Identity>>(
-      selector: (_, provider) => provider.identities,
-      builder: (context, identities, child) {
+    return Consumer<IdentityProvider>(
+      builder: (context, provider, child) {
+        final identities = provider.identities;
         if (identities.isEmpty) {
           return _buildEmptyState(
             context,
             "No identity cards added yet.\nTap the '+' to add one.",
           );
         }
-        return ListView.builder(
+        return ReorderableListView.builder(
           physics: const BouncingScrollPhysics(
             parent: AlwaysScrollableScrollPhysics(),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           itemCount: identities.length,
+          onReorder: (oldIndex, newIndex) {
+            HapticFeedback.lightImpact();
+            context.read<IdentityProvider>().reorderIdentities(
+              oldIndex,
+              newIndex,
+            );
+          },
           itemBuilder: (context, index) {
             final identity = identities[index];
             return _AnimatedListItem(
+              key: ValueKey(identity.id),
               index: index,
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 12.0),
@@ -720,7 +807,8 @@ class _AnimatedListItem extends StatefulWidget {
   final int index;
   final Widget child;
 
-  const _AnimatedListItem({required this.index, required this.child});
+  const _AnimatedListItem({Key? key, required this.index, required this.child})
+    : super(key: key);
 
   @override
   State<_AnimatedListItem> createState() => _AnimatedListItemState();
