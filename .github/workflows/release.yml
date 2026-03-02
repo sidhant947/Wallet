@@ -28,11 +28,21 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      - name: Get Flutter Version from pubspec.yaml
+        id: get_flutter_version
+        run: |
+          FLUTTER_VERSION=$(grep 'flutter:' pubspec.yaml -A 1 | grep 'sdk:' | grep -o '>[ \t]*[0-9.]*' | grep -o '[0-9.]*')
+          if [ -z "$FLUTTER_VERSION" ]; then
+            FLUTTER_VERSION=$(grep 'flutter:' pubspec.yaml -A 1 | grep -oE "\^[0-9.]*" | tr -d '^')
+          fi
+          echo "Flutter version found: $FLUTTER_VERSION"
+          echo "FLUTTER_VERSION=$FLUTTER_VERSION" >> $GITHUB_ENV
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          flutter-version: '3.16.x' # Adjust this to match your project's version, if necessary. It will generally use stable by default.
+          flutter-version: ${{ env.FLUTTER_VERSION }}
 
       - name: Install Dependencies
         run: flutter pub get
@@ -45,8 +55,13 @@ jobs:
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
           echo "storeFile=upload-keystore.jks" >> android/key.properties
 
-      - name: Build APK
-        run: flutter build apk --release
+      - name: Build Universal APK
+        run: |
+          flutter build apk --release
+          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/app-universal-release.apk
+
+      - name: Build Split ABIs APKs
+        run: flutter build apk --release --split-per-abi
 
       - name: Create Release and Upload Asset
         uses: softprops/action-gh-release@v2
@@ -54,6 +69,10 @@ jobs:
           tag_name: ${{ github.event.inputs.version }}
           name: Release ${{ github.event.inputs.version }}
           body: ${{ github.event.inputs.release_notes }}
-          files: build/app/outputs/flutter-apk/app-release.apk
+          files: |
+            build/app/outputs/flutter-apk/app-universal-release.apk
+            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+            build/app/outputs/flutter-apk/app-x86_64-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
