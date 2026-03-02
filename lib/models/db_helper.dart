@@ -41,7 +41,6 @@ class DatabaseHelper {
             category TEXT,
             color TEXT,
             frontImagePath TEXT,
-            frontImagePath TEXT,
             backImagePath TEXT,
             orderIndex INTEGER DEFAULT 0
           )
