@@ -7,6 +7,10 @@ on:
         description: 'Release version (e.g., v1.0.0)'
         required: true
         default: 'v1.0.0'
+      flutter_version:
+        description: 'Flutter version to use for build (e.g., 3.38.5)'
+        required: true
+        default: '3.38.5'
       release_notes:
         description: 'Release notes'
         required: false
@@ -28,21 +32,11 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Get Flutter Version from pubspec.yaml
-        id: get_flutter_version
-        run: |
-          FLUTTER_VERSION=$(grep 'flutter:' pubspec.yaml -A 1 | grep 'sdk:' | grep -o '>[ \t]*[0-9.]*' | grep -o '[0-9.]*')
-          if [ -z "$FLUTTER_VERSION" ]; then
-            FLUTTER_VERSION=$(grep 'flutter:' pubspec.yaml -A 1 | grep -oE "\^[0-9.]*" | tr -d '^')
-          fi
-          echo "Flutter version found: $FLUTTER_VERSION"
-          echo "FLUTTER_VERSION=$FLUTTER_VERSION" >> $GITHUB_ENV
-
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: ${{ github.event.inputs.flutter_version }}
 
       - name: Install Dependencies
         run: flutter pub get
