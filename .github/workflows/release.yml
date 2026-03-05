@@ -61,7 +61,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.version }}
-          name: Release ${{ github.event.inputs.version }}
+          name: ${{ github.event.inputs.version }}
           body: ${{ github.event.inputs.release_notes }}
           files: |
             build/app/outputs/flutter-apk/app-universal-release.apk
