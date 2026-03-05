@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:wallet/services/encryption_service.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
@@ -101,7 +103,7 @@ class DatabaseHelper {
 
   Future<int> insertWallet(Wallet wallet) async {
     Database db = await instance.database;
-    return await db.insert('wallets', wallet.toMap());
+    return await db.insert('wallets', wallet.toEncryptedMap());
   }
 
   Future<List<Wallet>> getWallets() async {
@@ -110,7 +112,7 @@ class DatabaseHelper {
       'wallets',
       orderBy: 'orderIndex ASC',
     );
-    return List.generate(maps.length, (i) => Wallet.fromMap(maps[i]));
+    return List.generate(maps.length, (i) => Wallet.fromEncryptedMap(maps[i]));
   }
 
   Future<int> deleteWallet(int id) async {
@@ -122,9 +124,30 @@ class DatabaseHelper {
     Database db = await instance.database;
     return await db.update(
       'wallets',
-      wallet.toMap(),
+      wallet.toEncryptedMap(),
       where: 'id = ?',
       whereArgs: [wallet.id],
+    );
+  }
+
+  /// Migrate existing plaintext wallet data to encrypted format.
+  Future<void> migrateToEncrypted() async {
+    final db = await instance.database;
+    final List<Map<String, dynamic>> maps = await db.query('wallets');
+
+    for (final map in maps) {
+      // Read current values (fromMap handles plaintext gracefully)
+      final wallet = Wallet.fromMap(map);
+      // Write back with encryption
+      await db.update(
+        'wallets',
+        wallet.toEncryptedMap(),
+        where: 'id = ?',
+        whereArgs: [wallet.id],
+      );
+    }
+    debugPrint(
+      'DatabaseHelper: Wallet migration to encrypted format complete.',
     );
   }
 }
@@ -171,6 +194,7 @@ class Wallet {
     this.orderIndex = 0,
   });
 
+  /// Plaintext map — used for in-memory operations and backup serialization.
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -188,12 +212,42 @@ class Wallet {
       'billdate': billdate,
       'category': category,
       'color': color,
-      'frontImagePath': frontImagePath, // MODIFIED
-      'backImagePath': backImagePath, // MODIFIED
+      'frontImagePath': frontImagePath,
+      'backImagePath': backImagePath,
       'orderIndex': orderIndex,
     };
   }
 
+  /// Encrypted map — used when writing to the database.
+  /// Sensitive fields (name, number, expiry, issuer, customFields) are
+  /// AES-256-CBC encrypted before storage.
+  Map<String, dynamic> toEncryptedMap() {
+    final enc = EncryptionService.instance;
+    return {
+      'id': id,
+      'name': enc.encryptText(name),
+      'number': enc.encryptText(number),
+      'expiry': enc.encryptText(expiry),
+      'network': network,
+      'issuer': enc.encryptText(issuer),
+      'customFields': customFields != null
+          ? enc.encryptJson(customFields!.cast<String, dynamic>())
+          : null,
+      'spends': spends,
+      'rewards': rewards,
+      'annualFeeWaiver': annualFeeWaiver,
+      'maxlimit': maxlimit,
+      'cardtype': cardtype,
+      'billdate': billdate,
+      'category': category,
+      'color': color,
+      'frontImagePath': frontImagePath,
+      'backImagePath': backImagePath,
+      'orderIndex': orderIndex,
+    };
+  }
+
+  /// Create a Wallet from a plaintext map (e.g. from backup restore).
   factory Wallet.fromMap(Map<String, dynamic> map) {
     return Wallet(
       id: map['id'],
@@ -213,8 +267,36 @@ class Wallet {
       billdate: map['billdate'],
       category: map['category'],
       color: map['color'],
-      frontImagePath: map['frontImagePath'], // MODIFIED
-      backImagePath: map['backImagePath'], // MODIFIED
+      frontImagePath: map['frontImagePath'],
+      backImagePath: map['backImagePath'],
+      orderIndex: map['orderIndex'] ?? 0,
+    );
+  }
+
+  /// Create a Wallet from an encrypted database row.
+  /// Automatically decrypts sensitive fields.
+  factory Wallet.fromEncryptedMap(Map<String, dynamic> map) {
+    final enc = EncryptionService.instance;
+    return Wallet(
+      id: map['id'],
+      name: enc.decryptText(map['name']) ?? '',
+      number: enc.decryptText(map['number']) ?? '',
+      expiry: enc.decryptText(map['expiry']) ?? '',
+      network: map['network'],
+      issuer: enc.decryptText(map['issuer']),
+      customFields: map['customFields'] != null
+          ? enc.decryptJsonToStringMap(map['customFields'])
+          : null,
+      spends: map['spends'],
+      rewards: map['rewards'],
+      annualFeeWaiver: map['annualFeeWaiver'],
+      maxlimit: map['maxlimit'],
+      cardtype: map['cardtype'],
+      billdate: map['billdate'],
+      category: map['category'],
+      color: map['color'],
+      frontImagePath: map['frontImagePath'],
+      backImagePath: map['backImagePath'],
       orderIndex: map['orderIndex'] ?? 0,
     );
   }
@@ -250,7 +332,8 @@ class IdentityDatabaseHelper {
         identityNumber TEXT,
         color TEXT,
         frontImagePath TEXT,
-        backImagePath TEXT
+        backImagePath TEXT,
+        orderIndex INTEGER DEFAULT 0
       )
     ''');
   }
@@ -287,18 +370,36 @@ class IdentityDatabaseHelper {
 
   Future<int> insertIdentity(Identity identity) async {
     final db = await database;
-    return await db.insert('identities', identity.toMap());
+    return await db.insert('identities', identity.toEncryptedMap());
   }
 
   Future<List<Identity>> getAllIdentities() async {
     final db = await database;
     final result = await db.query('identities', orderBy: 'orderIndex ASC');
-    return result.map((e) => Identity.fromMap(e)).toList();
+    return result.map((e) => Identity.fromEncryptedMap(e)).toList();
   }
 
   Future<void> deleteIdentity(int id) async {
     final db = await database;
     await db.delete('identities', where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Migrate existing plaintext identity data to encrypted format.
+  Future<void> migrateToEncrypted() async {
+    final db = await database;
+    final result = await db.query('identities');
+    for (final map in result) {
+      final identity = Identity.fromMap(map);
+      await db.update(
+        'identities',
+        identity.toEncryptedMap(),
+        where: 'id = ?',
+        whereArgs: [identity.id],
+      );
+    }
+    debugPrint(
+      'IdentityDatabaseHelper: Migration to encrypted format complete.',
+    );
   }
 }
 
@@ -321,6 +422,7 @@ class Identity {
     this.orderIndex = 0,
   });
 
+  /// Plaintext map — for backup serialization.
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -333,11 +435,40 @@ class Identity {
     };
   }
 
+  /// Encrypted map — for database storage.
+  Map<String, dynamic> toEncryptedMap() {
+    final enc = EncryptionService.instance;
+    return {
+      'id': id,
+      'identityName': enc.encryptText(identityName),
+      'identityNumber': enc.encryptText(identityNumber),
+      'color': color,
+      'frontImagePath': frontImagePath,
+      'backImagePath': backImagePath,
+      'orderIndex': orderIndex,
+    };
+  }
+
+  /// Create from plaintext map (e.g. backup restore).
   factory Identity.fromMap(Map<String, dynamic> map) {
     return Identity(
       id: map['id'],
       identityName: map['identityName'],
       identityNumber: map['identityNumber'],
+      color: map['color'],
+      frontImagePath: map['frontImagePath'],
+      backImagePath: map['backImagePath'],
+      orderIndex: map['orderIndex'] ?? 0,
+    );
+  }
+
+  /// Create from encrypted database row.
+  factory Identity.fromEncryptedMap(Map<String, dynamic> map) {
+    final enc = EncryptionService.instance;
+    return Identity(
+      id: map['id'],
+      identityName: enc.decryptText(map['identityName']) ?? '',
+      identityNumber: enc.decryptText(map['identityNumber']) ?? '',
       color: map['color'],
       frontImagePath: map['frontImagePath'],
       backImagePath: map['backImagePath'],
@@ -376,7 +507,8 @@ class LoyaltyDatabaseHelper {
         loyaltyNumber TEXT,
         color TEXT,
         frontImagePath TEXT,
-        backImagePath TEXT
+        backImagePath TEXT,
+        orderIndex INTEGER DEFAULT 0
       )
     ''');
   }
@@ -412,18 +544,36 @@ class LoyaltyDatabaseHelper {
 
   Future<int> insertLoyalty(Loyalty loyalty) async {
     final db = await database;
-    return await db.insert('loyalties', loyalty.toMap());
+    return await db.insert('loyalties', loyalty.toEncryptedMap());
   }
 
   Future<List<Loyalty>> getAllLoyalties() async {
     final db = await database;
     final result = await db.query('loyalties', orderBy: 'orderIndex ASC');
-    return result.map((e) => Loyalty.fromMap(e)).toList();
+    return result.map((e) => Loyalty.fromEncryptedMap(e)).toList();
   }
 
   Future<void> deleteLoyalty(int id) async {
     final db = await database;
     await db.delete('loyalties', where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Migrate existing plaintext loyalty data to encrypted format.
+  Future<void> migrateToEncrypted() async {
+    final db = await database;
+    final result = await db.query('loyalties');
+    for (final map in result) {
+      final loyalty = Loyalty.fromMap(map);
+      await db.update(
+        'loyalties',
+        loyalty.toEncryptedMap(),
+        where: 'id = ?',
+        whereArgs: [loyalty.id],
+      );
+    }
+    debugPrint(
+      'LoyaltyDatabaseHelper: Migration to encrypted format complete.',
+    );
   }
 }
 
@@ -446,6 +596,7 @@ class Loyalty {
     this.orderIndex = 0,
   });
 
+  /// Plaintext map — for backup serialization.
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -458,11 +609,40 @@ class Loyalty {
     };
   }
 
+  /// Encrypted map — for database storage.
+  Map<String, dynamic> toEncryptedMap() {
+    final enc = EncryptionService.instance;
+    return {
+      'id': id,
+      'loyaltyName': enc.encryptText(loyaltyName),
+      'loyaltyNumber': enc.encryptText(loyaltyNumber),
+      'color': color,
+      'frontImagePath': frontImagePath,
+      'backImagePath': backImagePath,
+      'orderIndex': orderIndex,
+    };
+  }
+
+  /// Create from plaintext map (e.g. backup restore).
   factory Loyalty.fromMap(Map<String, dynamic> map) {
     return Loyalty(
       id: map['id'],
       loyaltyName: map['loyaltyName'],
       loyaltyNumber: map['loyaltyNumber'],
+      color: map['color'],
+      frontImagePath: map['frontImagePath'],
+      backImagePath: map['backImagePath'],
+      orderIndex: map['orderIndex'] ?? 0,
+    );
+  }
+
+  /// Create from encrypted database row.
+  factory Loyalty.fromEncryptedMap(Map<String, dynamic> map) {
+    final enc = EncryptionService.instance;
+    return Loyalty(
+      id: map['id'],
+      loyaltyName: enc.decryptText(map['loyaltyName']) ?? '',
+      loyaltyNumber: enc.decryptText(map['loyaltyNumber']) ?? '',
       color: map['color'],
       frontImagePath: map['frontImagePath'],
       backImagePath: map['backImagePath'],

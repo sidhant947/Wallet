@@ -15,9 +15,11 @@ dependencies:
   barcode_widget: ^2.0.4
   crypto: ^3.0.5
   cupertino_icons: ^1.0.8
+  encrypt: ^5.0.3
   file_picker: ^10.3.2
   flutter:
     sdk: flutter
+  flutter_secure_storage: ^10.0.0
   flutter_slidable: ^4.0.0
   flutter_staggered_animations: ^1.1.1
   image_picker: ^1.2.0

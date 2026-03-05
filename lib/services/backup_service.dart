@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:wallet/models/db_helper.dart';
+import 'package:wallet/services/encryption_service.dart';
 
 class BackupService {
   static const String _backupVersion = '1.0';
@@ -17,7 +17,8 @@ class BackupService {
           .getAllIdentities();
       final loyalties = await LoyaltyDatabaseHelper.instance.getAllLoyalties();
 
-      // Create backup data structure
+      // Create backup data structure — uses plaintext toMap() so that
+      // backup files are portable and not tied to a specific device key.
       final backupData = {
         'version': _backupVersion,
         'timestamp': DateTime.now().toIso8601String(),
@@ -29,8 +30,11 @@ class BackupService {
       // Convert to JSON
       final jsonData = jsonEncode(backupData);
 
-      // Encrypt the data
-      final encryptedData = _encryptData(jsonData, password);
+      // Encrypt using real AES-256-CBC with password-derived key
+      final encryptedData = EncryptionService.instance.encryptForBackup(
+        jsonData,
+        password,
+      );
 
       // Create backup file with timestamp
       final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -90,8 +94,11 @@ class BackupService {
         encryptedData = await file.readAsBytes();
       }
 
-      // Decrypt the data
-      final decryptedJson = _decryptData(encryptedData, password);
+      // Decrypt using real AES-256-CBC
+      final decryptedJson = EncryptionService.instance.decryptForBackup(
+        encryptedData,
+        password,
+      );
 
       // Parse JSON
       final backupData = jsonDecode(decryptedJson) as Map<String, dynamic>;
@@ -104,7 +111,8 @@ class BackupService {
       // Clear existing data (optional - you might want to ask user)
       await _clearAllData();
 
-      // Restore wallets
+      // Restore wallets — data from backup is plaintext, insertWallet
+      // will encrypt it before writing to the database.
       final walletsData = backupData['wallets'] as List<dynamic>;
       for (final walletMap in walletsData) {
         final wallet = Wallet.fromMap(Map<String, dynamic>.from(walletMap));
@@ -129,33 +137,6 @@ class BackupService {
     } catch (e) {
       throw Exception('Failed to restore backup: $e');
     }
-  }
-
-  // Simple encryption using AES (you might want to use a more robust solution)
-  static Uint8List _encryptData(String data, String password) {
-    final key = sha256.convert(utf8.encode(password)).bytes;
-    final dataBytes = utf8.encode(data);
-
-    // Simple XOR encryption (for demo - use proper AES in production)
-    final encrypted = Uint8List(dataBytes.length);
-    for (int i = 0; i < dataBytes.length; i++) {
-      encrypted[i] = dataBytes[i] ^ key[i % key.length];
-    }
-
-    return encrypted;
-  }
-
-  // Simple decryption
-  static String _decryptData(Uint8List encryptedData, String password) {
-    final key = sha256.convert(utf8.encode(password)).bytes;
-
-    // Simple XOR decryption
-    final decrypted = Uint8List(encryptedData.length);
-    for (int i = 0; i < encryptedData.length; i++) {
-      decrypted[i] = encryptedData[i] ^ key[i % key.length];
-    }
-
-    return utf8.decode(decrypted);
   }
 
   // Clear all existing data before restore
