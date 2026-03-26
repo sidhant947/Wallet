@@ -1,4 +1,4 @@
-<i>Wallet</i> is a Flutter project designed to store card information locally on the device, ensuring that the data is secure and cannot be stolen, as the application does not have internet access. The app is optimized for efficiency, allowing users to quickly copy card details for transactions. Additionally, it offers support for bill payments using UPI for some Indian banks, and allows users to store loyalty and identity cards securely. Users can also export their data as a PDF for easy summary and record-keeping of their credit card information.
+<i>Wallet</i> is a Flutter project designed to store card information locally on the device, ensuring that the data is secure and cannot be stolen, as the application does not have internet access. The app is optimized for efficiency, allowing users to quickly copy card details for transactions.
 
 <b>Features:</b>
 
