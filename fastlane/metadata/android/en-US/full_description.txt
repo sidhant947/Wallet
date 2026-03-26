@@ -5,7 +5,6 @@
 * <b>Local Storage:</b> All card information, including brand loyalty and identity cards, is stored locally on the device, ensuring that data is not exposed to the internet.
 * <b>Security:</b> The app is designed to be fully proofed against data theft, safeguarding sensitive information.
 * <b>Efficiency:</b> Users can quickly copy card details for transactions.
-* <b>UPI Bill Payment:</b> Supports bill payments via UPI for select Indian banks, providing a convenient and secure payment method.
 * <b>Brand Loyalty Cards:</b> Users can store their brand loyalty cards within the app for easy access and management.
 * <b>Identity Card Storage:</b> Securely store and manage identity cards, ensuring that sensitive information remains protected.
 * <b>Credit Cards Summary:</b> The app allows users to export a summary of their credit card data as a PDF, offering a quick overview of their financial information for personal tracking or record-keeping.
