@@ -807,8 +807,7 @@ class _AnimatedListItem extends StatefulWidget {
   final int index;
   final Widget child;
 
-  const _AnimatedListItem({Key? key, required this.index, required this.child})
-    : super(key: key);
+  const _AnimatedListItem({super.key, required this.index, required this.child});
 
   @override
   State<_AnimatedListItem> createState() => _AnimatedListItemState();

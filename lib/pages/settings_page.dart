@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/models/startup_settings_provider.dart';
 import 'package:wallet/services/backup_service.dart';

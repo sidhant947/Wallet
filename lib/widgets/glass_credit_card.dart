@@ -242,7 +242,6 @@ class GlassCreditCard extends StatelessWidget {
                             ),
 
                             // Logo
-                            
                           ],
                         ),
                       ],
@@ -267,74 +266,6 @@ class GlassCreditCard extends StatelessWidget {
       ),
     );
   }
-}
-
-// Realistic EMV Chip Widget
-class _RealisticChip extends StatelessWidget {
-  const _RealisticChip();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 45,
-      height: 35,
-      decoration: BoxDecoration(
-        color: const Color(0xFFD4AF37), // Metallic Gold
-        borderRadius: BorderRadius.circular(6),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFF9E5BE), // Light gold
-            Color(0xFFD4AF37), // Gold
-            Color(0xFFC5A028), // Dark gold
-            Color(0xFFF9E5BE), // Light gold highlight
-          ],
-          stops: [0.0, 0.4, 0.7, 1.0],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(50),
-            blurRadius: 2,
-            offset: const Offset(1, 1),
-          ),
-        ],
-      ),
-      child: const CustomPaint(painter: _ChipCircuitPainter()),
-    );
-  }
-}
-
-class _ChipCircuitPainter extends CustomPainter {
-  const _ChipCircuitPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.black.withAlpha(50)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-
-    final w = size.width;
-    final h = size.height;
-
-    // Rounded rectangle separation lines
-    final rRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(w * 0.2, h * 0.25, w * 0.6, h * 0.5),
-      const Radius.circular(4),
-    );
-    canvas.drawRRect(rRect, paint);
-
-    // Horizontal split
-    canvas.drawLine(Offset(0, h * 0.5), Offset(w, h * 0.5), paint);
-
-    // Vertical split sections
-    canvas.drawLine(Offset(w * 0.35, h * 0.5), Offset(w * 0.35, h), paint);
-    canvas.drawLine(Offset(w * 0.65, h * 0.5), Offset(w * 0.65, 0), paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _AbstractWavePainter extends CustomPainter {
