@@ -8,6 +8,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/theme_provider.dart';
+import 'package:wallet/services/nfc_credit_card_service.dart';
+import 'package:wallet/services/nfc_loyalty_identity_service.dart';
+import 'package:wallet/services/nfc_utils.dart';
+import 'package:wallet/widgets/nfc_scan_dialog.dart';
 import 'package:wallet/widgets/glass_credit_card.dart';
 import 'package:wallet/widgets/barcode_card.dart';
 import 'package:path/path.dart' as p;
@@ -392,6 +396,8 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
   final _customFieldNameControllers = <TextEditingController>[];
   final _customFieldValueControllers = <TextEditingController>[];
   final ImagePicker _picker = ImagePicker();
+  final NfcCreditCardService _nfcService = NfcCreditCardService();
+  bool _isNfcAvailable = false;
 
   @override
   void initState() {
@@ -399,6 +405,80 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
     _nameController.addListener(() => setState(() {}));
     _numberController.addListener(() => setState(() {}));
     _expiryController.addListener(() => setState(() {}));
+    _checkNfcAvailability();
+  }
+
+  Future<void> _checkNfcAvailability() async {
+    final available = await _nfcService.isNfcAvailable();
+    if (mounted) {
+      setState(() => _isNfcAvailable = available);
+    }
+  }
+
+  Future<void> _scanNfcCard() async {
+    try {
+      final cardData = await showDialog<NfcCardData>(
+        context: context,
+        barrierDismissible: true,
+        builder: (dialogContext) => _NfcScanProgressDialog(
+          service: _nfcService,
+          title: 'Scanning Credit/Debit Card',
+        ),
+      );
+
+      if (mounted && cardData != null) {
+        // Populate form with NFC data
+        if (cardData.cardNumber != null) {
+          _numberController.text = cardData.cardNumber!;
+
+          // Auto-detect network
+          final detectedNetwork = NfcUtils.detectCardNetwork(
+            cardData.cardNumber,
+          );
+          if (detectedNetwork != null) {
+            setState(() => _network = detectedNetwork);
+          }
+        }
+
+        if (cardData.expiryDate != null) {
+          _expiryController.text = cardData.expiryDate!;
+        }
+
+        if (cardData.cardholderName != null) {
+          _nameController.text = cardData.cardholderName!;
+        }
+
+        // Show success message
+        if (cardData.hasData) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Card data read successfully!'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('No data could be read from the card'),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        final errorMessage = NfcUtils.getErrorMessage(e);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -548,6 +628,15 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
                 validator: (v) =>
                     v!.length < 15 ? 'Enter a valid number' : null,
               ),
+              if (_isNfcAvailable) ...[
+                const SizedBox(height: 12),
+                NfcScanButton(
+                  onPressed: _scanNfcCard,
+                  isEnabled: true,
+                  label: 'Scan Card with NFC',
+                  icon: Icons.wifi,
+                ),
+              ],
               const SizedBox(height: 16),
               TextFormField(
                 controller: _expiryController,
@@ -690,6 +779,8 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
   File? _frontImageFile;
   File? _backImageFile;
   final ImagePicker _picker = ImagePicker();
+  final NfcLoyaltyIdentityService _nfcService = NfcLoyaltyIdentityService();
+  bool _isNfcAvailable = false;
 
   // --- ADDED ---
   @override
@@ -698,6 +789,70 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     // Add listeners to update the preview in real-time
     _nameController.addListener(() => setState(() {}));
     _numberController.addListener(() => setState(() {}));
+    _checkNfcAvailability();
+  }
+
+  Future<void> _checkNfcAvailability() async {
+    final available = await _nfcService.isNfcAvailable();
+    if (mounted) {
+      setState(() => _isNfcAvailable = available);
+    }
+  }
+
+  Future<void> _scanNfcCard() async {
+    try {
+      final cardData = await showDialog<NfcLoyaltyIdentityData>(
+        context: context,
+        barrierDismissible: true,
+        builder: (dialogContext) => _NfcLoyaltyIdentityScanDialog(
+          service: _nfcService,
+          title: widget.cardType == BarcodeCardType.identity
+              ? 'Scanning Identity Card'
+              : 'Scanning Loyalty Card',
+        ),
+      );
+
+      if (mounted && cardData != null) {
+        // Populate form with NFC data
+        if (cardData.cardNumber != null) {
+          _numberController.text = cardData.cardNumber!;
+        }
+
+        if (cardData.cardName != null) {
+          _nameController.text = cardData.cardName!;
+        }
+
+        // Show success message
+        if (cardData.hasData) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Card data read successfully!'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('No data could be read from the card'),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        final errorMessage = NfcUtils.getErrorMessage(e);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   // --- ADDED ---
@@ -850,6 +1005,17 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           ),
           onPressed: _scan,
         ),
+        if (_isNfcAvailable) ...[
+          const SizedBox(height: 16),
+          NfcScanButton(
+            onPressed: _scanNfcCard,
+            isEnabled: true,
+            label: widget.cardType == BarcodeCardType.identity
+                ? 'Scan Identity Card with NFC'
+                : 'Scan Loyalty Card with NFC',
+            icon: Icons.wifi,
+          ),
+        ],
         const SizedBox(height: 24),
         ImagePickerWidget(
           title: 'Front Image (Optional)',
@@ -964,6 +1130,137 @@ class _FormSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: children,
       ),
+    );
+  }
+}
+
+/// NFC Scan Progress Dialog with State Management
+class _NfcScanProgressDialog extends StatefulWidget {
+  final NfcCreditCardService service;
+  final String title;
+
+  const _NfcScanProgressDialog({required this.service, required this.title});
+
+  @override
+  State<_NfcScanProgressDialog> createState() => _NfcScanProgressDialogState();
+}
+
+class _NfcScanProgressDialogState extends State<_NfcScanProgressDialog> {
+  String _statusMessage = 'Starting NFC scan...';
+  bool _isScanning = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _startScan();
+  }
+
+  Future<void> _startScan() async {
+    try {
+      final cardData = await widget.service.readCardData(
+        onStatus: (status) {
+          if (mounted) {
+            setState(() {
+              _statusMessage = status;
+              _isScanning =
+                  status.contains('Starting') ||
+                  status.contains('Ready') ||
+                  status.contains('scanning');
+            });
+          }
+        },
+      );
+
+      if (mounted) {
+        Navigator.pop(context, cardData);
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        rethrow;
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return NfcScanDialog(
+      statusMessage: _statusMessage,
+      isScanning: _isScanning,
+      onCancel: () {
+        widget.service.stopSession();
+        Navigator.pop(context);
+      },
+      icon: Icons.wifi,
+      title: widget.title,
+    );
+  }
+}
+
+/// NFC Scan Progress Dialog for Loyalty/Identity Cards
+class _NfcLoyaltyIdentityScanDialog extends StatefulWidget {
+  final NfcLoyaltyIdentityService service;
+  final String title;
+
+  const _NfcLoyaltyIdentityScanDialog({
+    required this.service,
+    required this.title,
+  });
+
+  @override
+  State<_NfcLoyaltyIdentityScanDialog> createState() =>
+      _NfcLoyaltyIdentityScanDialogState();
+}
+
+class _NfcLoyaltyIdentityScanDialogState
+    extends State<_NfcLoyaltyIdentityScanDialog> {
+  String _statusMessage = 'Starting NFC scan...';
+  bool _isScanning = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _startScan();
+  }
+
+  Future<void> _startScan() async {
+    try {
+      final cardData = await widget.service.readCardData(
+        onStatus: (status) {
+          if (mounted) {
+            setState(() {
+              _statusMessage = status;
+              _isScanning =
+                  status.contains('Starting') ||
+                  status.contains('Ready') ||
+                  status.contains('scanning');
+            });
+          }
+        },
+      );
+
+      if (mounted) {
+        Navigator.pop(context, cardData);
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        rethrow;
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return NfcScanDialog(
+      statusMessage: _statusMessage,
+      isScanning: _isScanning,
+      onCancel: () {
+        widget.service.stopSession();
+        Navigator.pop(context);
+      },
+      icon: Icons.wifi,
+      title: widget.title,
     );
   }
 }
