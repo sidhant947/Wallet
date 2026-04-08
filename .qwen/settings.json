@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep *)",
+      "Bash(pod *)",
+      "Bash(git add *)"
+    ]
+  },
+  "$version": 3
+}
