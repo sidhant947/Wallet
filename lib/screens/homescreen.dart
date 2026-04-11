@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -825,6 +826,7 @@ class _AnimatedListItemState extends State<_AnimatedListItem>
   late final AnimationController _controller;
   late final Animation<double> _opacity;
   late final Animation<Offset> _slide;
+  Timer? _delayTimer;
 
   @override
   void initState() {
@@ -847,13 +849,14 @@ class _AnimatedListItemState extends State<_AnimatedListItem>
 
     // Stagger: delay based on index, but cap at 5 to avoid long waits
     final delay = Duration(milliseconds: (widget.index.clamp(0, 5)) * 60);
-    Future.delayed(delay, () {
+    _delayTimer = Timer(delay, () {
       if (mounted) _controller.forward();
     });
   }
 
   @override
   void dispose() {
+    _delayTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }

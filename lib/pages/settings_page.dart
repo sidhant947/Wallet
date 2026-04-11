@@ -390,7 +390,7 @@ class SettingsPage extends StatelessWidget {
           }
         },
       ),
-    );
+    ).then((_) => passwordController.dispose());
   }
 
   void _showRestoreDialog(
@@ -439,7 +439,7 @@ class SettingsPage extends StatelessWidget {
           }
         },
       ),
-    );
+    ).then((_) => passwordController.dispose());
   }
 }
 

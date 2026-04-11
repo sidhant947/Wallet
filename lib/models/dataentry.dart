@@ -331,6 +331,8 @@ class ImagePickerWidget extends StatelessWidget {
                         height: 150,
                         width: 250,
                         fit: BoxFit.cover,
+                        cacheWidth: 500,
+                        cacheHeight: 300,
                       ),
                     ),
                     Positioned(
@@ -403,8 +405,9 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
       final detected = CardUtils.detectCardNetwork(_numberController.text);
       if (detected != null && detected != _network) {
         setState(() => _network = detected);
+      } else {
+        setState(() {});
       }
-      setState(() {});
     });
     _expiryController.addListener(() => setState(() {}));
   }

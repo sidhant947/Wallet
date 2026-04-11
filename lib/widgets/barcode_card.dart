@@ -77,45 +77,25 @@ class _PremiumLoyaltyCard extends StatefulWidget {
   State<_PremiumLoyaltyCard> createState() => _PremiumLoyaltyCardState();
 }
 
-class _PremiumLoyaltyCardState extends State<_PremiumLoyaltyCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _pressController;
-  late final Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _pressController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 120),
-      reverseDuration: const Duration(milliseconds: 200),
-    );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.97).animate(
-      CurvedAnimation(parent: _pressController, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _pressController.dispose();
-    super.dispose();
-  }
+class _PremiumLoyaltyCardState extends State<_PremiumLoyaltyCard> {
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
       child: GestureDetector(
         onTapDown: (_) {
-          _pressController.forward();
+          setState(() => _pressed = true);
           HapticFeedback.lightImpact();
         },
         onTapUp: (_) {
-          _pressController.reverse();
+          setState(() => _pressed = false);
           widget.onTap();
         },
-        onTapCancel: () => _pressController.reverse(),
-        child: ScaleTransition(
-          scale: _scaleAnimation,
+        onTapCancel: () => setState(() => _pressed = false),
+        child: AnimatedScale(
+          scale: _pressed ? 0.97 : 1.0,
+          duration: const Duration(milliseconds: 120),
           child: AspectRatio(
             aspectRatio: 1.586,
             child: Container(
@@ -365,45 +345,25 @@ class _PremiumIdentityCard extends StatefulWidget {
   State<_PremiumIdentityCard> createState() => _PremiumIdentityCardState();
 }
 
-class _PremiumIdentityCardState extends State<_PremiumIdentityCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _pressController;
-  late final Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _pressController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 120),
-      reverseDuration: const Duration(milliseconds: 200),
-    );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.97).animate(
-      CurvedAnimation(parent: _pressController, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _pressController.dispose();
-    super.dispose();
-  }
+class _PremiumIdentityCardState extends State<_PremiumIdentityCard> {
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
       child: GestureDetector(
         onTapDown: (_) {
-          _pressController.forward();
+          setState(() => _pressed = true);
           HapticFeedback.lightImpact();
         },
         onTapUp: (_) {
-          _pressController.reverse();
+          setState(() => _pressed = false);
           widget.onTap();
         },
-        onTapCancel: () => _pressController.reverse(),
-        child: ScaleTransition(
-          scale: _scaleAnimation,
+        onTapCancel: () => setState(() => _pressed = false),
+        child: AnimatedScale(
+          scale: _pressed ? 0.97 : 1.0,
+          duration: const Duration(milliseconds: 120),
           child: AspectRatio(
             aspectRatio: 1.586,
             child: Container(

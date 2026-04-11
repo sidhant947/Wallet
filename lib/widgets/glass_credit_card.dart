@@ -19,9 +19,11 @@ class GlassCreditCard extends StatelessWidget {
     required this.onCardTap,
   });
 
+  static final RegExp _fourDigitPattern = RegExp(r".{4}");
+
   String _formatCardNumber(String input) {
     return input.replaceAllMapped(
-      RegExp(r".{4}"),
+      _fourDigitPattern,
       (match) => "${match.group(0)} ",
     );
   }

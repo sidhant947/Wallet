@@ -43,7 +43,7 @@ class FullScreenImageViewer extends StatelessWidget {
           panEnabled: true,
           minScale: 1.0,
           maxScale: 4.0,
-          child: Image.file(imageFile),
+          child: Image.file(imageFile, cacheWidth: 2000),
         ),
       ),
     );
@@ -931,6 +931,8 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                           height: 150,
                           width: 250,
                           fit: BoxFit.cover,
+                          cacheWidth: 500,
+                          cacheHeight: 300,
                         ),
                       ),
                     ),

@@ -142,7 +142,9 @@ class WalletProvider with ChangeNotifier {
 
   Future<void> deleteWallet(int id) async {
     await DatabaseHelper.instance.deleteWallet(id);
-    await fetchWallets();
+    wallets.removeWhere((w) => w.id == id);
+    _cachedSummary = null;
+    notifyListeners();
   }
 
   bool isMasked(int walletId) {
@@ -172,8 +174,8 @@ class WalletProvider with ChangeNotifier {
       wallets[i].orderIndex = i;
     }
 
-    notifyListeners();
     await DatabaseHelper.instance.updateWalletsOrder(wallets);
+    notifyListeners();
   }
 }
 
@@ -187,7 +189,8 @@ class LoyaltyProvider with ChangeNotifier {
 
   Future<void> deleteLoyalty(int id) async {
     await LoyaltyDatabaseHelper.instance.deleteLoyalty(id);
-    await fetchLoyalties();
+    loyalties.removeWhere((l) => l.id == id);
+    notifyListeners();
   }
 
   Future<void> reorderLoyalties(int oldIndex, int newIndex) async {
@@ -217,7 +220,8 @@ class IdentityProvider with ChangeNotifier {
 
   Future<void> deleteIdentity(int id) async {
     await IdentityDatabaseHelper.instance.deleteIdentity(id);
-    await fetchIdentities();
+    identities.removeWhere((i) => i.id == id);
+    notifyListeners();
   }
 
   Future<void> reorderIdentities(int oldIndex, int newIndex) async {
