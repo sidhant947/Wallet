@@ -352,10 +352,10 @@ class _NetworkLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Force white colored logos for consistency on dark backgrounds
     return Image.asset(
       "assets/network/${network ?? 'visa'}.png",
       fit: BoxFit.contain,
+      height: 30,
       color: Colors.white,
       errorBuilder: (context, error, stackTrace) {
         return Text(

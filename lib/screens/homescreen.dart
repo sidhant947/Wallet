@@ -12,7 +12,7 @@ import 'package:wallet/screens/summary.dart';
 import 'package:wallet/widgets/barcode_card.dart';
 import 'package:wallet/widgets/glass_credit_card.dart';
 import 'package:wallet/widgets/liquid_glass.dart';
-import 'package:wallet/pages/support_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/dataentry.dart';
 import '../models/db_helper.dart';
 import '../models/provider_helper.dart';
@@ -183,23 +183,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       appBar: AppBar(
         leading: Container(
           margin: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withAlpha(20)
-                : Colors.black.withAlpha(13),
-            borderRadius: BorderRadius.circular(12),
-          ),
+          // decoration: BoxDecoration(
+          //   color: isDark
+          //       ? Colors.white.withAlpha(20)
+          //       : Colors.black.withAlpha(13),
+          //   borderRadius: BorderRadius.circular(12),
+          // ),
           child: IconButton(
             icon: Icon(
-              Icons.favorite,
-              color: isDark ? Colors.pink.shade300 : Colors.pink,
+              Icons.star,
+              color: isDark ? Colors.amber.shade300 : Colors.amber.shade700,
             ),
-            onPressed: () {
+            onPressed: () async {
               HapticFeedback.lightImpact();
-              Navigator.push(
-                context,
-                SmoothPageRoute(page: const SupportScreen()),
-              );
+              const url = 'https://github.com/sidhant947/Wallet';
+              if (await launchUrl(
+                Uri.parse(url),
+                mode: LaunchMode.externalApplication,
+              )) {
+                // launched
+              }
             },
           ),
         ),
@@ -807,7 +810,11 @@ class _AnimatedListItem extends StatefulWidget {
   final int index;
   final Widget child;
 
-  const _AnimatedListItem({super.key, required this.index, required this.child});
+  const _AnimatedListItem({
+    super.key,
+    required this.index,
+    required this.child,
+  });
 
   @override
   State<_AnimatedListItem> createState() => _AnimatedListItemState();
