@@ -1,11 +1,15 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/models/startup_settings_provider.dart';
 import 'package:wallet/services/backup_service.dart';
 import 'package:wallet/models/provider_helper.dart';
+import 'package:wallet/models/db_helper.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -172,14 +176,84 @@ class SettingsPage extends StatelessWidget {
                   _showRestoreDialog(context, themeProvider, walletProvider);
                 },
               ),
+              Divider(
+                color: isDark
+                    ? const Color(0xFF2A2A2A)
+                    : const Color(0xFFE8E8E8),
+                height: 1,
+              ),
+              _LiquidGlassTile(
+                icon: Icons.delete_forever_outlined,
+                title: 'Delete All Data',
+                subtitle: 'Permanently erase all data from this device',
+                onTap: () => _showDeleteAllDataDialog(context, themeProvider),
+              ),
             ],
           ),
 
           // --- About Section ---
           _LiquidGlassSection(
-            title: 'Made with ❤️ by Sidhant',
-            icon: Icons.favorite_outline_rounded,
-            children: [],
+            title: 'About',
+            icon: Icons.info_outline_rounded,
+            children: [
+              _LiquidGlassTile(
+                icon: Icons.gavel_outlined,
+                title: 'Trademark Notice',
+                subtitle:
+                    'Card network logos (Visa, Mastercard, RuPay, Amex, Discover) are trademarks of their respective owners. Used for identification purposes only under nominative fair use. No affiliation or endorsement is implied.',
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      backgroundColor: isDark
+                          ? const Color(0xFF0A0A0A)
+                          : Colors.white,
+                      title: Text(
+                        'Trademark Fair Use Notice',
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      content: SingleChildScrollView(
+                        child: Text(
+                          'The Visa, Mastercard, RuPay, American Express, and Discover logos displayed in this application are registered trademarks of their respective owners:\n\n'
+                          '• Visa Inc.\n'
+                          '• Mastercard International\n'
+                          '• National Payments Corporation of India (RuPay)\n'
+                          '• American Express Company\n'
+                          '• Discover Financial Services\n\n'
+                          'These logos are used solely for the purpose of identifying the card network associated with a user\'s payment card. This usage constitutes nominative fair use under trademark law.\n\n'
+                          'This application is not affiliated with, endorsed by, or sponsored by any of these companies. No trademark license has been granted beyond the limited use described above.\n\n'
+                          'All other trademarks and copyrights are the property of their respective owners.',
+                          style: TextStyle(
+                            color: isDark ? Colors.white70 : Colors.black87,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Close'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              Divider(
+                color: isDark
+                    ? const Color(0xFF2A2A2A)
+                    : const Color(0xFFE8E8E8),
+                height: 1,
+              ),
+              _LiquidGlassTile(
+                icon: Icons.favorite_outline_rounded,
+                title: 'Made with ❤️ by Sidhant',
+                subtitle: 'Version 1.0.0',
+              ),
+            ],
           ),
         ],
       ),
@@ -440,6 +514,178 @@ class SettingsPage extends StatelessWidget {
         },
       ),
     ).then((_) => passwordController.dispose());
+  }
+
+  void _showDeleteAllDataDialog(
+    BuildContext context,
+    ThemeProvider themeProvider,
+  ) {
+    final isDark = themeProvider.isDarkMode;
+
+    showDialog(
+      context: context,
+      barrierColor: isDark ? Colors.black54 : Colors.black26,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+        icon: Icon(
+          Icons.warning_amber_rounded,
+          color: Colors.red.shade600,
+          size: 48,
+        ),
+        title: Text(
+          'Delete All Data?',
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'This will permanently delete ALL wallets, loyalty cards, identity cards, and associated images. This action cannot be undone.\n\n'
+          'It is recommended to create a backup first.',
+          style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: isDark ? Colors.white60 : Colors.black54),
+            ),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete Everything'),
+          ),
+        ],
+      ),
+    ).then((confirmed) async {
+      if (confirmed == true) {
+        // Second confirmation
+        final doubleConfirm = await showDialog<bool>(
+          context: context,
+          barrierColor: isDark ? Colors.black54 : Colors.black26,
+          builder: (context) => AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+            title: Text(
+              'Final Confirmation',
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Text(
+              'Are you absolutely sure? Type "DELETE" to confirm.',
+              style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: isDark ? Colors.white60 : Colors.black54,
+                  ),
+                ),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.red.shade600,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Confirm Delete'),
+              ),
+            ],
+          ),
+        );
+
+        if (doubleConfirm == true) {
+          await _performDeleteAllData(context, themeProvider);
+        }
+      }
+    });
+  }
+
+  Future<void> _performDeleteAllData(
+    BuildContext context,
+    ThemeProvider themeProvider,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      // Delete all wallets
+      final wallets = await DatabaseHelper.instance.getWallets();
+      for (final wallet in wallets) {
+        if (wallet.id != null) {
+          await DatabaseHelper.instance.deleteWallet(wallet.id!);
+        }
+      }
+
+      // Delete all identities
+      final identities = await IdentityDatabaseHelper.instance
+          .getAllIdentities();
+      for (final identity in identities) {
+        if (identity.id != null) {
+          await IdentityDatabaseHelper.instance.deleteIdentity(identity.id!);
+        }
+      }
+
+      // Delete all loyalties
+      final loyalties = await LoyaltyDatabaseHelper.instance.getAllLoyalties();
+      for (final loyalty in loyalties) {
+        if (loyalty.id != null) {
+          await LoyaltyDatabaseHelper.instance.deleteLoyalty(loyalty.id!);
+        }
+      }
+
+      // Delete all image files from the app's documents directory
+      final directory = await getApplicationDocumentsDirectory();
+      final dir = Directory(directory.path);
+      if (await dir.exists()) {
+        final files = dir.listSync();
+        for (final file in files) {
+          if (file is File) {
+            final path = file.path;
+            // Delete image files (but NOT database files)
+            if (path.endsWith('.jpg') ||
+                path.endsWith('.jpeg') ||
+                path.endsWith('.png') ||
+                path.endsWith('.webp') ||
+                path.endsWith('.bmp') ||
+                path.endsWith('.enc')) {
+              await file.delete();
+            }
+          }
+        }
+      }
+
+      // Clear secure storage (encryption key)
+      const secureStorage = FlutterSecureStorage();
+      await secureStorage.deleteAll();
+
+      // Refresh providers
+      await context.read<WalletProvider>().fetchWallets();
+      await context.read<LoyaltyProvider>().fetchLoyalties();
+      await context.read<IdentityProvider>().fetchIdentities();
+
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Text('All data has been permanently deleted'),
+          backgroundColor: Colors.red.shade600,
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete all data: $e'),
+          backgroundColor: Colors.red.shade600,
+        ),
+      );
+    }
   }
 }
 

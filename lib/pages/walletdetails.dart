@@ -7,11 +7,13 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/dataentry.dart';
 import 'package:wallet/screens/homescreen.dart';
+import 'package:wallet/services/encryption_service.dart';
 import '../models/db_helper.dart';
 import '../models/provider_helper.dart';
 import '../models/theme_provider.dart';
 import '../services/card_utils.dart';
 import '../widgets/glass_credit_card.dart';
+import '../widgets/encrypted_image_display.dart';
 
 // FullScreenImageViewer with liquid glass theme
 class FullScreenImageViewer extends StatelessWidget {
@@ -90,18 +92,34 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
   }
 
   Widget _buildImageThumbnail(String imagePath, String label, bool isDark) {
-    final imageFile = File(imagePath);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
         children: [
           GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              SmoothPageRoute(
-                page: FullScreenImageViewer(imageFile: imageFile),
-              ),
-            ),
+            onTap: () {
+              // Decrypt and show full screen image
+              EncryptionService.instance.decryptImageFile(imagePath).then((
+                decryptedPath,
+              ) {
+                if (decryptedPath != null && mounted) {
+                  Navigator.push(
+                    context,
+                    SmoothPageRoute(
+                      page: FullScreenImageViewer(
+                        imageFile: File(decryptedPath),
+                      ),
+                    ),
+                  ).then((_) {
+                    // Cleanup temp file after returning
+                    final tempFile = File(decryptedPath);
+                    if (tempFile.existsSync()) {
+                      tempFile.deleteSync();
+                    }
+                  });
+                }
+              });
+            },
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
@@ -122,14 +140,14 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.file(
-                  imageFile,
+                child: EncryptedImageDisplay(
+                  imagePath: imagePath,
                   height: 100,
                   width: 150,
                   fit: BoxFit.cover,
                   cacheHeight: 200,
                   cacheWidth: 300,
-                  errorBuilder: (c, e, s) => Container(
+                  errorWidget: Container(
                     height: 100,
                     width: 150,
                     color: isDark

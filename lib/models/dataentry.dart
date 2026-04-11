@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/services/card_utils.dart';
+import 'package:wallet/services/encryption_service.dart';
 import 'package:wallet/widgets/glass_credit_card.dart';
 import 'package:wallet/widgets/barcode_card.dart';
 import 'package:path/path.dart' as p;
@@ -359,6 +360,11 @@ class ImagePickerWidget extends StatelessWidget {
 }
 
 // ... (saveImageToAppDirectory function remains the same) ...
+/// Saves an image to the app's documents directory and encrypts it.
+///
+/// The image is first copied to the app directory, then encrypted using
+/// AES-256-CBC. The original unencrypted file is deleted after encryption.
+/// Returns the path to the encrypted file (.enc extension).
 Future<String?> saveImageToAppDirectory(File imageFile) async {
   try {
     final directory = await getApplicationDocumentsDirectory();
@@ -366,9 +372,15 @@ Future<String?> saveImageToAppDirectory(File imageFile) async {
     final newFileName = '${const Uuid().v4()}$fileExtension';
     final newPath = p.join(directory.path, newFileName);
     final newFile = await imageFile.copy(newPath);
-    return newFile.path;
+
+    // Encrypt the saved image file
+    final encryptedPath = await EncryptionService.instance.encryptImageFile(
+      newFile.path,
+    );
+
+    return encryptedPath;
   } catch (e) {
-    debugPrint("Error saving image: $e");
+    debugPrint("Error saving/encrypting image: $e");
     return null;
   }
 }

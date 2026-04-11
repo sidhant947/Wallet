@@ -6,6 +6,8 @@ import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/pages/walletdetails.dart';
 import 'package:wallet/screens/homescreen.dart';
+import 'package:wallet/services/encryption_service.dart';
+import 'package:wallet/widgets/encrypted_image_display.dart';
 
 class BarcodeCardDetailScreen extends StatelessWidget {
   final Loyalty? loyalty;
@@ -303,19 +305,32 @@ class BarcodeCardDetailScreen extends StatelessWidget {
     String label,
     bool isDark,
   ) {
-    final imageFile = File(imagePath);
-
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Column(
         children: [
           GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              SmoothPageRoute(
-                page: FullScreenImageViewer(imageFile: imageFile),
-              ),
-            ),
+            onTap: () {
+              EncryptionService.instance.decryptImageFile(imagePath).then((
+                decryptedPath,
+              ) {
+                if (decryptedPath != null) {
+                  Navigator.push(
+                    context,
+                    SmoothPageRoute(
+                      page: FullScreenImageViewer(
+                        imageFile: File(decryptedPath),
+                      ),
+                    ),
+                  ).then((_) {
+                    final tempFile = File(decryptedPath);
+                    if (tempFile.existsSync()) {
+                      tempFile.deleteSync();
+                    }
+                  });
+                }
+              });
+            },
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
@@ -329,14 +344,14 @@ class BarcodeCardDetailScreen extends StatelessWidget {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.file(
-                  imageFile,
+                child: EncryptedImageDisplay(
+                  imagePath: imagePath,
                   height: 100,
                   width: 150,
                   fit: BoxFit.cover,
                   cacheHeight: 200,
                   cacheWidth: 300,
-                  errorBuilder: (c, e, s) => Container(
+                  errorWidget: Container(
                     height: 100,
                     width: 150,
                     decoration: BoxDecoration(
