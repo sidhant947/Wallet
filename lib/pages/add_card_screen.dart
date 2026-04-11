@@ -102,7 +102,7 @@ class _AddCardScreenState extends State<AddCardScreen>
                     ),
                     dividerColor: Colors.transparent,
                     tabs: [
-                      _buildTab(Icons.credit_card_rounded, 'Credit/Debit'),
+                      _buildTab(Icons.credit_card_rounded, 'Payments'),
                       _buildTab(Icons.shopping_basket_rounded, 'Loyalty'),
                       _buildTab(Icons.fingerprint_rounded, 'Identity'),
                     ],

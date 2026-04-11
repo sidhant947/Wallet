@@ -10,6 +10,7 @@ import 'package:wallet/screens/homescreen.dart';
 import '../models/db_helper.dart';
 import '../models/provider_helper.dart';
 import '../models/theme_provider.dart';
+import '../services/card_utils.dart';
 import '../widgets/glass_credit_card.dart';
 
 // FullScreenImageViewer with liquid glass theme
@@ -385,7 +386,14 @@ class WalletEditScreenState extends State<WalletEditScreen> {
     }
 
     _nameController.addListener(_updatePreview);
-    _numberController.addListener(_updatePreview);
+    _numberController.addListener(() {
+      // Auto-detect and select card network
+      final detected = CardUtils.detectCardNetwork(_numberController.text);
+      if (detected != null && detected != _network) {
+        setState(() => _network = detected);
+      }
+      _updatePreview();
+    });
     _expiryController.addListener(_updatePreview);
   }
 
@@ -447,6 +455,12 @@ class WalletEditScreenState extends State<WalletEditScreen> {
       _customFieldNameControllers.removeAt(index);
       _customFieldValueControllers.removeAt(index);
     });
+  }
+
+  /// Get maximum card number length based on selected network
+  int _getMaxCardLength(String network) {
+    final validLengths = CardUtils.getValidLengthsForNetwork(network);
+    return validLengths.reduce((a, b) => a > b ? a : b);
   }
 
   void _saveUpdatedDetails() async {
@@ -583,10 +597,26 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                   keyboardType: TextInputType.number,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(16),
+                    LengthLimitingTextInputFormatter(
+                      _getMaxCardLength(_network),
+                    ),
                   ],
-                  validator: (v) =>
-                      v!.length < 15 ? 'Enter a valid number' : null,
+                  validator: (v) {
+                    if (v == null || v.isEmpty) {
+                      return 'Please enter a card number';
+                    }
+                    final detectedNetwork = CardUtils.detectCardNetwork(v);
+                    if (detectedNetwork == null) {
+                      return 'Unable to detect card network';
+                    }
+                    if (!CardUtils.isValidLengthForNetwork(
+                      v,
+                      detectedNetwork,
+                    )) {
+                      return CardUtils.getLengthErrorMessage(detectedNetwork);
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
@@ -767,6 +797,7 @@ class WalletEditScreenState extends State<WalletEditScreen> {
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
+    Widget? suffixIcon,
   }) {
     final textColor = isDark ? Colors.white : Colors.black;
 
@@ -792,6 +823,7 @@ class WalletEditScreenState extends State<WalletEditScreen> {
           labelText: label,
           labelStyle: TextStyle(color: textColor.withOpacity(0.5)),
           border: InputBorder.none,
+          suffixIcon: suffixIcon,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 14,
