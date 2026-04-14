@@ -69,7 +69,7 @@ class BarcodeCardDetailScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withAlpha(15),
+                  color: Colors.black.withValues(alpha: 15),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -310,33 +310,29 @@ class BarcodeCardDetailScreen extends StatelessWidget {
       child: Column(
         children: [
           GestureDetector(
-            onTap: () {
-              EncryptionService.instance.decryptImageFile(imagePath).then((
-                decryptedPath,
-              ) {
-                if (decryptedPath != null) {
-                  Navigator.push(
-                    context,
-                    SmoothPageRoute(
-                      page: FullScreenImageViewer(
-                        imageFile: File(decryptedPath),
-                      ),
-                    ),
-                  ).then((_) {
-                    final tempFile = File(decryptedPath);
-                    if (tempFile.existsSync()) {
-                      tempFile.deleteSync();
-                    }
-                  });
+            onTap: () async {
+              final decryptedPath = await EncryptionService.instance
+                  .decryptImageFile(imagePath);
+              if (decryptedPath != null && context.mounted) {
+                await Navigator.push(
+                  context,
+                  SmoothPageRoute(
+                    page: FullScreenImageViewer(imageFile: File(decryptedPath)),
+                  ),
+                );
+                // Clean up temp file after navigation
+                final tempFile = File(decryptedPath);
+                if (tempFile.existsSync()) {
+                  tempFile.deleteSync();
                 }
-              });
+              }
             },
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withAlpha(20),
+                    color: Colors.black.withValues(alpha: 20),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),

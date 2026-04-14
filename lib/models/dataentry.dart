@@ -148,7 +148,7 @@ class ColorPicker extends StatelessWidget {
           child: Text(
             'Card Style',
             style: TextStyle(
-              color: textColor.withOpacity(0.5),
+              color: textColor.withValues(alpha: 0.5),
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -190,13 +190,13 @@ class ColorPicker extends StatelessWidget {
                       border: Border.all(
                         color: isSelected
                             ? (isDark ? Colors.white : Colors.black)
-                            : Colors.white.withOpacity(0.15),
+                            : Colors.white.withValues(alpha: 0.15),
                         width: isSelected ? 2.5 : 1,
                       ),
                       boxShadow: isSelected
                           ? [
                               BoxShadow(
-                                color: colorData.secondary.withOpacity(0.4),
+                                color: colorData.secondary.withValues(alpha: 0.4),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
@@ -220,8 +220,8 @@ class ColorPicker extends StatelessWidget {
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                                 colors: [
-                                  Colors.white.withOpacity(0.2),
-                                  Colors.white.withOpacity(0.0),
+                                  Colors.white.withValues(alpha: 0.2),
+                                  Colors.white.withValues(alpha: 0.0),
                                 ],
                               ),
                             ),
@@ -315,7 +315,7 @@ class ImagePickerWidget extends StatelessWidget {
                     side: BorderSide(
                       color: Theme.of(
                         context,
-                      ).colorScheme.primary.withAlpha(128),
+                      ).colorScheme.primary.withValues(alpha: 128),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -572,8 +572,8 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
                           detectedNetwork.toUpperCase(),
                           style: TextStyle(
                             color: isDark
-                                ? Colors.white.withAlpha(179)
-                                : Colors.black.withAlpha(179),
+                                ? Colors.white.withValues(alpha: 179)
+                                : Colors.black.withValues(alpha: 179),
                             fontWeight: FontWeight.w600,
                             fontSize: 12,
                           ),
@@ -909,7 +909,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           style: OutlinedButton.styleFrom(
             minimumSize: const Size.fromHeight(50),
             side: BorderSide(
-              color: Theme.of(context).colorScheme.primary.withAlpha(128),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 128),
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -1024,7 +1024,7 @@ class _FormSection extends StatelessWidget {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 10),
+          BoxShadow(color: Colors.black.withValues(alpha: 13), blurRadius: 10),
         ],
       ),
       child: Column(

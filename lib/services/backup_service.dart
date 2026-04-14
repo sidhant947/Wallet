@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/services/encryption_service.dart';
 
@@ -62,6 +62,21 @@ class BackupService {
 
   // Restore from encrypted backup using Storage Access Framework
   static Future<void> restoreBackup(String password) async {
+    // Store current data for rollback in case of failure
+    final List<Wallet> backupWallets;
+    final List<Identity> backupIdentities;
+    final List<Loyalty> backupLoyalties;
+
+    try {
+      // Backup current data before clearing
+      backupWallets = await DatabaseHelper.instance.getWallets();
+      backupIdentities = await IdentityDatabaseHelper.instance
+          .getAllIdentities();
+      backupLoyalties = await LoyaltyDatabaseHelper.instance.getAllLoyalties();
+    } catch (e) {
+      throw Exception('Failed to backup current data: $e');
+    }
+
     try {
       // Pick backup file using Storage Access Framework
       // This doesn't require storage permissions on Android
@@ -108,7 +123,7 @@ class BackupService {
         throw Exception('Incompatible backup version');
       }
 
-      // Clear existing data (optional - you might want to ask user)
+      // Clear existing data
       await _clearAllData();
 
       // Restore wallets — data from backup is plaintext, insertWallet
@@ -135,32 +150,41 @@ class BackupService {
         await LoyaltyDatabaseHelper.instance.insertLoyalty(loyalty);
       }
     } catch (e) {
+      // Rollback: restore the previous data
+      debugPrint('BackupService: Restore failed, rolling back...: $e');
+      try {
+        await _clearAllData();
+
+        for (final wallet in backupWallets) {
+          await DatabaseHelper.instance.insertWallet(wallet);
+        }
+        for (final identity in backupIdentities) {
+          await IdentityDatabaseHelper.instance.insertIdentity(identity);
+        }
+        for (final loyalty in backupLoyalties) {
+          await LoyaltyDatabaseHelper.instance.insertLoyalty(loyalty);
+        }
+        debugPrint('BackupService: Rollback successful');
+      } catch (rollbackError) {
+        debugPrint('BackupService: Rollback failed: $rollbackError');
+        throw Exception(
+          'Restore failed and rollback also failed: $e\nRollback error: $rollbackError',
+        );
+      }
       throw Exception('Failed to restore backup: $e');
     }
   }
 
   // Clear all existing data before restore
   static Future<void> _clearAllData() async {
-    // Get all existing data and delete
-    final wallets = await DatabaseHelper.instance.getWallets();
-    for (final wallet in wallets) {
-      if (wallet.id != null) {
-        await DatabaseHelper.instance.deleteWallet(wallet.id!);
-      }
-    }
+    // Use direct database delete for efficiency instead of fetching and looping
+    final db = await DatabaseHelper.instance.database;
+    await db.delete('wallets');
 
-    final identities = await IdentityDatabaseHelper.instance.getAllIdentities();
-    for (final identity in identities) {
-      if (identity.id != null) {
-        await IdentityDatabaseHelper.instance.deleteIdentity(identity.id!);
-      }
-    }
+    final identityDb = await IdentityDatabaseHelper.instance.database;
+    await identityDb.delete('identities');
 
-    final loyalties = await LoyaltyDatabaseHelper.instance.getAllLoyalties();
-    for (final loyalty in loyalties) {
-      if (loyalty.id != null) {
-        await LoyaltyDatabaseHelper.instance.deleteLoyalty(loyalty.id!);
-      }
-    }
+    final loyaltyDb = await LoyaltyDatabaseHelper.instance.database;
+    await loyaltyDb.delete('loyalties');
   }
 }

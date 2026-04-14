@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+// ignore_for_file: deprecated_member_use
 
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -10,9 +10,36 @@ import 'package:wallet/services/backup_service.dart';
 import 'package:wallet/models/provider_helper.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  String _appVersion = 'Loading...';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _appVersion = 'v${packageInfo.version} (${packageInfo.buildNumber})';
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load version: $e');
+    }
+  }
 
   String _getThemeDisplayName(ThemePreference preference) {
     switch (preference) {
@@ -251,7 +278,7 @@ class SettingsPage extends StatelessWidget {
               _LiquidGlassTile(
                 icon: Icons.favorite_outline_rounded,
                 title: 'Made with ❤️ by Sidhant',
-                subtitle: 'Version 1.0.0',
+                subtitle: _appVersion,
               ),
             ],
           ),
@@ -424,14 +451,12 @@ class SettingsPage extends StatelessWidget {
 
   void _showBackupDialog(BuildContext context, ThemeProvider themeProvider) {
     final passwordController = TextEditingController();
-    final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final isDark = themeProvider.isDarkMode;
 
     showDialog(
       context: context,
       barrierColor: isDark ? Colors.black54 : Colors.black26,
-      builder: (context) => _LiquidGlassPasswordDialog(
+      builder: (dialogContext) => _LiquidGlassPasswordDialog(
         title: 'Create Backup',
         content:
             'Enter a strong password to encrypt your backup file. Do not forget this password.',
@@ -440,27 +465,33 @@ class SettingsPage extends StatelessWidget {
         isDark: isDark,
         onConfirm: () async {
           if (passwordController.text.isEmpty) return;
+          final navigator = Navigator.of(dialogContext);
+          final messenger = ScaffoldMessenger.of(dialogContext);
           try {
             final backupPath = await BackupService.createBackup(
               passwordController.text,
             );
 
-            navigator.pop();
-            messenger.showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Backup created successfully! Saved to: $backupPath',
+            if (dialogContext.mounted) {
+              navigator.pop();
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Backup created successfully! Saved to: $backupPath',
+                  ),
+                  backgroundColor: Colors.green.shade600,
                 ),
-                backgroundColor: Colors.green.shade600,
-              ),
-            );
+              );
+            }
           } catch (e) {
-            messenger.showSnackBar(
-              SnackBar(
-                content: Text('Backup failed: $e'),
-                backgroundColor: Colors.red.shade600,
-              ),
-            );
+            if (dialogContext.mounted) {
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text('Backup failed: $e'),
+                  backgroundColor: Colors.red.shade600,
+                ),
+              );
+            }
           }
         },
       ),
@@ -473,14 +504,12 @@ class SettingsPage extends StatelessWidget {
     WalletProvider walletProvider,
   ) {
     final passwordController = TextEditingController();
-    final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final isDark = themeProvider.isDarkMode;
 
     showDialog(
       context: context,
       barrierColor: isDark ? Colors.black54 : Colors.black26,
-      builder: (context) => _LiquidGlassPasswordDialog(
+      builder: (dialogContext) => _LiquidGlassPasswordDialog(
         title: 'Restore Backup',
         content:
             'This will replace all current data. Enter the password for the backup file.',
@@ -490,12 +519,16 @@ class SettingsPage extends StatelessWidget {
         isDark: isDark,
         onConfirm: () async {
           if (passwordController.text.isEmpty) return;
+          final navigator = Navigator.of(dialogContext);
+          final messenger = ScaffoldMessenger.of(dialogContext);
+          final walletProvider = dialogContext.read<WalletProvider>();
+          final loyaltyProvider = dialogContext.read<LoyaltyProvider>();
+          final identityProvider = dialogContext.read<IdentityProvider>();
           try {
             await BackupService.restoreBackup(passwordController.text);
-            await context.read<WalletProvider>().fetchWallets();
-            await context.read<LoyaltyProvider>().fetchLoyalties();
-            await context.read<IdentityProvider>().fetchIdentities();
-
+            await walletProvider.fetchWallets();
+            await loyaltyProvider.fetchLoyalties();
+            await identityProvider.fetchIdentities();
             navigator.pop();
             messenger.showSnackBar(
               SnackBar(
@@ -525,7 +558,7 @@ class SettingsPage extends StatelessWidget {
     showDialog(
       context: context,
       barrierColor: isDark ? Colors.black54 : Colors.black26,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
         icon: Icon(
           Icons.warning_amber_rounded,
@@ -546,14 +579,14 @@ class SettingsPage extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               'Cancel',
               style: TextStyle(color: isDark ? Colors.white60 : Colors.black54),
             ),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             style: FilledButton.styleFrom(
               backgroundColor: Colors.red.shade600,
               foregroundColor: Colors.white,
@@ -563,12 +596,12 @@ class SettingsPage extends StatelessWidget {
         ],
       ),
     ).then((confirmed) async {
-      if (confirmed == true) {
+      if (confirmed == true && context.mounted) {
         // Second confirmation
         final doubleConfirm = await showDialog<bool>(
           context: context,
           barrierColor: isDark ? Colors.black54 : Colors.black26,
-          builder: (context) => AlertDialog(
+          builder: (doubleConfirmContext) => AlertDialog(
             backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
             title: Text(
               'Final Confirmation',
@@ -583,7 +616,7 @@ class SettingsPage extends StatelessWidget {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context, false),
+                onPressed: () => Navigator.pop(doubleConfirmContext, false),
                 child: Text(
                   'Cancel',
                   style: TextStyle(
@@ -592,7 +625,7 @@ class SettingsPage extends StatelessWidget {
                 ),
               ),
               FilledButton(
-                onPressed: () => Navigator.pop(context, true),
+                onPressed: () => Navigator.pop(doubleConfirmContext, true),
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.red.shade600,
                   foregroundColor: Colors.white,
@@ -603,7 +636,7 @@ class SettingsPage extends StatelessWidget {
           ),
         );
 
-        if (doubleConfirm == true) {
+        if (doubleConfirm == true && context.mounted) {
           await _performDeleteAllData(context, themeProvider);
         }
       }
@@ -615,6 +648,9 @@ class SettingsPage extends StatelessWidget {
     ThemeProvider themeProvider,
   ) async {
     final messenger = ScaffoldMessenger.of(context);
+    final walletProvider = context.read<WalletProvider>();
+    final loyaltyProvider = context.read<LoyaltyProvider>();
+    final identityProvider = context.read<IdentityProvider>();
 
     try {
       // Delete all wallets
@@ -668,9 +704,9 @@ class SettingsPage extends StatelessWidget {
       await secureStorage.deleteAll();
 
       // Refresh providers
-      await context.read<WalletProvider>().fetchWallets();
-      await context.read<LoyaltyProvider>().fetchLoyalties();
-      await context.read<IdentityProvider>().fetchIdentities();
+      await walletProvider.fetchWallets();
+      await loyaltyProvider.fetchLoyalties();
+      await identityProvider.fetchIdentities();
 
       messenger.showSnackBar(
         SnackBar(

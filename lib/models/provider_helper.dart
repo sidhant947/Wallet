@@ -205,8 +205,8 @@ class LoyaltyProvider with ChangeNotifier {
       loyalties[i].orderIndex = i;
     }
 
-    notifyListeners();
     await LoyaltyDatabaseHelper.instance.updateLoyaltiesOrder(loyalties);
+    notifyListeners();
   }
 }
 
@@ -236,7 +236,7 @@ class IdentityProvider with ChangeNotifier {
       identities[i].orderIndex = i;
     }
 
-    notifyListeners();
     await IdentityDatabaseHelper.instance.updateIdentitiesOrder(identities);
+    notifyListeners();
   }
 }

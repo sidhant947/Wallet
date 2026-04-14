@@ -1,5 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -184,12 +182,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       appBar: AppBar(
         leading: Container(
           margin: const EdgeInsets.all(8),
-          // decoration: BoxDecoration(
-          //   color: isDark
-          //       ? Colors.white.withAlpha(20)
-          //       : Colors.black.withAlpha(13),
-          //   borderRadius: BorderRadius.circular(12),
-          // ),
           child: IconButton(
             icon: Icon(
               Icons.star,
@@ -198,12 +190,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             onPressed: () async {
               HapticFeedback.lightImpact();
               const url = 'https://github.com/sidhant947/Wallet';
-              if (await launchUrl(
+              await launchUrl(
                 Uri.parse(url),
                 mode: LaunchMode.externalApplication,
-              )) {
-                // launched
-              }
+              );
             },
           ),
         ),
@@ -213,8 +203,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withAlpha(20)
-                  : Colors.black.withAlpha(13),
+                  ? Colors.white.withValues(alpha: 20)
+                  : Colors.black.withValues(alpha: 13),
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
@@ -239,8 +229,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           boxShadow: [
             BoxShadow(
               color: isDark
-                  ? Colors.white.withAlpha(26)
-                  : Colors.black.withAlpha(38),
+                  ? Colors.white.withValues(alpha: 26)
+                  : Colors.black.withValues(alpha: 38),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -249,6 +239,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         child: FloatingActionButton(
           onPressed: () async {
             HapticFeedback.mediumImpact();
+            final walletProvider = context.read<WalletProvider>();
+            final loyaltyProvider = context.read<LoyaltyProvider>();
+            final identityProvider = context.read<IdentityProvider>();
             final result = await Navigator.push(
               context,
               SmoothPageRoute(
@@ -256,9 +249,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             );
             if (result == true && mounted) {
-              context.read<WalletProvider>().fetchWallets();
-              context.read<LoyaltyProvider>().fetchLoyalties();
-              context.read<IdentityProvider>().fetchIdentities();
+              await walletProvider.fetchWallets();
+              await loyaltyProvider.fetchLoyalties();
+              await identityProvider.fetchIdentities();
             }
           },
           child: const Icon(Icons.add_rounded),
@@ -286,8 +279,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 border: Border(
                   top: BorderSide(
                     color: isDark
-                        ? Colors.white.withAlpha(20)
-                        : Colors.black.withAlpha(13),
+                        ? Colors.white.withValues(alpha: 20)
+                        : Colors.black.withValues(alpha: 13),
                   ),
                 ),
               ),
@@ -393,12 +386,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
                     color: isDark
-                        ? Colors.white.withAlpha(15)
-                        : Colors.black.withAlpha(8),
+                        ? Colors.white.withValues(alpha: 15)
+                        : Colors.black.withValues(alpha: 8),
                     border: Border.all(
                       color: isDark
-                          ? Colors.white.withAlpha(26)
-                          : Colors.black.withAlpha(15),
+                          ? Colors.white.withValues(alpha: 26)
+                          : Colors.black.withValues(alpha: 15),
                     ),
                   ),
                   child: TextField(
@@ -521,16 +514,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 label: 'Copy',
                               ),
                               SlidableAction(
-                                onPressed: (context) async {
+                                onPressed: (ctx) async {
                                   HapticFeedback.mediumImpact();
                                   await context
                                       .read<WalletProvider>()
                                       .deleteWallet(wallet.id!);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Card deleted'),
-                                    ),
-                                  );
+                                  if (ctx.mounted) {
+                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Card deleted'),
+                                      ),
+                                    );
+                                  }
                                 },
                                 backgroundColor: Colors.transparent,
                                 foregroundColor: Colors.red,
@@ -580,14 +575,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               label: 'Copy',
                             ),
                             SlidableAction(
-                              onPressed: (context) async {
+                              onPressed: (ctx) async {
                                 HapticFeedback.mediumImpact();
                                 await context
                                     .read<WalletProvider>()
                                     .deleteWallet(wallet.id!);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Card deleted')),
-                                );
+                                if (ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Card deleted'),
+                                    ),
+                                  );
+                                }
                               },
                               backgroundColor: Colors.transparent,
                               foregroundColor: Colors.red,

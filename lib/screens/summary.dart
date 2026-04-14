@@ -94,8 +94,8 @@ class Summary extends StatelessWidget {
         margin: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: isDark
-              ? Colors.white.withOpacity(0.08)
-              : Colors.black.withOpacity(0.05),
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.black.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
         ),
         child: IconButton(
@@ -134,7 +134,10 @@ class _LiquidGlassIncompleteCardsSection extends StatelessWidget {
         children: [
           Text(
             "The following cards are missing key financial details. Update them for a more accurate summary.",
-            style: TextStyle(color: textColor.withOpacity(0.6), fontSize: 14),
+            style: TextStyle(
+              color: textColor.withValues(alpha: 0.6),
+              fontSize: 14,
+            ),
           ),
           const SizedBox(height: 12),
           ...incompleteCards.map((wallet) {
@@ -142,8 +145,8 @@ class _LiquidGlassIncompleteCardsSection extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
                 color: isDark
-                    ? Colors.white.withOpacity(0.05)
-                    : Colors.black.withOpacity(0.02),
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.02),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: ListTile(
@@ -153,13 +156,13 @@ class _LiquidGlassIncompleteCardsSection extends StatelessWidget {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.white.withOpacity(0.08)
-                        : Colors.black.withOpacity(0.05),
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.black.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     Icons.credit_card_outlined,
-                    color: textColor.withOpacity(0.6),
+                    color: textColor.withValues(alpha: 0.6),
                     size: 18,
                   ),
                 ),
@@ -167,7 +170,7 @@ class _LiquidGlassIncompleteCardsSection extends StatelessWidget {
                 trailing: Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 14,
-                  color: textColor.withOpacity(0.3),
+                  color: textColor.withValues(alpha: 0.3),
                 ),
                 onTap: () => Navigator.push(
                   context,
@@ -247,14 +250,14 @@ class _LiquidGlassFinancialOverviewCard extends StatelessWidget {
                 "Utilization",
                 style: TextStyle(
                   fontSize: 12,
-                  color: textColor.withOpacity(0.5),
+                  color: textColor.withValues(alpha: 0.5),
                 ),
               ),
             ),
             circularStrokeCap: CircularStrokeCap.round,
             progressColor: isDark ? Colors.white : Colors.black,
-            backgroundColor: (isDark ? Colors.white : Colors.black).withOpacity(
-              0.15,
+            backgroundColor: (isDark ? Colors.white : Colors.black).withValues(
+              alpha: 0.15,
             ),
           ),
         ],
@@ -293,8 +296,8 @@ class _LiquidGlassCardDistributionSection extends StatelessWidget {
             Divider(
               height: 32,
               color: isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.08),
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.black.withValues(alpha: 0.08),
             ),
             _buildDistributionRow("Issuers", issuerCounts, textColor),
           ],
@@ -302,8 +305,8 @@ class _LiquidGlassCardDistributionSection extends StatelessWidget {
             Divider(
               height: 32,
               color: isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.08),
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.black.withValues(alpha: 0.08),
             ),
             _buildDistributionRow("Types", cardTypeCounts, textColor),
           ],
@@ -334,13 +337,13 @@ class _LiquidGlassCardDistributionSection extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 color: isDark
-                    ? Colors.white.withOpacity(0.08)
-                    : Colors.black.withOpacity(0.05),
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.black.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isDark
-                      ? Colors.white.withOpacity(0.1)
-                      : Colors.black.withOpacity(0.08),
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.black.withValues(alpha: 0.08),
                 ),
               ),
               child: Text(
@@ -390,13 +393,13 @@ class _LiquidGlassUpcomingBillsSection extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: BoxDecoration(
                 color: isDark
-                    ? Colors.white.withOpacity(0.06)
-                    : Colors.black.withOpacity(0.03),
+                    ? Colors.white.withValues(alpha: 0.06)
+                    : Colors.black.withValues(alpha: 0.03),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: isDark
-                      ? Colors.white.withOpacity(0.1)
-                      : Colors.black.withOpacity(0.06),
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.black.withValues(alpha: 0.06),
                 ),
               ),
               child: Column(
@@ -413,7 +416,7 @@ class _LiquidGlassUpcomingBillsSection extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     "Day ${item['date']}",
-                    style: TextStyle(color: textColor.withOpacity(0.6)),
+                    style: TextStyle(color: textColor.withValues(alpha: 0.6)),
                   ),
                 ],
               ),
@@ -456,8 +459,8 @@ class _LiquidGlassInsightsSection extends StatelessWidget {
             Divider(
               height: 28,
               color: isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.08),
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.black.withValues(alpha: 0.08),
             ),
           if (highestLimitCard != null)
             _InfoRow(
@@ -515,8 +518,8 @@ class _LiquidGlassFeeWaiverSection extends StatelessWidget {
                   height: 8,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(4),
-                    color: (isDark ? Colors.white : Colors.black).withOpacity(
-                      0.1,
+                    color: (isDark ? Colors.white : Colors.black).withValues(
+                      alpha: 0.1,
                     ),
                   ),
                   child: FractionallySizedBox(
@@ -527,8 +530,14 @@ class _LiquidGlassFeeWaiverSection extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                         gradient: LinearGradient(
                           colors: isDark
-                              ? [Colors.white.withOpacity(0.8), Colors.white]
-                              : [Colors.black.withOpacity(0.7), Colors.black],
+                              ? [
+                                  Colors.white.withValues(alpha: 0.8),
+                                  Colors.white,
+                                ]
+                              : [
+                                  Colors.black.withValues(alpha: 0.7),
+                                  Colors.black,
+                                ],
                         ),
                       ),
                     ),
@@ -541,7 +550,7 @@ class _LiquidGlassFeeWaiverSection extends StatelessWidget {
                     "₹${spends.toStringAsFixed(0)} / ₹${waiver.toStringAsFixed(0)}",
                     style: TextStyle(
                       fontSize: 12,
-                      color: textColor.withOpacity(0.6),
+                      color: textColor.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -581,13 +590,13 @@ class _LiquidGlassSummarySection extends StatelessWidget {
           child: Row(
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 16, color: textColor.withOpacity(0.4)),
+                Icon(icon, size: 16, color: textColor.withValues(alpha: 0.4)),
                 const SizedBox(width: 8),
               ],
               Text(
                 title.toUpperCase(),
                 style: TextStyle(
-                  color: textColor.withOpacity(0.4),
+                  color: textColor.withValues(alpha: 0.4),
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
                   fontSize: 12,

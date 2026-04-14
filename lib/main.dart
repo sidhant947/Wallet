@@ -9,14 +9,10 @@ import 'package:wallet/services/encryption_service.dart';
 import 'models/provider_helper.dart';
 import 'screens/homescreen.dart';
 import 'package:provider/provider.dart';
-// import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:io' show Platform;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // This is for testing Only
-  // databaseFactory = databaseFactoryFfi;
 
   // Initialize AES-256 encryption service BEFORE any database operations.
   // This generates (or loads) the master encryption key from secure storage.

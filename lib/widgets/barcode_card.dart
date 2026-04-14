@@ -104,7 +104,7 @@ class _PremiumLoyaltyCardState extends State<_PremiumLoyaltyCard> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: widget.colorData.primary.withAlpha(80),
+                    color: widget.colorData.primary.withValues(alpha: 80),
                     blurRadius: 16,
                     offset: const Offset(0, 8),
                   ),
@@ -136,7 +136,7 @@ class _PremiumLoyaltyCardState extends State<_PremiumLoyaltyCard> {
                     Positioned.fill(
                       child: CustomPaint(
                         painter: _RewardPatternPainter(
-                          color: Colors.white.withAlpha(15),
+                          color: Colors.white.withValues(alpha: 15),
                         ),
                       ),
                     ),
@@ -170,10 +170,10 @@ class _PremiumLoyaltyCardState extends State<_PremiumLoyaltyCard> {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withAlpha(25),
+                                  color: Colors.white.withValues(alpha: 25),
                                   borderRadius: BorderRadius.circular(30),
                                   border: Border.all(
-                                    color: Colors.white.withAlpha(50),
+                                    color: Colors.white.withValues(alpha: 50),
                                     width: 0.5,
                                   ),
                                 ),
@@ -181,14 +181,14 @@ class _PremiumLoyaltyCardState extends State<_PremiumLoyaltyCard> {
                                   children: [
                                     Icon(
                                       Icons.stars_rounded,
-                                      color: Colors.white.withAlpha(230),
+                                      color: Colors.white.withValues(alpha: 230),
                                       size: 14,
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
                                       "LOYALTY",
                                       style: TextStyle(
-                                        color: Colors.white.withAlpha(230),
+                                        color: Colors.white.withValues(alpha: 230),
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
                                         letterSpacing: 1.5,
@@ -209,7 +209,7 @@ class _PremiumLoyaltyCardState extends State<_PremiumLoyaltyCard> {
                               Text(
                                 "REWARDS PROGRAM",
                                 style: TextStyle(
-                                  color: Colors.white.withAlpha(128),
+                                  color: Colors.white.withValues(alpha: 128),
                                   fontSize: 9,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 1.0,
@@ -243,7 +243,7 @@ class _PremiumLoyaltyCardState extends State<_PremiumLoyaltyCard> {
                                   Text(
                                     "MEMBERSHIP NUMBER",
                                     style: TextStyle(
-                                      color: Colors.white.withAlpha(128),
+                                      color: Colors.white.withValues(alpha: 128),
                                       fontSize: 9,
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 1.0,
@@ -254,7 +254,7 @@ class _PremiumLoyaltyCardState extends State<_PremiumLoyaltyCard> {
                                     widget.number,
                                     style: TextStyle(
                                       fontFamily: 'Courier',
-                                      color: Colors.white.withAlpha(230),
+                                      color: Colors.white.withValues(alpha: 230),
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
                                       letterSpacing: 1.5,
@@ -264,7 +264,7 @@ class _PremiumLoyaltyCardState extends State<_PremiumLoyaltyCard> {
                               ),
                               Icon(
                                 Icons.qr_code_2_rounded,
-                                color: Colors.white.withAlpha(150),
+                                color: Colors.white.withValues(alpha: 150),
                                 size: 32,
                               ),
                             ],
@@ -281,7 +281,7 @@ class _PremiumLoyaltyCardState extends State<_PremiumLoyaltyCard> {
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [
-                              Colors.white.withAlpha(25),
+                              Colors.white.withValues(alpha: 25),
                               Colors.transparent,
                               Colors.transparent,
                             ],
@@ -372,7 +372,7 @@ class _PremiumIdentityCardState extends State<_PremiumIdentityCard> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: widget.colorData.primary.withAlpha(80),
+                    color: widget.colorData.primary.withValues(alpha: 80),
                     blurRadius: 16,
                     offset: const Offset(0, 8),
                   ),
@@ -404,7 +404,7 @@ class _PremiumIdentityCardState extends State<_PremiumIdentityCard> {
                     Positioned.fill(
                       child: CustomPaint(
                         painter: _WorldMapPainter(
-                          color: Colors.white.withAlpha(15),
+                          color: Colors.white.withValues(alpha: 15),
                         ),
                       ),
                     ),
@@ -431,10 +431,10 @@ class _PremiumIdentityCardState extends State<_PremiumIdentityCard> {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withAlpha(25),
+                                  color: Colors.white.withValues(alpha: 25),
                                   borderRadius: BorderRadius.circular(30),
                                   border: Border.all(
-                                    color: Colors.white.withAlpha(50),
+                                    color: Colors.white.withValues(alpha: 50),
                                     width: 0.5,
                                   ),
                                 ),
@@ -442,14 +442,14 @@ class _PremiumIdentityCardState extends State<_PremiumIdentityCard> {
                                   children: [
                                     Icon(
                                       Icons.fingerprint,
-                                      color: Colors.white.withAlpha(230),
+                                      color: Colors.white.withValues(alpha: 230),
                                       size: 14,
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
                                       "IDENTITY",
                                       style: TextStyle(
-                                        color: Colors.white.withAlpha(230),
+                                        color: Colors.white.withValues(alpha: 230),
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
                                         letterSpacing: 1.5,
@@ -470,7 +470,7 @@ class _PremiumIdentityCardState extends State<_PremiumIdentityCard> {
                               Text(
                                 "NAME",
                                 style: TextStyle(
-                                  color: Colors.white.withAlpha(128),
+                                  color: Colors.white.withValues(alpha: 128),
                                   fontSize: 9,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 1.0,
@@ -504,7 +504,7 @@ class _PremiumIdentityCardState extends State<_PremiumIdentityCard> {
                                   Text(
                                     "ID NUMBER",
                                     style: TextStyle(
-                                      color: Colors.white.withAlpha(128),
+                                      color: Colors.white.withValues(alpha: 128),
                                       fontSize: 9,
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 1.0,
@@ -515,7 +515,7 @@ class _PremiumIdentityCardState extends State<_PremiumIdentityCard> {
                                     widget.number,
                                     style: TextStyle(
                                       fontFamily: 'Courier',
-                                      color: Colors.white.withAlpha(230),
+                                      color: Colors.white.withValues(alpha: 230),
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
                                       letterSpacing: 1.5,
@@ -525,7 +525,7 @@ class _PremiumIdentityCardState extends State<_PremiumIdentityCard> {
                               ),
                               Icon(
                                 Icons.qr_code_scanner_rounded,
-                                color: Colors.white.withAlpha(80),
+                                color: Colors.white.withValues(alpha: 80),
                                 size: 32,
                               ),
                             ],
@@ -542,7 +542,7 @@ class _PremiumIdentityCardState extends State<_PremiumIdentityCard> {
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [
-                              Colors.white.withAlpha(25),
+                              Colors.white.withValues(alpha: 25),
                               Colors.transparent,
                               Colors.transparent,
                             ],
@@ -573,7 +573,7 @@ class _HolographicSeal extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: RadialGradient(
-          colors: [Colors.white.withAlpha(25), Colors.white.withAlpha(0)],
+          colors: [Colors.white.withValues(alpha: 25), Colors.white.withValues(alpha: 0)],
         ),
       ),
       child: Center(
@@ -582,13 +582,13 @@ class _HolographicSeal extends StatelessWidget {
           height: 80,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withAlpha(25), width: 1),
+            border: Border.all(color: Colors.white.withValues(alpha: 25), width: 1),
           ),
           child: Center(
             child: Icon(
               Icons.shield_outlined,
               size: 40,
-              color: Colors.white.withAlpha(25),
+              color: Colors.white.withValues(alpha: 25),
             ),
           ),
         ),

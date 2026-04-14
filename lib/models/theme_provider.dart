@@ -106,18 +106,18 @@ class ThemeProvider with ChangeNotifier {
 
   /// Returns the glass background color based on theme
   Color get glassBackground => _isDarkMode
-      ? Colors.white.withOpacity(0.08)
-      : Colors.black.withOpacity(0.04);
+      ? Colors.white.withValues(alpha: 0.08)
+      : Colors.black.withValues(alpha: 0.04);
 
   /// Returns the glass border color based on theme
   Color get glassBorder => _isDarkMode
-      ? Colors.white.withOpacity(0.15)
-      : Colors.black.withOpacity(0.08);
+      ? Colors.white.withValues(alpha: 0.15)
+      : Colors.black.withValues(alpha: 0.08);
 
   /// Returns a subtle glass highlight for top edges
   Color get glassHighlight => _isDarkMode
-      ? Colors.white.withOpacity(0.2)
-      : Colors.white.withOpacity(0.7);
+      ? Colors.white.withValues(alpha: 0.2)
+      : Colors.white.withValues(alpha: 0.7);
 
   /// Returns card surface color for glass effect
   Color get glassSurface =>
@@ -163,7 +163,7 @@ class ThemeProvider with ChangeNotifier {
       textColor: Colors.white,
     ),
     iconTheme: const IconThemeData(color: Colors.white),
-    dividerColor: Colors.white.withOpacity(0.1),
+    dividerColor: Colors.white.withValues(alpha: 0.1),
     colorScheme: ColorScheme.dark(
       primary: Colors.white,
       secondary: Colors.white,
@@ -174,23 +174,23 @@ class ThemeProvider with ChangeNotifier {
       onSecondary: Colors.black,
       onSurface: Colors.white,
       error: Colors.red.shade400,
-      outline: Colors.white.withOpacity(0.15),
-      primaryContainer: Colors.white.withOpacity(0.1),
+      outline: Colors.white.withValues(alpha: 0.15),
+      primaryContainer: Colors.white.withValues(alpha: 0.1),
       onPrimaryContainer: Colors.white,
     ),
     pageTransitionsTheme: _pageTransitionsTheme,
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Colors.white.withOpacity(0.05),
-      hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
-      labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+      fillColor: Colors.white.withValues(alpha: 0.05),
+      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+      labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -211,12 +211,12 @@ class ThemeProvider with ChangeNotifier {
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: Colors.black,
       surfaceTintColor: Colors.transparent,
-      indicatorColor: Colors.white.withOpacity(0.15),
+      indicatorColor: Colors.white.withValues(alpha: 0.15),
       iconTheme: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
           return const IconThemeData(color: Colors.white);
         }
-        return IconThemeData(color: Colors.white.withOpacity(0.5));
+        return IconThemeData(color: Colors.white.withValues(alpha: 0.5));
       }),
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
@@ -226,23 +226,23 @@ class ThemeProvider with ChangeNotifier {
             fontWeight: FontWeight.w600,
           );
         }
-        return TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12);
+        return TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12);
       }),
     ),
     tabBarTheme: TabBarThemeData(
       labelColor: Colors.white,
-      unselectedLabelColor: Colors.white.withOpacity(0.5),
+      unselectedLabelColor: Colors.white.withValues(alpha: 0.5),
       indicatorColor: Colors.white,
       dividerColor: Colors.transparent,
     ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) return Colors.black;
-        return Colors.white.withOpacity(0.6);
+        return Colors.white.withValues(alpha: 0.6);
       }),
       trackColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) return Colors.white;
-        return Colors.white.withOpacity(0.2);
+        return Colors.white.withValues(alpha: 0.2);
       }),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
@@ -257,7 +257,7 @@ class ThemeProvider with ChangeNotifier {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: Colors.white,
-        side: BorderSide(color: Colors.white.withOpacity(0.3)),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     ),
@@ -279,17 +279,17 @@ class ThemeProvider with ChangeNotifier {
         }),
         foregroundColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) return Colors.black;
-          return Colors.white.withOpacity(0.6);
+          return Colors.white.withValues(alpha: 0.6);
         }),
         side: WidgetStateProperty.all(
-          BorderSide(color: Colors.white.withOpacity(0.15)),
+          BorderSide(color: Colors.white.withValues(alpha: 0.15)),
         ),
       ),
     ),
     chipTheme: ChipThemeData(
-      backgroundColor: Colors.white.withOpacity(0.08),
+      backgroundColor: Colors.white.withValues(alpha: 0.08),
       labelStyle: const TextStyle(color: Colors.white),
-      side: BorderSide(color: Colors.white.withOpacity(0.1)),
+      side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ),
     popupMenuTheme: PopupMenuThemeData(
@@ -297,7 +297,7 @@ class ThemeProvider with ChangeNotifier {
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.white.withOpacity(0.1)),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
       ),
     ),
     bottomSheetTheme: const BottomSheetThemeData(
@@ -345,7 +345,7 @@ class ThemeProvider with ChangeNotifier {
       textColor: Colors.black,
     ),
     iconTheme: const IconThemeData(color: Colors.black),
-    dividerColor: Colors.black.withOpacity(0.08),
+    dividerColor: Colors.black.withValues(alpha: 0.08),
     colorScheme: ColorScheme.light(
       primary: Colors.black,
       secondary: Colors.black,
@@ -356,23 +356,23 @@ class ThemeProvider with ChangeNotifier {
       onSecondary: Colors.white,
       onSurface: Colors.black,
       error: Colors.red.shade700,
-      outline: Colors.black.withOpacity(0.1),
-      primaryContainer: Colors.black.withOpacity(0.08),
+      outline: Colors.black.withValues(alpha: 0.1),
+      primaryContainer: Colors.black.withValues(alpha: 0.08),
       onPrimaryContainer: Colors.black,
     ),
     pageTransitionsTheme: _pageTransitionsTheme,
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Colors.black.withOpacity(0.03),
-      hintStyle: TextStyle(color: Colors.black.withOpacity(0.4)),
-      labelStyle: TextStyle(color: Colors.black.withOpacity(0.6)),
+      fillColor: Colors.black.withValues(alpha: 0.03),
+      hintStyle: TextStyle(color: Colors.black.withValues(alpha: 0.4)),
+      labelStyle: TextStyle(color: Colors.black.withValues(alpha: 0.6)),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: Colors.black.withOpacity(0.08)),
+        borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: Colors.black.withOpacity(0.08)),
+        borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -393,12 +393,12 @@ class ThemeProvider with ChangeNotifier {
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
-      indicatorColor: Colors.black.withOpacity(0.1),
+      indicatorColor: Colors.black.withValues(alpha: 0.1),
       iconTheme: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
           return const IconThemeData(color: Colors.black);
         }
-        return IconThemeData(color: Colors.black.withOpacity(0.4));
+        return IconThemeData(color: Colors.black.withValues(alpha: 0.4));
       }),
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
@@ -408,23 +408,23 @@ class ThemeProvider with ChangeNotifier {
             fontWeight: FontWeight.w600,
           );
         }
-        return TextStyle(color: Colors.black.withOpacity(0.4), fontSize: 12);
+        return TextStyle(color: Colors.black.withValues(alpha: 0.4), fontSize: 12);
       }),
     ),
     tabBarTheme: TabBarThemeData(
       labelColor: Colors.black,
-      unselectedLabelColor: Colors.black.withOpacity(0.4),
+      unselectedLabelColor: Colors.black.withValues(alpha: 0.4),
       indicatorColor: Colors.black,
       dividerColor: Colors.transparent,
     ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) return Colors.white;
-        return Colors.black.withOpacity(0.4);
+        return Colors.black.withValues(alpha: 0.4);
       }),
       trackColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) return Colors.black;
-        return Colors.black.withOpacity(0.15);
+        return Colors.black.withValues(alpha: 0.15);
       }),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
@@ -439,7 +439,7 @@ class ThemeProvider with ChangeNotifier {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: Colors.black,
-        side: BorderSide(color: Colors.black.withOpacity(0.2)),
+        side: BorderSide(color: Colors.black.withValues(alpha: 0.2)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     ),
@@ -461,17 +461,17 @@ class ThemeProvider with ChangeNotifier {
         }),
         foregroundColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) return Colors.white;
-          return Colors.black.withOpacity(0.5);
+          return Colors.black.withValues(alpha: 0.5);
         }),
         side: WidgetStateProperty.all(
-          BorderSide(color: Colors.black.withOpacity(0.1)),
+          BorderSide(color: Colors.black.withValues(alpha: 0.1)),
         ),
       ),
     ),
     chipTheme: ChipThemeData(
-      backgroundColor: Colors.black.withOpacity(0.05),
+      backgroundColor: Colors.black.withValues(alpha: 0.05),
       labelStyle: const TextStyle(color: Colors.black),
-      side: BorderSide(color: Colors.black.withOpacity(0.08)),
+      side: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ),
     popupMenuTheme: PopupMenuThemeData(
@@ -479,7 +479,7 @@ class ThemeProvider with ChangeNotifier {
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.black.withOpacity(0.08)),
+        side: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
       ),
     ),
     bottomSheetTheme: const BottomSheetThemeData(

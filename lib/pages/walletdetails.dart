@@ -1,5 +1,3 @@
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -31,7 +29,7 @@ class FullScreenImageViewer extends StatelessWidget {
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withAlpha(26),
+            color: Colors.white.withValues(alpha: 26),
             borderRadius: BorderRadius.circular(12),
           ),
           child: IconButton(
@@ -97,42 +95,36 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
       child: Column(
         children: [
           GestureDetector(
-            onTap: () {
-              // Decrypt and show full screen image
-              EncryptionService.instance.decryptImageFile(imagePath).then((
-                decryptedPath,
-              ) {
-                if (decryptedPath != null && mounted) {
-                  Navigator.push(
-                    context,
-                    SmoothPageRoute(
-                      page: FullScreenImageViewer(
-                        imageFile: File(decryptedPath),
-                      ),
-                    ),
-                  ).then((_) {
-                    // Cleanup temp file after returning
-                    final tempFile = File(decryptedPath);
-                    if (tempFile.existsSync()) {
-                      tempFile.deleteSync();
-                    }
-                  });
+            onTap: () async {
+              final decryptedPath = await EncryptionService.instance
+                  .decryptImageFile(imagePath);
+              if (decryptedPath != null && mounted) {
+                await Navigator.push(
+                  context,
+                  SmoothPageRoute(
+                    page: FullScreenImageViewer(imageFile: File(decryptedPath)),
+                  ),
+                );
+                // Cleanup temp file after returning
+                final tempFile = File(decryptedPath);
+                if (tempFile.existsSync()) {
+                  tempFile.deleteSync();
                 }
-              });
+              }
             },
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isDark
-                      ? Colors.white.withAlpha(26)
-                      : Colors.black.withAlpha(20),
+                      ? Colors.white.withValues(alpha: 26)
+                      : Colors.black.withValues(alpha: 20),
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: isDark
-                        ? Colors.black.withAlpha(77)
-                        : Colors.black.withAlpha(20),
+                        ? Colors.black.withValues(alpha: 77)
+                        : Colors.black.withValues(alpha: 20),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -151,8 +143,8 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
                     height: 100,
                     width: 150,
                     color: isDark
-                        ? Colors.white.withAlpha(13)
-                        : Colors.black.withAlpha(8),
+                        ? Colors.white.withValues(alpha: 13)
+                        : Colors.black.withValues(alpha: 8),
                     child: Icon(
                       Icons.error_outline,
                       color: isDark ? Colors.white38 : Colors.black38,
@@ -188,8 +180,8 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: isDark
-                ? Colors.white.withAlpha(20)
-                : Colors.black.withAlpha(13),
+                ? Colors.white.withValues(alpha: 20)
+                : Colors.black.withValues(alpha: 13),
             borderRadius: BorderRadius.circular(12),
           ),
           child: IconButton(
@@ -206,8 +198,8 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
             margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withAlpha(20)
-                  : Colors.black.withAlpha(13),
+                  ? Colors.white.withValues(alpha: 20)
+                  : Colors.black.withValues(alpha: 13),
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
@@ -482,6 +474,9 @@ class WalletEditScreenState extends State<WalletEditScreen> {
   }
 
   void _saveUpdatedDetails() async {
+    final provider = context.read<WalletProvider>();
+    final navigator = Navigator.of(context);
+
     if (_formKey.currentState!.validate()) {
       Map<String, String> customFields = {};
       for (int i = 0; i < _customFieldNameControllers.length; i++) {
@@ -527,11 +522,9 @@ class WalletEditScreenState extends State<WalletEditScreen> {
         frontImagePath: frontImagePath,
         backImagePath: backImagePath,
       );
-      final provider = context.read<WalletProvider>();
-      final navigator = Navigator.of(context);
       await DatabaseHelper.instance.updateWallet(updatedWallet);
 
-      provider.fetchWallets();
+      await provider.fetchWallets();
       navigator.pop(updatedWallet);
     }
   }
@@ -557,8 +550,8 @@ class WalletEditScreenState extends State<WalletEditScreen> {
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: isDark
-                ? Colors.white.withOpacity(0.08)
-                : Colors.black.withOpacity(0.05),
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
           ),
           child: IconButton(
@@ -823,12 +816,12 @@ class WalletEditScreenState extends State<WalletEditScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         color: isDark
-            ? Colors.white.withOpacity(0.06)
-            : Colors.black.withOpacity(0.03),
+            ? Colors.white.withValues(alpha: 0.06)
+            : Colors.black.withValues(alpha: 0.03),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.08),
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.black.withValues(alpha: 0.08),
         ),
       ),
       child: TextFormField(
@@ -839,7 +832,7 @@ class WalletEditScreenState extends State<WalletEditScreen> {
         style: TextStyle(color: textColor),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: textColor.withOpacity(0.5)),
+          labelStyle: TextStyle(color: textColor.withValues(alpha: 0.5)),
           border: InputBorder.none,
           suffixIcon: suffixIcon,
           contentPadding: const EdgeInsets.symmetric(
@@ -863,20 +856,20 @@ class WalletEditScreenState extends State<WalletEditScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         color: isDark
-            ? Colors.white.withOpacity(0.06)
-            : Colors.black.withOpacity(0.03),
+            ? Colors.white.withValues(alpha: 0.06)
+            : Colors.black.withValues(alpha: 0.03),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.08),
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.black.withValues(alpha: 0.08),
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: textColor.withOpacity(0.5)),
+          labelStyle: TextStyle(color: textColor.withValues(alpha: 0.5)),
           border: InputBorder.none,
         ),
         dropdownColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
@@ -910,7 +903,10 @@ class WalletEditScreenState extends State<WalletEditScreen> {
           padding: const EdgeInsets.only(left: 4.0, bottom: 12.0),
           child: Text(
             title,
-            style: TextStyle(color: textColor.withOpacity(0.5), fontSize: 14),
+            style: TextStyle(
+              color: textColor.withValues(alpha: 0.5),
+              fontSize: 14,
+            ),
           ),
         ),
         Center(
@@ -922,8 +918,8 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                     minimumSize: const Size(200, 50),
                     side: BorderSide(
                       color: isDark
-                          ? Colors.white.withOpacity(0.2)
-                          : Colors.black.withOpacity(0.15),
+                          ? Colors.white.withValues(alpha: 0.2)
+                          : Colors.black.withValues(alpha: 0.15),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -938,8 +934,8 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: isDark
-                              ? Colors.white.withOpacity(0.1)
-                              : Colors.black.withOpacity(0.08),
+                              ? Colors.white.withValues(alpha: 0.1)
+                              : Colors.black.withValues(alpha: 0.08),
                         ),
                       ),
                       child: ClipRRect(
@@ -959,7 +955,7 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                       right: 8,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
+                          color: Colors.black.withValues(alpha: 0.6),
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
@@ -1070,17 +1066,21 @@ class _LiquidGlassDetailTile extends StatelessWidget {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withOpacity(0.08)
-                  : Colors.black.withOpacity(0.05),
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, size: 18, color: textColor.withOpacity(0.6)),
+            child: Icon(
+              icon,
+              size: 18,
+              color: textColor.withValues(alpha: 0.6),
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Text(
               title,
-              style: TextStyle(color: textColor.withOpacity(0.7)),
+              style: TextStyle(color: textColor.withValues(alpha: 0.7)),
             ),
           ),
           Text(

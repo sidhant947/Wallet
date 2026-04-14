@@ -58,7 +58,7 @@ class GlassCreditCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: colorData.primary.withAlpha(80),
+                  color: colorData.primary.withValues(alpha: 80),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                   spreadRadius: -5,
@@ -90,7 +90,7 @@ class GlassCreditCard extends StatelessWidget {
                   Positioned.fill(
                     child: CustomPaint(
                       painter: _AbstractWavePainter(
-                        color: Colors.white.withAlpha(15),
+                        color: Colors.white.withValues(alpha: 15),
                       ),
                     ),
                   ),
@@ -99,7 +99,7 @@ class GlassCreditCard extends StatelessWidget {
                   Positioned.fill(
                     child: CustomPaint(
                       painter: _NoisePatternPainter(
-                        color: Colors.white.withAlpha(5),
+                        color: Colors.white.withValues(alpha: 5),
                       ),
                     ),
                   ),
@@ -112,9 +112,9 @@ class GlassCreditCard extends StatelessWidget {
                           begin: Alignment.topLeft,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Colors.white.withAlpha(useLightCard ? 150 : 30),
-                            Colors.white.withAlpha(0),
-                            Colors.black.withAlpha(useLightCard ? 0 : 40),
+                            Colors.white.withValues(alpha: useLightCard ? 150 : 30),
+                            Colors.white.withValues(alpha: 0),
+                            Colors.black.withValues(alpha: useLightCard ? 0 : 40),
                           ],
                           stops: const [0.0, 0.4, 1.0],
                         ),
@@ -142,7 +142,7 @@ class GlassCreditCard extends StatelessWidget {
                             ),
                             Icon(
                               Icons.contactless_rounded,
-                              color: Colors.white.withAlpha(200),
+                              color: Colors.white.withValues(alpha: 200),
                               size: 32,
                             ),
                           ],
@@ -162,11 +162,11 @@ class GlassCreditCard extends StatelessWidget {
                               fontFamily: 'Courier', // Monospace for numbers
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white.withAlpha(240),
+                              color: Colors.white.withValues(alpha: 240),
                               letterSpacing: 2.0,
                               shadows: [
                                 Shadow(
-                                  color: Colors.black.withAlpha(100),
+                                  color: Colors.black.withValues(alpha: 100),
                                   offset: const Offset(1, 1),
                                   blurRadius: 2,
                                 ),
@@ -190,7 +190,7 @@ class GlassCreditCard extends StatelessWidget {
                                     style: TextStyle(
                                       fontSize: 9,
                                       fontWeight: FontWeight.w600,
-                                      color: Colors.white.withAlpha(150),
+                                      color: Colors.white.withValues(alpha: 150),
                                       letterSpacing: 1.0,
                                     ),
                                   ),
@@ -223,7 +223,7 @@ class GlassCreditCard extends StatelessWidget {
                                     style: TextStyle(
                                       fontSize: 9,
                                       fontWeight: FontWeight.w600,
-                                      color: Colors.white.withAlpha(150),
+                                      color: Colors.white.withValues(alpha: 150),
                                       letterSpacing: 1.0,
                                     ),
                                   ),
@@ -255,7 +255,7 @@ class GlassCreditCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: Colors.white.withAlpha(30),
+                        color: Colors.white.withValues(alpha: 30),
                         width: 1.0,
                       ),
                     ),
@@ -314,7 +314,7 @@ class _AbstractWavePainter extends CustomPainter {
     path2.lineTo(0, 0);
     path2.close();
 
-    paint.color = color.withAlpha(10); // Lighter
+    paint.color = color.withValues(alpha: 10); // Lighter
     canvas.drawPath(path2, paint);
   }
 

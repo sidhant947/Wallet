@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -117,7 +118,35 @@ class DatabaseHelper {
 
   Future<int> deleteWallet(int id) async {
     Database db = await instance.database;
+    // Get wallet to retrieve image paths
+    final List<Map<String, dynamic>> maps = await db.query(
+      'wallets',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isEmpty) return 0;
+
+    final wallet = Wallet.fromEncryptedMap(maps[0]);
+
+    // Delete associated image files
+    await _deleteImageFile(wallet.frontImagePath);
+    await _deleteImageFile(wallet.backImagePath);
+
     return await db.delete('wallets', where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Helper method to delete an encrypted image file
+  static Future<void> _deleteImageFile(String? imagePath) async {
+    if (imagePath != null && imagePath.isNotEmpty) {
+      try {
+        final file = File(imagePath);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (e) {
+        debugPrint('DatabaseHelper: Failed to delete image file: $e');
+      }
+    }
   }
 
   Future<int> updateWallet(Wallet wallet) async {
@@ -381,6 +410,20 @@ class IdentityDatabaseHelper {
 
   Future<void> deleteIdentity(int id) async {
     final db = await database;
+    // Get identity to retrieve image paths
+    final result = await db.query(
+      'identities',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (result.isEmpty) return;
+
+    final identity = Identity.fromEncryptedMap(result[0]);
+
+    // Delete associated image files
+    await DatabaseHelper._deleteImageFile(identity.frontImagePath);
+    await DatabaseHelper._deleteImageFile(identity.backImagePath);
+
     await db.delete('identities', where: 'id = ?', whereArgs: [id]);
   }
 
@@ -555,6 +598,20 @@ class LoyaltyDatabaseHelper {
 
   Future<void> deleteLoyalty(int id) async {
     final db = await database;
+    // Get loyalty to retrieve image paths
+    final result = await db.query(
+      'loyalties',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (result.isEmpty) return;
+
+    final loyalty = Loyalty.fromEncryptedMap(result[0]);
+
+    // Delete associated image files
+    await DatabaseHelper._deleteImageFile(loyalty.frontImagePath);
+    await DatabaseHelper._deleteImageFile(loyalty.backImagePath);
+
     await db.delete('loyalties', where: 'id = ?', whereArgs: [id]);
   }
 
