@@ -69,7 +69,7 @@ class BarcodeCardDetailScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 15),
+                  color: Colors.black.withValues(alpha: 0.059),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -332,7 +332,7 @@ class BarcodeCardDetailScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 20),
+                    color: Colors.black.withValues(alpha: 0.078),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),

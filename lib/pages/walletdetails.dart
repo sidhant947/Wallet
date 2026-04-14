@@ -29,7 +29,7 @@ class FullScreenImageViewer extends StatelessWidget {
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 26),
+            color: Colors.white.withValues(alpha: 0.102),
             borderRadius: BorderRadius.circular(12),
           ),
           child: IconButton(
@@ -117,14 +117,14 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isDark
-                      ? Colors.white.withValues(alpha: 26)
-                      : Colors.black.withValues(alpha: 20),
+                      ? Colors.white.withValues(alpha: 0.102)
+                      : Colors.black.withValues(alpha: 0.078),
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: isDark
-                        ? Colors.black.withValues(alpha: 77)
-                        : Colors.black.withValues(alpha: 20),
+                        ? Colors.black.withValues(alpha: 0.302)
+                        : Colors.black.withValues(alpha: 0.078),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -143,8 +143,8 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
                     height: 100,
                     width: 150,
                     color: isDark
-                        ? Colors.white.withValues(alpha: 13)
-                        : Colors.black.withValues(alpha: 8),
+                        ? Colors.white.withValues(alpha: 0.051)
+                        : Colors.black.withValues(alpha: 0.031),
                     child: Icon(
                       Icons.error_outline,
                       color: isDark ? Colors.white38 : Colors.black38,
@@ -180,8 +180,8 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: isDark
-                ? Colors.white.withValues(alpha: 20)
-                : Colors.black.withValues(alpha: 13),
+                ? Colors.white.withValues(alpha: 0.078)
+                : Colors.black.withValues(alpha: 0.051),
             borderRadius: BorderRadius.circular(12),
           ),
           child: IconButton(
@@ -198,8 +198,8 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
             margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withValues(alpha: 20)
-                  : Colors.black.withValues(alpha: 13),
+                  ? Colors.white.withValues(alpha: 0.078)
+                  : Colors.black.withValues(alpha: 0.051),
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(

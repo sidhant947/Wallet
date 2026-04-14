@@ -1,11 +1,8 @@
 // lib/widgets/glass_credit_card.dart - ULTRA PREMIUM DESIGN
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:wallet/models/dataentry.dart';
 import '../models/db_helper.dart';
-import '../models/theme_provider.dart';
-import 'dart:math' as math;
 
 class GlassCreditCard extends StatelessWidget {
   final Wallet wallet;
@@ -35,8 +32,6 @@ class GlassCreditCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    final isDark = themeProvider.isDarkMode;
     final lastFour = wallet.number.length >= 4
         ? wallet.number.substring(wallet.number.length - 4)
         : wallet.number;
@@ -45,306 +40,128 @@ class GlassCreditCard extends StatelessWidget {
     final CardColorData colorData =
         cardColorPalette[colorKey] ?? cardColorPalette['obsidian']!;
 
-    final bool useLightCard =
-        !isDark && (colorKey == 'default' || colorKey == 'obsidian');
-
     return RepaintBoundary(
       child: GestureDetector(
         onTap: onCardTap,
         child: AspectRatio(
           aspectRatio: 1.586, // Standard credit card ratio
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: colorData.primary.withValues(alpha: 80),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                  spreadRadius: -5,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(15),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          colorData.accent,
+                          colorData.secondary,
+                          colorData.primary,
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Stack(
-                children: [
-                  // 1. Dynamic Background Layer
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            colorData.accent,
-                            colorData.secondary,
-                            colorData.primary,
-                          ],
-                        ),
-                      ),
-                    ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24.0,
+                    vertical: 20.0,
                   ),
-
-                  // 2. Abstract Wave Pattern CustomPainter
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: _AbstractWavePainter(
-                        color: Colors.white.withValues(alpha: 15),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header: Chip & Contactless
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Icon(
+                            Icons.contactless_rounded,
+                            color: Colors.white.withValues(alpha: 0.784),
+                            size: 32,
+                          ),
+                          SizedBox(
+                            height: 36,
+                            child: _NetworkLogo(network: wallet.network),
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
 
-                  // 3. Noise/Grain Texture (Optional, simulated with dot pattern here for performance)
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: _NoisePatternPainter(
-                        color: Colors.white.withValues(alpha: 5),
-                      ),
-                    ),
-                  ),
+                      const Spacer(),
 
-                  // 4. Glossy Reflection Overlay
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.white.withValues(alpha: useLightCard ? 150 : 30),
-                            Colors.white.withValues(alpha: 0),
-                            Colors.black.withValues(alpha: useLightCard ? 0 : 40),
-                          ],
-                          stops: const [0.0, 0.4, 1.0],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // 5. Card Content
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24.0,
-                      vertical: 20.0,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Header: Chip & Contactless
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // const _RealisticChip(),
-                            SizedBox(
-                              height: 36,
-                              child: _NetworkLogo(network: wallet.network),
-                            ),
-                            Icon(
-                              Icons.contactless_rounded,
-                              color: Colors.white.withValues(alpha: 200),
-                              size: 32,
-                            ),
-                          ],
-                        ),
-
-                        const Spacer(),
-
-                        // Card Number (Embossed Effect)
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            isMasked
-                                ? "••••  ••••  ••••  $lastFour"
-                                : _formatCardNumber(wallet.number).trim(),
-                            style: TextStyle(
-                              fontFamily: 'Courier', // Monospace for numbers
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white.withValues(alpha: 240),
-                              letterSpacing: 2.0,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black.withValues(alpha: 100),
-                                  offset: const Offset(1, 1),
-                                  blurRadius: 2,
-                                ),
-                              ],
-                            ),
+                      // Card Number (Embossed Effect)
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          isMasked
+                              ? "••••  ••••  ••••  $lastFour"
+                              : _formatCardNumber(wallet.number).trim(),
+                          style: TextStyle(
+                            fontFamily: 'Courier', // Monospace for numbers
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white.withValues(alpha: 0.941),
+                            letterSpacing: 2.0,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black.withValues(alpha: 0.392),
+                                offset: const Offset(1, 1),
+                                blurRadius: 2,
+                              ),
+                            ],
                           ),
                         ),
-
-                        const SizedBox(height: 16),
-
-                        // Footer: Name, Expiry, Logo
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "CARD HOLDER",
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white.withValues(alpha: 150),
-                                      letterSpacing: 1.0,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    wallet.name.toUpperCase(),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Expiry
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "EXPIRES",
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white.withValues(alpha: 150),
-                                      letterSpacing: 1.0,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    isMasked
-                                        ? "••/••"
-                                        : _formatExpiry(wallet.expiry),
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Logo
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // 6. Border Highlight (The "Glass Edge")
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 30),
-                        width: 1.0,
                       ),
-                    ),
+
+                      const SizedBox(height: 20),
+
+                      // Footer: Name, Expiry, Logo
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              wallet.name.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+
+                          // Expiry
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              isMasked ? "••/••" : _formatExpiry(wallet.expiry),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+
+                          // Logo
+                        ],
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
   }
-}
-
-class _AbstractWavePainter extends CustomPainter {
-  final Color color;
-
-  const _AbstractWavePainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    final path = Path();
-    path.moveTo(0, size.height * 0.7);
-    path.quadraticBezierTo(
-      size.width * 0.25,
-      size.height * 0.5,
-      size.width * 0.5,
-      size.height * 0.8,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      size.height * 1.1,
-      size.width,
-      size.height * 0.6,
-    );
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-
-    canvas.drawPath(path, paint);
-
-    // Second wave
-    final path2 = Path();
-    path2.moveTo(0, size.height * 0.4);
-    path2.quadraticBezierTo(
-      size.width * 0.4,
-      size.height * 0.8,
-      size.width,
-      size.height * 0.2,
-    );
-    path2.lineTo(size.width, 0);
-    path2.lineTo(0, 0);
-    path2.close();
-
-    paint.color = color.withValues(alpha: 10); // Lighter
-    canvas.drawPath(path2, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _NoisePatternPainter extends CustomPainter {
-  final Color color;
-  const _NoisePatternPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color;
-    final random = math.Random(42); // Fixed seed for stability
-
-    for (int i = 0; i < 200; i++) {
-      canvas.drawCircle(
-        Offset(
-          random.nextDouble() * size.width,
-          random.nextDouble() * size.height,
-        ),
-        0.5 + random.nextDouble(), // Tiny dots
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _NetworkLogo extends StatelessWidget {

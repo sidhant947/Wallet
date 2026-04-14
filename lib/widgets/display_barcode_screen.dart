@@ -86,8 +86,8 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
               height: 44,
               decoration: BoxDecoration(
                 color: isDark
-                    ? Colors.white.withValues(alpha: 15)
-                    : Colors.black.withValues(alpha: 8),
+                    ? Colors.white.withValues(alpha: 0.059)
+                    : Colors.black.withValues(alpha: 0.031),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(Icons.close_rounded, color: textColor, size: 22),
@@ -140,8 +140,8 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
               height: 44,
               decoration: BoxDecoration(
                 color: isDark
-                    ? Colors.white.withValues(alpha: 15)
-                    : Colors.black.withValues(alpha: 8),
+                    ? Colors.white.withValues(alpha: 0.059)
+                    : Colors.black.withValues(alpha: 0.031),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(Icons.copy_rounded, color: textColor, size: 20),
@@ -166,7 +166,7 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 10),
+                  color: Colors.black.withValues(alpha: 0.039),
                   blurRadius: 30,
                   offset: const Offset(0, 10),
                 ),
@@ -242,7 +242,7 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
       margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 12) : Colors.black.withValues(alpha: 8),
+        color: isDark ? Colors.white.withValues(alpha: 0.047) : Colors.black.withValues(alpha: 0.031),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(

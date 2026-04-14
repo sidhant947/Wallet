@@ -203,8 +203,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withValues(alpha: 20)
-                  : Colors.black.withValues(alpha: 13),
+                  ? Colors.white.withValues(alpha: 0.078)
+                  : Colors.black.withValues(alpha: 0.051),
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
@@ -229,8 +229,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           boxShadow: [
             BoxShadow(
               color: isDark
-                  ? Colors.white.withValues(alpha: 26)
-                  : Colors.black.withValues(alpha: 38),
+                  ? Colors.white.withValues(alpha: 0.102)
+                  : Colors.black.withValues(alpha: 0.149),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -279,8 +279,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 border: Border(
                   top: BorderSide(
                     color: isDark
-                        ? Colors.white.withValues(alpha: 20)
-                        : Colors.black.withValues(alpha: 13),
+                        ? Colors.white.withValues(alpha: 0.078)
+                        : Colors.black.withValues(alpha: 0.051),
                   ),
                 ),
               ),
@@ -386,12 +386,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
                     color: isDark
-                        ? Colors.white.withValues(alpha: 15)
-                        : Colors.black.withValues(alpha: 8),
+                        ? Colors.white.withValues(alpha: 0.059)
+                        : Colors.black.withValues(alpha: 0.031),
                     border: Border.all(
                       color: isDark
-                          ? Colors.white.withValues(alpha: 26)
-                          : Colors.black.withValues(alpha: 15),
+                          ? Colors.white.withValues(alpha: 0.102)
+                          : Colors.black.withValues(alpha: 0.059),
                     ),
                   ),
                   child: TextField(

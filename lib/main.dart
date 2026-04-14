@@ -9,10 +9,14 @@ import 'package:wallet/services/encryption_service.dart';
 import 'models/provider_helper.dart';
 import 'screens/homescreen.dart';
 import 'package:provider/provider.dart';
+// import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:io' show Platform;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // This is for testing Only
+  // databaseFactory = databaseFactoryFfi;
 
   // Initialize AES-256 encryption service BEFORE any database operations.
   // This generates (or loads) the master encryption key from secure storage.
@@ -63,9 +67,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Selector<ThemeProvider, ThemeMode>(
-      selector: (_, provider) => provider.currentTheme,
-      builder: (context, themeMode, _) {
+    return Selector<ThemeProvider, ({ThemeMode themeMode, bool useSystemFont})>(
+      selector: (_, provider) => (
+        themeMode: provider.currentTheme,
+        useSystemFont: provider.useSystemFont,
+      ),
+      builder: (context, data, _) {
         final themeProvider = Provider.of<ThemeProvider>(
           context,
           listen: false,
@@ -75,7 +82,7 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: themeProvider.lightTheme,
           darkTheme: themeProvider.darkTheme,
-          themeMode: themeMode,
+          themeMode: data.themeMode,
           home: const SplashScreen(),
         );
       },
