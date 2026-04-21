@@ -1,10 +1,12 @@
 // lib/widgets/glass_credit_card.dart - ULTRA PREMIUM DESIGN
 
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:wallet/models/dataentry.dart';
 import '../models/db_helper.dart';
 
-class GlassCreditCard extends StatelessWidget {
+class GlassCreditCard extends StatefulWidget {
   final Wallet wallet;
   final bool isMasked;
   final VoidCallback onCardTap;
@@ -15,6 +17,54 @@ class GlassCreditCard extends StatelessWidget {
     required this.isMasked,
     required this.onCardTap,
   });
+
+  @override
+  State<GlassCreditCard> createState() => _GlassCreditCardState();
+}
+
+class _GlassCreditCardState extends State<GlassCreditCard>
+    with TickerProviderStateMixin {
+  late AnimationController _shineController;
+  late AnimationController _flipController;
+  late Animation<double> _flipAnimation;
+  bool _isFront = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _shineController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+
+    _flipController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _flipAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _flipController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _shineController.dispose();
+    _flipController.dispose();
+    super.dispose();
+  }
+
+  void _toggleFlip() {
+    if (_isFront) {
+      _flipController.forward();
+    } else {
+      _flipController.reverse();
+    }
+    setState(() {
+      _isFront = !_isFront;
+    });
+    HapticFeedback.mediumImpact();
+  }
 
   static final RegExp _fourDigitPattern = RegExp(r".{4}");
 
@@ -32,132 +82,286 @@ class GlassCreditCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lastFour = wallet.number.length >= 4
-        ? wallet.number.substring(wallet.number.length - 4)
-        : wallet.number;
+    final lastFour = widget.wallet.number.length >= 4
+        ? widget.wallet.number.substring(widget.wallet.number.length - 4)
+        : widget.wallet.number;
 
-    final String colorKey = wallet.color ?? 'obsidian';
+    final String colorKey = widget.wallet.color ?? 'obsidian';
     final CardColorData colorData =
         cardColorPalette[colorKey] ?? cardColorPalette['obsidian']!;
 
-    return RepaintBoundary(
-      child: GestureDetector(
-        onTap: onCardTap,
-        child: AspectRatio(
-          aspectRatio: 1.586, // Standard credit card ratio
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(15),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          colorData.accent,
-                          colorData.secondary,
-                          colorData.primary,
+    return Hero(
+      tag: 'card_${widget.wallet.id}',
+      child: Material(
+        color: Colors.transparent,
+        child: RepaintBoundary(
+          child: GestureDetector(
+            onTap: widget.onCardTap,
+            onLongPress: _toggleFlip,
+            child: AnimatedBuilder(
+              animation: _flipAnimation,
+              builder: (context, child) {
+                final rotationValue = _flipAnimation.value * math.pi;
+                final isBack = rotationValue > math.pi / 2;
+
+                return Transform(
+                  transform: Matrix4.identity()
+                    ..setEntry(3, 2, 0.001) // perspective
+                    ..rotateY(rotationValue),
+                  alignment: Alignment.center,
+                  child: isBack
+                      ? Transform(
+                          transform: Matrix4.identity()..rotateY(math.pi),
+                          alignment: Alignment.center,
+                          child: _buildBack(colorData),
+                        )
+                      : _buildFront(colorData, lastFour),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFront(CardColorData colorData, String lastFour) {
+    return AspectRatio(
+      aspectRatio: 1.586,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      colorData.accent,
+                      colorData.secondary,
+                      colorData.primary,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Animated Shine Effect
+            AnimatedBuilder(
+              animation: _shineController,
+              builder: (context, child) {
+                return Positioned.fill(
+                  child: FractionallySizedBox(
+                    widthFactor: 2,
+                    heightFactor: 2,
+                    alignment: Alignment(
+                      -2.0 + (_shineController.value * 4.0),
+                      -2.0 + (_shineController.value * 4.0),
+                    ),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.white.withValues(alpha: 0.0),
+                            Colors.white.withValues(alpha: 0.0),
+                            Colors.white.withValues(alpha: 0.15),
+                            Colors.white.withValues(alpha: 0.0),
+                            Colors.white.withValues(alpha: 0.0),
+                          ],
+                          stops: const [0.0, 0.45, 0.5, 0.55, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 20.0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Icon(
+                        Icons.contactless_rounded,
+                        color: Colors.white.withValues(alpha: 0.784),
+                        size: 32,
+                      ),
+                      SizedBox(
+                        height: 36,
+                        child: _NetworkLogo(network: widget.wallet.network),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      widget.isMasked
+                          ? "••••  ••••  ••••  $lastFour"
+                          : _formatCardNumber(widget.wallet.number).trim(),
+                      style: TextStyle(
+                        fontFamily: 'Courier',
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white.withValues(alpha: 0.941),
+                        letterSpacing: 2.0,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withValues(alpha: 0.392),
+                            offset: const Offset(1, 1),
+                            blurRadius: 2,
+                          ),
                         ],
                       ),
                     ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24.0,
-                    vertical: 20.0,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 20),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      // Header: Chip & Contactless
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Icon(
-                            Icons.contactless_rounded,
-                            color: Colors.white.withValues(alpha: 0.784),
-                            size: 32,
-                          ),
-                          SizedBox(
-                            height: 36,
-                            child: _NetworkLogo(network: wallet.network),
-                          ),
-                        ],
-                      ),
-
-                      const Spacer(),
-
-                      // Card Number (Embossed Effect)
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
+                      Expanded(
                         child: Text(
-                          isMasked
-                              ? "••••  ••••  ••••  $lastFour"
-                              : _formatCardNumber(wallet.number).trim(),
-                          style: TextStyle(
-                            fontFamily: 'Courier', // Monospace for numbers
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white.withValues(alpha: 0.941),
-                            letterSpacing: 2.0,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black.withValues(alpha: 0.392),
-                                offset: const Offset(1, 1),
-                                blurRadius: 2,
-                              ),
-                            ],
+                          widget.wallet.name.toUpperCase(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          widget.isMasked
+                              ? "••/••"
+                              : _formatExpiry(widget.wallet.expiry),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-                      const SizedBox(height: 20),
-
-                      // Footer: Name, Expiry, Logo
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              wallet.name.toUpperCase(),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                                letterSpacing: 0.5,
+  Widget _buildBack(CardColorData colorData) {
+    return AspectRatio(
+      aspectRatio: 1.586,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomRight,
+                    end: Alignment.topLeft,
+                    colors: [
+                      colorData.accent,
+                      colorData.secondary,
+                      colorData.primary,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Column(
+              children: [
+                const SizedBox(height: 20),
+                Container(
+                  height: 40,
+                  width: double.infinity,
+                  color: Colors.black.withValues(alpha: 0.8),
+                ),
+                const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Container(
+                          height: 35,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                widget.isMasked ? "•••" : "123",
+                                style: const TextStyle(
+                                  fontFamily: 'Courier',
+                                  fontStyle: FontStyle.italic,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
                               ),
                             ),
                           ),
-
-                          // Expiry
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              isMasked ? "••/••" : _formatExpiry(wallet.expiry),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        flex: 1,
+                        child: Text(
+                          "CVV",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
                           ),
-
-                          // Logo
-                        ],
+                        ),
                       ),
                     ],
                   ),
                 ),
+                const Spacer(),
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Align(
+                    alignment: Alignment.bottomRight,
+                    child: Text(
+                      "AUTHORIZED SIGNATURE",
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.5),
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
-          ),
+          ],
         ),
       ),
     );

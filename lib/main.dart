@@ -9,14 +9,14 @@ import 'package:wallet/services/encryption_service.dart';
 import 'models/provider_helper.dart';
 import 'screens/homescreen.dart';
 import 'package:provider/provider.dart';
-// import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:io' show Platform;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // This is for testing Only
-  // databaseFactory = databaseFactoryFfi;
+  databaseFactory = databaseFactoryFfi;
 
   // Initialize AES-256 encryption service BEFORE any database operations.
   // This generates (or loads) the master encryption key from secure storage.
@@ -98,10 +98,12 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _animationController;
+  late AnimationController _floatController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  late Animation<Offset> _floatAnimation;
 
   @override
   void initState() {
@@ -111,6 +113,11 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
+
+    _floatController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
@@ -126,6 +133,11 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
+    _floatAnimation =
+        Tween<Offset>(begin: Offset.zero, end: const Offset(0, -0.05)).animate(
+          CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
+        );
+
     _animationController.forward();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -136,6 +148,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void dispose() {
     _animationController.dispose();
+    _floatController.dispose();
     super.dispose();
   }
 
@@ -228,26 +241,29 @@ class _SplashScreenState extends State<SplashScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // Icon container
-                    Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(32),
-                        color: isDark
-                            ? const Color(0xFF1A1A1A)
-                            : const Color(0xFFF0F0F0),
-                        border: Border.all(
+                    SlideTransition(
+                      position: _floatAnimation,
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(32),
                           color: isDark
-                              ? const Color(0xFF2A2A2A)
-                              : const Color(0xFFE0E0E0),
-                          width: 0.5,
+                              ? const Color(0xFF1A1A1A)
+                              : const Color(0xFFF0F0F0),
+                          border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF2A2A2A)
+                                : const Color(0xFFE0E0E0),
+                            width: 0.5,
+                          ),
                         ),
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Icons.wallet_rounded,
-                          size: 56,
-                          color: textColor,
+                        child: Center(
+                          child: Icon(
+                            Icons.wallet_rounded,
+                            size: 56,
+                            color: textColor,
+                          ),
                         ),
                       ),
                     ),

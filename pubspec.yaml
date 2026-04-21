@@ -14,7 +14,6 @@ dependencies:
   barcode_scan2: ^4.4.0
   barcode_widget: ^2.0.4
   crypto: ^3.0.5
-  cupertino_icons: ^1.0.8
   encrypt: ^5.0.3
   file_picker: ^10.3.2
   flutter:
