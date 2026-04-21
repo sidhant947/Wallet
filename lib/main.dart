@@ -9,14 +9,14 @@ import 'package:wallet/services/encryption_service.dart';
 import 'models/provider_helper.dart';
 import 'screens/homescreen.dart';
 import 'package:provider/provider.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+// import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:io' show Platform;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // This is for testing Only
-  databaseFactory = databaseFactoryFfi;
+  // databaseFactory = databaseFactoryFfi;
 
   // Initialize AES-256 encryption service BEFORE any database operations.
   // This generates (or loads) the master encryption key from secure storage.
@@ -97,59 +97,14 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _animationController;
-  late AnimationController _floatController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
-  late Animation<Offset> _floatAnimation;
-
+class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
 
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
-
-    _floatController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-      ),
-    );
-
-    _scaleAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOutBack),
-      ),
-    );
-
-    _floatAnimation =
-        Tween<Offset>(begin: Offset.zero, end: const Offset(0, -0.05)).animate(
-          CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
-        );
-
-    _animationController.forward();
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkStartupSettings();
     });
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    _floatController.dispose();
-    super.dispose();
   }
 
   Future<void> _checkStartupSettings() async {
@@ -157,9 +112,6 @@ class _SplashScreenState extends State<SplashScreen>
       context,
       listen: false,
     );
-
-    // Small delay for splash animation
-    await Future.delayed(const Duration(milliseconds: 600));
 
     if (startupProvider.showAuthenticationScreen) {
       await _performAuthentication();
@@ -176,19 +128,9 @@ class _SplashScreenState extends State<SplashScreen>
           pageBuilder: (context, animation, secondaryAnimation) =>
               const HomeScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            final curved = CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            );
-            return FadeTransition(
-              opacity: curved,
-              child: ScaleTransition(
-                scale: Tween<double>(begin: 0.96, end: 1.0).animate(curved),
-                child: child,
-              ),
-            );
+            return child;
           },
-          transitionDuration: const Duration(milliseconds: 500),
+          transitionDuration: Duration.zero,
         ),
       );
     }
@@ -230,87 +172,69 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       backgroundColor: isDark ? Colors.black : Colors.white,
       body: Center(
-        child: AnimatedBuilder(
-          animation: _animationController,
-          builder: (context, child) {
-            return FadeTransition(
-              opacity: _fadeAnimation,
-              child: ScaleTransition(
-                scale: _scaleAnimation,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Icon container
-                    SlideTransition(
-                      position: _floatAnimation,
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(32),
-                          color: isDark
-                              ? const Color(0xFF1A1A1A)
-                              : const Color(0xFFF0F0F0),
-                          border: Border.all(
-                            color: isDark
-                                ? const Color(0xFF2A2A2A)
-                                : const Color(0xFFE0E0E0),
-                            width: 0.5,
-                          ),
-                        ),
-                        child: Center(
-                          child: Icon(
-                            Icons.wallet_rounded,
-                            size: 56,
-                            color: textColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    // App name
-                    Text(
-                      'WALLET',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                        letterSpacing: 8,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Secure • Simple • Smart',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: isDark ? Colors.white54 : Colors.black45,
-                        letterSpacing: 2,
-                      ),
-                    ),
-                    const SizedBox(height: 48),
-                    // Loading indicator
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isDark
-                            ? const Color(0xFF1A1A1A)
-                            : const Color(0xFFF5F5F5),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: isDark ? Colors.white54 : Colors.black45,
-                        ),
-                      ),
-                    ),
-                  ],
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Icon container
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(32),
+                color: isDark
+                    ? const Color(0xFF1A1A1A)
+                    : const Color(0xFFF0F0F0),
+                border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF2A2A2A)
+                      : const Color(0xFFE0E0E0),
+                  width: 0.5,
                 ),
               ),
-            );
-          },
+              child: Center(
+                child: Icon(Icons.wallet_rounded, size: 56, color: textColor),
+              ),
+            ),
+            const SizedBox(height: 32),
+            // App name
+            Text(
+              'WALLET',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: textColor,
+                letterSpacing: 8,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Secure • Simple • Smart',
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark ? Colors.white54 : Colors.black45,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 48),
+            // Loading indicator
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDark
+                    ? const Color(0xFF1A1A1A)
+                    : const Color(0xFFF5F5F5),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: isDark ? Colors.white54 : Colors.black45,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

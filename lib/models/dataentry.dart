@@ -173,8 +173,7 @@ class ColorPicker extends StatelessWidget {
                 ),
                 child: GestureDetector(
                   onTap: () => onColorSelected(colorKey),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
+                  child: Container(
                     width: 70,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),

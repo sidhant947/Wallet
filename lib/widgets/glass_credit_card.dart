@@ -22,44 +22,10 @@ class GlassCreditCard extends StatefulWidget {
   State<GlassCreditCard> createState() => _GlassCreditCardState();
 }
 
-class _GlassCreditCardState extends State<GlassCreditCard>
-    with TickerProviderStateMixin {
-  late AnimationController _shineController;
-  late AnimationController _flipController;
-  late Animation<double> _flipAnimation;
+class _GlassCreditCardState extends State<GlassCreditCard> {
   bool _isFront = true;
 
-  @override
-  void initState() {
-    super.initState();
-    _shineController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat();
-
-    _flipController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-
-    _flipAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _flipController, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _shineController.dispose();
-    _flipController.dispose();
-    super.dispose();
-  }
-
   void _toggleFlip() {
-    if (_isFront) {
-      _flipController.forward();
-    } else {
-      _flipController.reverse();
-    }
     setState(() {
       _isFront = !_isFront;
     });
@@ -90,36 +56,15 @@ class _GlassCreditCardState extends State<GlassCreditCard>
     final CardColorData colorData =
         cardColorPalette[colorKey] ?? cardColorPalette['obsidian']!;
 
-    return Hero(
-      tag: 'card_${widget.wallet.id}',
-      child: Material(
-        color: Colors.transparent,
-        child: RepaintBoundary(
-          child: GestureDetector(
-            onTap: widget.onCardTap,
-            onLongPress: _toggleFlip,
-            child: AnimatedBuilder(
-              animation: _flipAnimation,
-              builder: (context, child) {
-                final rotationValue = _flipAnimation.value * math.pi;
-                final isBack = rotationValue > math.pi / 2;
-
-                return Transform(
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.001) // perspective
-                    ..rotateY(rotationValue),
-                  alignment: Alignment.center,
-                  child: isBack
-                      ? Transform(
-                          transform: Matrix4.identity()..rotateY(math.pi),
-                          alignment: Alignment.center,
-                          child: _buildBack(colorData),
-                        )
-                      : _buildFront(colorData, lastFour),
-                );
-              },
-            ),
-          ),
+    return Material(
+      color: Colors.transparent,
+      child: RepaintBoundary(
+        child: GestureDetector(
+          onTap: widget.onCardTap,
+          onLongPress: _toggleFlip,
+          child: _isFront
+              ? _buildFront(colorData, lastFour)
+              : _buildBack(colorData),
         ),
       ),
     );
@@ -146,39 +91,6 @@ class _GlassCreditCardState extends State<GlassCreditCard>
                   ),
                 ),
               ),
-            ),
-
-            // Animated Shine Effect
-            AnimatedBuilder(
-              animation: _shineController,
-              builder: (context, child) {
-                return Positioned.fill(
-                  child: FractionallySizedBox(
-                    widthFactor: 2,
-                    heightFactor: 2,
-                    alignment: Alignment(
-                      -2.0 + (_shineController.value * 4.0),
-                      -2.0 + (_shineController.value * 4.0),
-                    ),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white.withValues(alpha: 0.0),
-                            Colors.white.withValues(alpha: 0.0),
-                            Colors.white.withValues(alpha: 0.15),
-                            Colors.white.withValues(alpha: 0.0),
-                            Colors.white.withValues(alpha: 0.0),
-                          ],
-                          stops: const [0.0, 0.45, 0.5, 0.55, 1.0],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
             ),
 
             Padding(

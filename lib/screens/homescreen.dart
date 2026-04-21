@@ -26,24 +26,10 @@ class SmoothPageRoute<T> extends PageRouteBuilder<T> {
     : super(
         pageBuilder: (context, animation, secondaryAnimation) => page,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          final curved = CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOutCubic,
-            reverseCurve: Curves.easeInCubic,
-          );
-          return FadeTransition(
-            opacity: Tween<double>(begin: 0.0, end: 1.0).animate(curved),
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0.04, 0),
-                end: Offset.zero,
-              ).animate(curved),
-              child: child,
-            ),
-          );
+          return child;
         },
-        transitionDuration: const Duration(milliseconds: 350),
-        reverseTransitionDuration: const Duration(milliseconds: 280),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
       );
 }
 
@@ -54,7 +40,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   String _selectedFilter = 'all';
 
@@ -257,19 +243,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           child: const Icon(Icons.add_rounded),
         ),
       ),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        switchInCurve: Curves.easeOutCubic,
-        switchOutCurve: Curves.easeInCubic,
-        child: IndexedStack(
-          key: ValueKey(effectiveIndex),
-          index: effectiveIndex,
-          children: [
-            _buildPaymentsTab(context),
-            _buildLoyaltyTab(context),
-            _buildIdentityTab(context),
-          ],
-        ),
+      body: IndexedStack(
+        key: ValueKey(effectiveIndex),
+        index: effectiveIndex,
+        children: [
+          _buildPaymentsTab(context),
+          _buildLoyaltyTab(context),
+          _buildIdentityTab(context),
+        ],
       ),
       bottomNavigationBar: isHiddenMode
           ? null
@@ -287,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               child: NavigationBar(
                 selectedIndex: effectiveIndex,
                 onDestinationSelected: _onItemTapped,
-                animationDuration: const Duration(milliseconds: 400),
+                animationDuration: Duration.zero,
                 elevation: 0,
                 destinations: const <Widget>[
                   NavigationDestination(
@@ -806,7 +787,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 }
 
 /// Staggered slide-up + fade-in animation for list items
-class _AnimatedListItem extends StatefulWidget {
+class _AnimatedListItem extends StatelessWidget {
   final int index;
   final Widget child;
 
@@ -817,54 +798,7 @@ class _AnimatedListItem extends StatefulWidget {
   });
 
   @override
-  State<_AnimatedListItem> createState() => _AnimatedListItemState();
-}
-
-class _AnimatedListItemState extends State<_AnimatedListItem>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _opacity;
-  late final Animation<Offset> _slide;
-  Timer? _delayTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
-
-    final curved = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    );
-
-    _opacity = Tween<double>(begin: 0.0, end: 1.0).animate(curved);
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.06),
-      end: Offset.zero,
-    ).animate(curved);
-
-    // Stagger: delay based on index, but cap at 5 to avoid long waits
-    final delay = Duration(milliseconds: (widget.index.clamp(0, 5)) * 60);
-    _delayTimer = Timer(delay, () {
-      if (mounted) _controller.forward();
-    });
-  }
-
-  @override
-  void dispose() {
-    _delayTimer?.cancel();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _opacity,
-      child: SlideTransition(position: _slide, child: widget.child),
-    );
+    return child;
   }
 }

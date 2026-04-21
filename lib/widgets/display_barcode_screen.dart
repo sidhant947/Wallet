@@ -176,8 +176,7 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Barcode
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
+          Container(
             constraints: BoxConstraints(
               maxWidth: isSquare ? 200 : double.infinity,
               minHeight: isSquare ? 200 : 80,
@@ -253,8 +252,7 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
           return Expanded(
             child: GestureDetector(
               onTap: () => setState(() => _selectedIndex = index),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+              child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
                   color: isSelected

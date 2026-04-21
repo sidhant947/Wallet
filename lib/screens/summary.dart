@@ -79,10 +79,7 @@ class Summary extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             itemCount: sections.length,
             itemBuilder: (context, index) {
-              return _AnimatedSummarySection(
-                index: index,
-                child: sections[index],
-              );
+              return sections[index];
             },
           );
         },
@@ -110,62 +107,6 @@ class Summary extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-    );
-  }
-}
-
-class _AnimatedSummarySection extends StatefulWidget {
-  final int index;
-  final Widget child;
-
-  const _AnimatedSummarySection({required this.index, required this.child});
-
-  @override
-  State<_AnimatedSummarySection> createState() =>
-      _AnimatedSummarySectionState();
-}
-
-class _AnimatedSummarySectionState extends State<_AnimatedSummarySection>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _opacity;
-  late final Animation<Offset> _slide;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-
-    final curved = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutQuart,
-    );
-
-    _opacity = Tween<double>(begin: 0.0, end: 1.0).animate(curved);
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.05),
-      end: Offset.zero,
-    ).animate(curved);
-
-    Future.delayed(Duration(milliseconds: widget.index * 100), () {
-      if (mounted) _controller.forward();
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _opacity,
-      child: SlideTransition(position: _slide, child: widget.child),
     );
   }
 }
@@ -295,9 +236,7 @@ class _LiquidGlassFinancialOverviewCard extends StatelessWidget {
             radius: 50.0,
             lineWidth: 8.0,
             percent: utilization.clamp(0.0, 1.0),
-            animation: true,
-            animationDuration: 1200,
-            curve: Curves.easeOutCirc,
+            animation: false,
             center: Text(
               "${(utilization * 100).toStringAsFixed(1)}%",
               style: TextStyle(
@@ -584,32 +523,25 @@ class _LiquidGlassFeeWaiverSection extends StatelessWidget {
                       alpha: 0.1,
                     ),
                   ),
-                  child: TweenAnimationBuilder<double>(
-                    duration: const Duration(milliseconds: 1500),
-                    curve: Curves.easeOutCubic,
-                    tween: Tween<double>(begin: 0, end: progress),
-                    builder: (context, value, child) {
-                      return FractionallySizedBox(
-                        alignment: Alignment.centerLeft,
-                        widthFactor: value,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(4),
-                            gradient: LinearGradient(
-                              colors: isDark
-                                  ? [
-                                      Colors.white.withValues(alpha: 0.8),
-                                      Colors.white,
-                                    ]
-                                  : [
-                                      Colors.black.withValues(alpha: 0.7),
-                                      Colors.black,
-                                    ],
-                            ),
-                          ),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: progress,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? [
+                                  Colors.white.withValues(alpha: 0.8),
+                                  Colors.white,
+                                ]
+                              : [
+                                  Colors.black.withValues(alpha: 0.7),
+                                  Colors.black,
+                                ],
                         ),
-                      );
-                    },
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 6),

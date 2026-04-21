@@ -7,6 +7,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 // Enum for the available theme options
 enum ThemePreference { light, dark, system }
 
+class NoTransitionsBuilder extends PageTransitionsBuilder {
+  const NoTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child;
+  }
+}
+
 class ThemeProvider with ChangeNotifier {
   ThemePreference _themePreference = ThemePreference.system;
   bool _isDarkMode = false;
@@ -83,10 +98,11 @@ class ThemeProvider with ChangeNotifier {
   static const PageTransitionsTheme _pageTransitionsTheme =
       PageTransitionsTheme(
         builders: <TargetPlatform, PageTransitionsBuilder>{
-          TargetPlatform.android: ZoomPageTransitionsBuilder(
-            allowEnterRouteSnapshotting: false,
-          ),
-          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.android: NoTransitionsBuilder(),
+          TargetPlatform.iOS: NoTransitionsBuilder(),
+          TargetPlatform.linux: NoTransitionsBuilder(),
+          TargetPlatform.macOS: NoTransitionsBuilder(),
+          TargetPlatform.windows: NoTransitionsBuilder(),
         },
       );
 
