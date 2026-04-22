@@ -115,6 +115,18 @@ class _SettingsPageState extends State<SettingsPage> {
                     : const Color(0xFFE8E8E8),
                 height: 1,
               ),
+              _LiquidGlassTile(
+                icon: Icons.payments_outlined,
+                title: 'Currency',
+                subtitle: '${startupProvider.selectedCurrencyCode} (${startupProvider.selectedCurrencySymbol})',
+                onTap: () => _showCurrencyDialog(context, startupProvider),
+              ),
+              Divider(
+                color: isDark
+                    ? const Color(0xFF2A2A2A)
+                    : const Color(0xFFE8E8E8),
+                height: 1,
+              ),
               if (!startupProvider.hideIdentityAndLoyalty) ...[
                 _LiquidGlassTile(
                   icon: Icons.home_filled,
@@ -281,6 +293,83 @@ class _SettingsPageState extends State<SettingsPage> {
                 subtitle: _appVersion,
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCurrencyDialog(
+    BuildContext context,
+    StartupSettingsProvider provider,
+  ) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDark = themeProvider.isDarkMode;
+
+    showDialog(
+      context: context,
+      barrierColor: isDark ? Colors.black54 : Colors.black26,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+        title: Text(
+          'Choose Currency',
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: StartupSettingsProvider.majorCurrencies.length,
+            itemBuilder: (context, index) {
+              final currency = StartupSettingsProvider.majorCurrencies[index];
+              final isSelected =
+                  provider.selectedCurrencyCode == currency['code'];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: isSelected
+                      ? (isDark
+                          ? const Color(0xFF2A2A2A)
+                          : const Color(0xFFF0F0F0))
+                      : Colors.transparent,
+                ),
+                child: RadioListTile<String>(
+                  title: Text(
+                    '${currency['name']} (${currency['symbol']})',
+                    style:
+                        TextStyle(color: isDark ? Colors.white : Colors.black),
+                  ),
+                  subtitle: Text(
+                    currency['code']!,
+                    style: TextStyle(
+                      color: isDark ? Colors.white54 : Colors.black54,
+                    ),
+                  ),
+                  value: currency['code']!,
+                  groupValue: provider.selectedCurrencyCode,
+                  activeColor: isDark ? Colors.white : Colors.black,
+                  onChanged: (val) {
+                    if (val != null) {
+                      provider.setCurrency(val, currency['symbol']!);
+                      Navigator.pop(context);
+                    }
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: isDark ? Colors.white60 : Colors.black54),
+            ),
           ),
         ],
       ),

@@ -6,12 +6,13 @@ import 'package:provider/provider.dart';
 import 'package:wallet/models/dataentry.dart';
 import 'package:wallet/screens/homescreen.dart';
 import 'package:wallet/services/encryption_service.dart';
-import '../models/db_helper.dart';
-import '../models/provider_helper.dart';
-import '../models/theme_provider.dart';
-import '../services/card_utils.dart';
-import '../widgets/glass_credit_card.dart';
-import '../widgets/encrypted_image_display.dart';
+import 'package:wallet/models/db_helper.dart';
+import 'package:wallet/models/provider_helper.dart';
+import 'package:wallet/models/theme_provider.dart';
+import 'package:wallet/models/startup_settings_provider.dart';
+import 'package:wallet/services/card_utils.dart';
+import 'package:wallet/widgets/glass_credit_card.dart';
+import 'package:wallet/widgets/encrypted_image_display.dart';
 
 // FullScreenImageViewer with liquid glass theme
 class FullScreenImageViewer extends StatelessWidget {
@@ -67,26 +68,26 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
     currentWallet = widget.wallet;
   }
 
-  String _formatCashback(String? spends, String? rewards) {
+  String _formatCashback(String? spends, String? rewards, String symbol) {
     if (spends == null ||
         rewards == null ||
         spends.isEmpty ||
         rewards.isEmpty) {
-      return '₹0.00';
+      return '${symbol}0.00';
     }
     double spendsVal = double.tryParse(spends) ?? 0;
     double rewardsVal = double.tryParse(rewards) ?? 0;
     double result = (spendsVal * rewardsVal) / 100;
-    return '₹${result.toStringAsFixed(2)}';
+    return '$symbol${result.toStringAsFixed(2)}';
   }
 
-  String _getFeeWaiverStatus(Wallet wallet) {
+  String _getFeeWaiverStatus(Wallet wallet, String symbol) {
     double spends = double.tryParse(wallet.spends ?? '0') ?? 0;
     double waiverRequirement =
         double.tryParse(wallet.annualFeeWaiver ?? '0') ?? 0;
     if (waiverRequirement == 0) return "Not Applicable";
     if (spends >= waiverRequirement) return "Waived Off";
-    return "₹${(waiverRequirement - spends).toStringAsFixed(2)} more to waive";
+    return "$symbol${(waiverRequirement - spends).toStringAsFixed(2)} more to waive";
   }
 
   Widget _buildImageThumbnail(String imagePath, String label, bool isDark) {
@@ -170,7 +171,9 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final startupProvider = Provider.of<StartupSettingsProvider>(context);
     final isDark = themeProvider.isDarkMode;
+    final symbol = startupProvider.selectedCurrencySymbol;
     bool isPathValid(String? path) => path != null && path.isNotEmpty;
 
     return Scaffold(
@@ -273,12 +276,12 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
               _LiquidGlassDetailTile(
                 icon: Icons.credit_score_outlined,
                 title: 'Max Limit',
-                value: '₹${currentWallet.maxlimit ?? 'N/A'}',
+                value: '$symbol${currentWallet.maxlimit ?? 'N/A'}',
               ),
               _LiquidGlassDetailTile(
                 icon: Icons.receipt_long_outlined,
                 title: 'Annual Spends',
-                value: '₹${currentWallet.spends ?? '0.00'}',
+                value: '$symbol${currentWallet.spends ?? '0.00'}',
               ),
               _LiquidGlassDetailTile(
                 icon: Icons.card_giftcard_outlined,
@@ -286,6 +289,7 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
                 value: _formatCashback(
                   currentWallet.spends,
                   currentWallet.rewards,
+                  symbol,
                 ),
                 valueColor: Colors.green.shade400,
               ),
@@ -303,7 +307,7 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
               _LiquidGlassDetailTile(
                 icon: Icons.verified_outlined,
                 title: 'Annual Fee Waiver',
-                value: _getFeeWaiverStatus(currentWallet),
+                value: _getFeeWaiverStatus(currentWallet, symbol),
               ),
               _LiquidGlassDetailTile(
                 icon: Icons.credit_card_outlined,
@@ -532,7 +536,9 @@ class WalletEditScreenState extends State<WalletEditScreen> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final startupProvider = Provider.of<StartupSettingsProvider>(context);
     final isDark = themeProvider.isDarkMode;
+    final symbol = startupProvider.selectedCurrencySymbol;
 
     final previewWallet = Wallet(
       id: widget.wallet.id,
@@ -682,7 +688,7 @@ class WalletEditScreenState extends State<WalletEditScreen> {
               children: [
                 _buildTextField(
                   _maxlimitController,
-                  'Max Limit (₹)',
+                  'Max Limit ($symbol)',
                   isDark,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -690,7 +696,7 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                 const SizedBox(height: 16),
                 _buildTextField(
                   _spendsController,
-                  'Current Spends (₹)',
+                  'Current Spends ($symbol)',
                   isDark,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -725,7 +731,7 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                 const SizedBox(height: 16),
                 _buildTextField(
                   _annualFeeWaiverController,
-                  'Annual Fee Waiver on Spends of (₹)',
+                  'Annual Fee Waiver on Spends of ($symbol)',
                   isDark,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
