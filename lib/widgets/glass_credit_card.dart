@@ -22,14 +22,43 @@ class GlassCreditCard extends StatefulWidget {
   State<GlassCreditCard> createState() => _GlassCreditCardState();
 }
 
-class _GlassCreditCardState extends State<GlassCreditCard> {
+class _GlassCreditCardState extends State<GlassCreditCard>
+    with SingleTickerProviderStateMixin {
   bool _isFront = true;
+  late AnimationController _flipController;
+  late Animation<double> _flipAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _flipController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _flipAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _flipController,
+        curve: Curves.easeInOutCubic,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _flipController.dispose();
+    super.dispose();
+  }
 
   void _toggleFlip() {
+    HapticFeedback.mediumImpact();
+    if (_isFront) {
+      _flipController.forward();
+    } else {
+      _flipController.reverse();
+    }
     setState(() {
       _isFront = !_isFront;
     });
-    HapticFeedback.mediumImpact();
   }
 
   static final RegExp _fourDigitPattern = RegExp(r".{4}");
@@ -62,9 +91,27 @@ class _GlassCreditCardState extends State<GlassCreditCard> {
         child: GestureDetector(
           onTap: widget.onCardTap,
           onLongPress: _toggleFlip,
-          child: _isFront
-              ? _buildFront(colorData, lastFour)
-              : _buildBack(colorData),
+          child: AnimatedBuilder(
+            animation: _flipAnimation,
+            builder: (context, child) {
+              final angle = _flipAnimation.value * math.pi;
+              final isShowingBack = angle > math.pi / 2;
+              
+              return Transform(
+                transform: Matrix4.identity()
+                  ..setEntry(3, 2, 0.001)
+                  ..rotateY(angle),
+                alignment: Alignment.center,
+                child: isShowingBack
+                    ? Transform(
+                        transform: Matrix4.identity()..rotateY(math.pi),
+                        alignment: Alignment.center,
+                        child: _buildBack(colorData),
+                      )
+                    : _buildFront(colorData, lastFour),
+              );
+            },
+          ),
         ),
       ),
     );

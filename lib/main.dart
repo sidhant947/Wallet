@@ -97,14 +97,53 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _iconSlideAnimation;
+
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+
+    _iconSlideAnimation = Tween<double>(begin: 30.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: const Interval(0.2, 0.7, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    _animationController.forward();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkStartupSettings();
     });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkStartupSettings() async {
@@ -164,78 +203,115 @@ class _SplashScreenState extends State<SplashScreen> {
     final isDark = themeProvider.isDarkMode;
     final textColor = isDark ? Colors.white : Colors.black;
 
-    // Set status bar style
     SystemChrome.setSystemUIOverlayStyle(
       isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
     );
 
     return Scaffold(
       backgroundColor: isDark ? Colors.black : Colors.white,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Icon container
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(32),
-                color: isDark
-                    ? const Color(0xFF1A1A1A)
-                    : const Color(0xFFF0F0F0),
-                border: Border.all(
-                  color: isDark
-                      ? const Color(0xFF2A2A2A)
-                      : const Color(0xFFE0E0E0),
-                  width: 0.5,
+      body: AnimatedBuilder(
+        animation: _animationController,
+        builder: (context, child) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Opacity(
+                  opacity: _fadeAnimation.value,
+                  child: Transform.scale(
+                    scale: _scaleAnimation.value,
+                    child: Transform.translate(
+                      offset: Offset(0, _iconSlideAnimation.value),
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(32),
+                          color: isDark
+                              ? const Color(0xFF1A1A1A)
+                              : const Color(0xFFF0F0F0),
+                          border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF2A2A2A)
+                                : const Color(0xFFE0E0E0),
+                            width: 0.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: textColor.withValues(alpha: 0.08),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.wallet_rounded,
+                            size: 56,
+                            color: textColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              child: Center(
-                child: Icon(Icons.wallet_rounded, size: 56, color: textColor),
-              ),
-            ),
-            const SizedBox(height: 32),
-            // App name
-            Text(
-              'WALLET',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: textColor,
-                letterSpacing: 8,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Secure • Simple • Smart',
-              style: TextStyle(
-                fontSize: 14,
-                color: isDark ? Colors.white54 : Colors.black45,
-                letterSpacing: 2,
-              ),
-            ),
-            const SizedBox(height: 48),
-            // Loading indicator
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isDark
-                    ? const Color(0xFF1A1A1A)
-                    : const Color(0xFFF5F5F5),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: isDark ? Colors.white54 : Colors.black45,
+                const SizedBox(height: 32),
+                Opacity(
+                  opacity: _fadeAnimation.value,
+                  child: Transform.translate(
+                    offset: Offset(0, _iconSlideAnimation.value * 1.2),
+                    child: Column(
+                      children: [
+                        Text(
+                          'WALLET',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                            letterSpacing: 8,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Secure • Simple • Smart',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark ? Colors.white54 : Colors.black45,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 48),
+                Opacity(
+                  opacity: _fadeAnimation.value,
+                  child: Transform.translate(
+                    offset: Offset(0, _iconSlideAnimation.value * 1.5),
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isDark
+                            ? const Color(0xFF1A1A1A)
+                            : const Color(0xFFF5F5F5),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: isDark ? Colors.white54 : Colors.black45,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
