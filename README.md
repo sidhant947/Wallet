@@ -2,8 +2,6 @@
 
 Wallet is a Flutter project designed to store card information locally on the device, ensuring that the data is secure and cannot be stolen, as the application does not have internet access. The app is optimized for efficiency, allowing users to quickly copy card details for transactions. 
 
-
-
 ## Download on IzzyOnDroid
 
 [<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroidButtonGreyBorder_nofont.png" height="80" alt="Get it at IzzyOnDroid">](https://apt.izzysoft.de/packages/com.sidhant.wallet)
@@ -14,9 +12,6 @@ Wallet is a Flutter project designed to store card information locally on the de
 
 <a href="https://play.google.com/store/apps/details?id=com.sidhant.wallet"><img src="https://github.com/user-attachments/assets/5ff479ee-9c86-47fd-a583-2a4f8f10633e" width="250"></a>
 
-## Download on Amazon App Store
-
-<a href="https://www.amazon.com/gp/product/B0DSSZ3BS1"><img src="https://github.com/user-attachments/assets/6eb0c2c0-f0ea-4597-b819-8dcb8ec79605" width="250"></a> 
 
 ## Features
 
