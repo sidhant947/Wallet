@@ -193,6 +193,15 @@ class LoyaltyProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateLoyalty(Loyalty updatedLoyalty) async {
+    await LoyaltyDatabaseHelper.instance.updateLoyalty(updatedLoyalty);
+    final index = loyalties.indexWhere((l) => l.id == updatedLoyalty.id);
+    if (index != -1) {
+      loyalties[index] = updatedLoyalty;
+      notifyListeners();
+    }
+  }
+
   Future<void> reorderLoyalties(int oldIndex, int newIndex) async {
     if (newIndex > oldIndex) {
       newIndex -= 1;
@@ -222,6 +231,15 @@ class IdentityProvider with ChangeNotifier {
     await IdentityDatabaseHelper.instance.deleteIdentity(id);
     identities.removeWhere((i) => i.id == id);
     notifyListeners();
+  }
+
+  Future<void> updateIdentity(Identity updatedIdentity) async {
+    await IdentityDatabaseHelper.instance.updateIdentity(updatedIdentity);
+    final index = identities.indexWhere((i) => i.id == updatedIdentity.id);
+    if (index != -1) {
+      identities[index] = updatedIdentity;
+      notifyListeners();
+    }
   }
 
   Future<void> reorderIdentities(int oldIndex, int newIndex) async {

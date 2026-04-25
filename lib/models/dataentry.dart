@@ -15,6 +15,7 @@ import 'package:wallet/widgets/barcode_card.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 import 'db_helper.dart';
+import 'provider_helper.dart';
 
 // Enum to define the type of card we are creating
 enum BarcodeCardType { identity, loyalty }
@@ -743,7 +744,14 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
 // -----------------------------------------------------------------------------
 class BarcodeCardEntryForm extends StatefulWidget {
   final BarcodeCardType cardType;
-  const BarcodeCardEntryForm({super.key, required this.cardType});
+  final Loyalty? existingLoyalty;
+  final Identity? existingIdentity;
+  const BarcodeCardEntryForm({
+    super.key,
+    required this.cardType,
+    this.existingLoyalty,
+    this.existingIdentity,
+  });
 
   @override
   State<BarcodeCardEntryForm> createState() => _BarcodeCardEntryFormState();
@@ -755,12 +763,32 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
   String _selectedColor = 'default';
   File? _frontImageFile;
   File? _backImageFile;
+  String? _existingFrontImagePath;
+  String? _existingBackImagePath;
+  bool _removeFrontImage = false;
+  bool _removeBackImage = false;
   final ImagePicker _picker = ImagePicker();
 
   // --- ADDED ---
   @override
   void initState() {
     super.initState();
+
+    // Pre-populate fields if editing an existing card
+    if (widget.existingLoyalty != null) {
+      _nameController.text = widget.existingLoyalty!.loyaltyName;
+      _numberController.text = widget.existingLoyalty!.loyaltyNumber;
+      _selectedColor = widget.existingLoyalty!.color ?? 'default';
+      _existingFrontImagePath = widget.existingLoyalty!.frontImagePath;
+      _existingBackImagePath = widget.existingLoyalty!.backImagePath;
+    } else if (widget.existingIdentity != null) {
+      _nameController.text = widget.existingIdentity!.identityName;
+      _numberController.text = widget.existingIdentity!.identityNumber;
+      _selectedColor = widget.existingIdentity!.color ?? 'default';
+      _existingFrontImagePath = widget.existingIdentity!.frontImagePath;
+      _existingBackImagePath = widget.existingIdentity!.backImagePath;
+    }
+
     // Add listeners to update the preview in real-time
     _nameController.addListener(() => setState(() {}));
     _numberController.addListener(() => setState(() {}));
@@ -791,21 +819,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     }
   }
 
-  Future<void> _pickImage(ImageSource source, bool isFront) async {
-    final pickedFile = await _picker.pickImage(source: source);
-    if (pickedFile != null) {
-      setState(() {
-        if (isFront) {
-          _frontImageFile = File(pickedFile.path);
-        } else {
-          _backImageFile = File(pickedFile.path);
-        }
-      });
-    }
-  }
-
   void _addData() async {
-    // ... (This function remains the same)
     final name = _nameController.text.trim();
     final number = _numberController.text.trim();
     final messenger = ScaffoldMessenger.of(context);
@@ -817,34 +831,71 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
       return;
     }
 
+    // Get providers before async operations to avoid BuildContext across async gaps
+    final isEditing = widget.existingLoyalty != null || widget.existingIdentity != null;
+    final IdentityProvider? identityProvider = isEditing && widget.cardType == BarcodeCardType.identity
+        ? context.read<IdentityProvider>()
+        : null;
+    final LoyaltyProvider? loyaltyProvider = isEditing && widget.cardType == BarcodeCardType.loyalty
+        ? context.read<LoyaltyProvider>()
+        : null;
+
     try {
       String? frontImagePath;
-      if (_frontImageFile != null) {
+      String? backImagePath;
+
+      // Handle front image - use existing if not changed, or save new one
+      if (widget.existingLoyalty != null) {
+        frontImagePath = widget.existingLoyalty!.frontImagePath;
+        backImagePath = widget.existingLoyalty!.backImagePath;
+      } else if (widget.existingIdentity != null) {
+        frontImagePath = widget.existingIdentity!.frontImagePath;
+        backImagePath = widget.existingIdentity!.backImagePath;
+      }
+
+      // Handle image updates
+      if (_removeFrontImage) {
+        frontImagePath = null;
+      } else if (_frontImageFile != null) {
         frontImagePath = await saveImageToAppDirectory(_frontImageFile!);
       }
-      String? backImagePath;
-      if (_backImageFile != null) {
+
+      if (_removeBackImage) {
+        backImagePath = null;
+      } else if (_backImageFile != null) {
         backImagePath = await saveImageToAppDirectory(_backImageFile!);
       }
 
       if (widget.cardType == BarcodeCardType.identity) {
-        final newIdentity = Identity(
+        final identity = Identity(
+          id: widget.existingIdentity?.id,
           identityName: name,
           identityNumber: number,
           color: _selectedColor,
           frontImagePath: frontImagePath,
           backImagePath: backImagePath,
         );
-        await IdentityDatabaseHelper.instance.insertIdentity(newIdentity);
+
+        if (isEditing) {
+          await identityProvider!.updateIdentity(identity);
+        } else {
+          await IdentityDatabaseHelper.instance.insertIdentity(identity);
+        }
       } else {
-        final newLoyalty = Loyalty(
+        final loyalty = Loyalty(
+          id: widget.existingLoyalty?.id,
           loyaltyName: name,
           loyaltyNumber: number,
           color: _selectedColor,
           frontImagePath: frontImagePath,
           backImagePath: backImagePath,
         );
-        await LoyaltyDatabaseHelper.instance.insertLoyalty(newLoyalty);
+
+        if (isEditing) {
+          await loyaltyProvider!.updateLoyalty(loyalty);
+        } else {
+          await LoyaltyDatabaseHelper.instance.insertLoyalty(loyalty);
+        }
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
@@ -854,6 +905,151 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         );
       }
     }
+  }
+
+  Widget _buildImagePickerSection(bool isFront) {
+    final String title = isFront ? 'Front Image (Optional)' : 'Back Image (Optional)';
+    final String? existingImagePath = isFront ? _existingFrontImagePath : _existingBackImagePath;
+    final File? newImageFile = isFront ? _frontImageFile : _backImageFile;
+    final bool removeImage = isFront ? _removeFrontImage : _removeBackImage;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4.0, bottom: 12.0, top: 12.0),
+          child: Text(
+            title,
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodySmall?.color,
+              fontSize: 16,
+            ),
+          ),
+        ),
+        Center(
+          child: existingImagePath != null && !removeImage && newImageFile == null
+              ? Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        existingImagePath,
+                        height: 150,
+                        width: 250,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 150,
+                            width: 250,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.error),
+                          );
+                        },
+                      ),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: CircleAvatar(
+                        backgroundColor: Colors.black54,
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              if (isFront) {
+                                _removeFrontImage = true;
+                                _frontImageFile = null;
+                              } else {
+                                _removeBackImage = true;
+                                _backImageFile = null;
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : newImageFile != null
+                  ? Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(
+                            newImageFile,
+                            height: 150,
+                            width: 250,
+                            fit: BoxFit.cover,
+                            cacheWidth: 500,
+                            cacheHeight: 300,
+                          ),
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: CircleAvatar(
+                            backgroundColor: Colors.black54,
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  if (isFront) {
+                                    _frontImageFile = null;
+                                    _removeFrontImage = false;
+                                  } else {
+                                    _backImageFile = null;
+                                    _removeBackImage = false;
+                                  }
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : OutlinedButton.icon(
+                      icon: const Icon(Icons.add_photo_alternate_outlined),
+                      label: const Text("Select Image"),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(200, 50),
+                        side: BorderSide(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.502),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () async {
+                        final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+                        if (pickedFile != null) {
+                          setState(() {
+                            if (isFront) {
+                              _frontImageFile = File(pickedFile.path);
+                              _removeFrontImage = false;
+                            } else {
+                              _backImageFile = File(pickedFile.path);
+                              _removeBackImage = false;
+                            }
+                          });
+                        }
+                      },
+                    ),
+        ),
+      ],
+    );
   }
 
   Future<void> _scan() async {
@@ -917,19 +1113,9 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           onPressed: _scan,
         ),
         const SizedBox(height: 24),
-        ImagePickerWidget(
-          title: 'Front Image (Optional)',
-          imageFile: _frontImageFile,
-          onPickImage: () => _pickImage(ImageSource.gallery, true),
-          onRemoveImage: () => setState(() => _frontImageFile = null),
-        ),
+        _buildImagePickerSection(true),
         const SizedBox(height: 16),
-        ImagePickerWidget(
-          title: 'Back Image (Optional)',
-          imageFile: _backImageFile,
-          onPickImage: () => _pickImage(ImageSource.gallery, false),
-          onRemoveImage: () => setState(() => _backImageFile = null),
-        ),
+        _buildImagePickerSection(false),
         const SizedBox(height: 40),
         ElevatedButton(
           style: ElevatedButton.styleFrom(

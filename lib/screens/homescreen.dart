@@ -687,12 +687,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: BarcodeCard(
                     loyalty: loyalty,
                     cardType: BarcodeCardType.loyalty,
-                    onCardTap: () => Navigator.push(
-                      context,
-                      SmoothPageRoute(
-                        page: BarcodeCardDetailScreen(loyalty: loyalty),
-                      ),
-                    ),
+                    onCardTap: () async {
+                      final loyaltyProvider = Provider.of<LoyaltyProvider>(context, listen: false);
+                      final result = await Navigator.push(
+                        context,
+                        SmoothPageRoute(
+                          page: BarcodeCardDetailScreen(loyalty: loyalty),
+                        ),
+                      );
+                      if (result == true && mounted) {
+                        loyaltyProvider.fetchLoyalties();
+                      }
+                    },
                     onCopyTap: () => _copyToClipboard(loyalty.loyaltyNumber),
                     onDeleteTap: () => _showBarcodeDeleteConfirmationDialog(
                       id: loyalty.id!,
@@ -762,12 +768,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: BarcodeCard(
                     identity: identity,
                     cardType: BarcodeCardType.identity,
-                    onCardTap: () => Navigator.push(
-                      context,
-                      SmoothPageRoute(
-                        page: BarcodeCardDetailScreen(identity: identity),
-                      ),
-                    ),
+                    onCardTap: () async {
+                      final result = await Navigator.push(
+                        context,
+                        SmoothPageRoute(
+                          page: BarcodeCardDetailScreen(identity: identity),
+                        ),
+                      );
+                      if (result == true && mounted) {
+                        final identityProvider = Provider.of<IdentityProvider>(context, listen: false);
+                        identityProvider.fetchIdentities();
+                      }
+                    },
                     onCopyTap: () => _copyToClipboard(identity.identityNumber),
                     onDeleteTap: () => _showBarcodeDeleteConfirmationDialog(
                       id: identity.id!,

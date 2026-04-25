@@ -4,6 +4,7 @@ import 'package:barcode_widget/barcode_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/theme_provider.dart';
+import 'package:wallet/models/dataentry.dart';
 import 'package:wallet/pages/walletdetails.dart';
 import 'package:wallet/screens/homescreen.dart';
 import 'package:wallet/services/encryption_service.dart';
@@ -57,6 +58,23 @@ class BarcodeCardDetailScreen extends StatelessWidget {
             onPressed: () => Navigator.pop(context),
           ),
         ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.edit,
+                color: isDark ? Colors.white : Colors.black,
+                size: 20,
+              ),
+              onPressed: () => _navigateToEditScreen(context),
+            ),
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
@@ -297,6 +315,28 @@ class BarcodeCardDetailScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _navigateToEditScreen(BuildContext context) async {
+    final bool isLoyaltyCard = loyalty != null;
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(title: Text('Edit ${isLoyaltyCard ? "Loyalty" : "Identity"} Card')),
+          body: BarcodeCardEntryForm(
+            cardType: isLoyaltyCard ? BarcodeCardType.loyalty : BarcodeCardType.identity,
+            existingLoyalty: isLoyaltyCard ? loyalty : null,
+            existingIdentity: isLoyaltyCard ? null : identity,
+          ),
+        ),
+      ),
+    );
+
+    if (result == true && context.mounted) {
+      // Navigate back to refresh the screen
+      Navigator.pop(context, true);
+    }
   }
 
   Widget _buildImageThumbnail(

@@ -427,6 +427,16 @@ class IdentityDatabaseHelper {
     await db.delete('identities', where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<int> updateIdentity(Identity identity) async {
+    final db = await database;
+    return await db.update(
+      'identities',
+      identity.toEncryptedMap(),
+      where: 'id = ?',
+      whereArgs: [identity.id],
+    );
+  }
+
   /// Migrate existing plaintext identity data to encrypted format.
   Future<void> migrateToEncrypted() async {
     final db = await database;
@@ -613,6 +623,16 @@ class LoyaltyDatabaseHelper {
     await DatabaseHelper._deleteImageFile(loyalty.backImagePath);
 
     await db.delete('loyalties', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> updateLoyalty(Loyalty loyalty) async {
+    final db = await database;
+    return await db.update(
+      'loyalties',
+      loyalty.toEncryptedMap(),
+      where: 'id = ?',
+      whereArgs: [loyalty.id],
+    );
   }
 
   /// Migrate existing plaintext loyalty data to encrypted format.
