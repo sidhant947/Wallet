@@ -12,6 +12,10 @@ Wallet is a Flutter project designed to store card information locally on the de
 
 <a href="https://play.google.com/store/apps/details?id=com.sidhant.wallet"><img src="https://github.com/user-attachments/assets/5ff479ee-9c86-47fd-a583-2a4f8f10633e" width="250"></a>
 
+## Download on f-droid
+
+[<img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="80">](https://f-droid.org/packages/com.sidhant.wallet)
+
 
 ## Features
 
