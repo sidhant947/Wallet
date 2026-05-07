@@ -480,6 +480,26 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                         child: Slidable(
                           key: ValueKey(wallet.id),
+                          startActionPane: ActionPane(
+                            motion: const BehindMotion(),
+                            extentRatio: 0.25,
+                            children: [
+                              SlidableAction(
+                                onPressed: (context) {
+                                  Navigator.push(
+                                    context,
+                                    SmoothPageRoute(
+                                      page: WalletEditScreen(wallet: wallet),
+                                    ),
+                                  );
+                                },
+                                backgroundColor: Colors.transparent,
+                                foregroundColor: Colors.orange,
+                                icon: Icons.edit_rounded,
+                                label: 'Edit',
+                              ),
+                            ],
+                          ),
                           endActionPane: ActionPane(
                             motion: const BehindMotion(),
                             extentRatio: 0.50,
@@ -541,6 +561,26 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                       child: Slidable(
                         key: ValueKey(wallet.id),
+                        startActionPane: ActionPane(
+                          motion: const BehindMotion(),
+                          extentRatio: 0.25,
+                          children: [
+                            SlidableAction(
+                              onPressed: (context) {
+                                Navigator.push(
+                                  context,
+                                  SmoothPageRoute(
+                                    page: WalletEditScreen(wallet: wallet),
+                                  ),
+                                );
+                              },
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.orange,
+                              icon: Icons.edit_rounded,
+                              label: 'Edit',
+                            ),
+                          ],
+                        ),
                         endActionPane: ActionPane(
                           motion: const BehindMotion(),
                           extentRatio: 0.50,
