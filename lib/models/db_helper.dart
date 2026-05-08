@@ -249,7 +249,7 @@ class Wallet {
 
   /// Encrypted map — used when writing to the database.
   /// Sensitive fields (name, number, expiry, issuer, customFields) are
-  /// AES-256-CBC encrypted before storage.
+  /// AES-256-GCM encrypted before storage.
   Map<String, dynamic> toEncryptedMap() {
     final enc = EncryptionService.instance;
     return {

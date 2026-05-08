@@ -30,7 +30,7 @@ class BackupService {
       // Convert to JSON
       final jsonData = jsonEncode(backupData);
 
-      // Encrypt using real AES-256-CBC with password-derived key
+      // Encrypt using real AES-256-GCM with password-derived key
       final encryptedData = EncryptionService.instance.encryptForBackup(
         jsonData,
         password,
@@ -109,7 +109,7 @@ class BackupService {
         encryptedData = await file.readAsBytes();
       }
 
-      // Decrypt using real AES-256-CBC
+      // Decrypt using real AES-256 (supports GCM and CBC)
       final decryptedJson = EncryptionService.instance.decryptForBackup(
         encryptedData,
         password,

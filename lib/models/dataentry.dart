@@ -363,7 +363,7 @@ class ImagePickerWidget extends StatelessWidget {
 /// Saves an image to the app's documents directory and encrypts it.
 ///
 /// The image is first copied to the app directory, then encrypted using
-/// AES-256-CBC. The original unencrypted file is deleted after encryption.
+/// AES-256-GCM. The original unencrypted file is deleted after encryption.
 /// Returns the path to the encrypted file (.enc extension).
 Future<String?> saveImageToAppDirectory(File imageFile) async {
   try {

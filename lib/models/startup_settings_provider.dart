@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class StartupSettingsProvider with ChangeNotifier {
   bool _showAuthenticationScreen = true;
   int _defaultScreenIndex = 0;
-  bool _hideIdentityAndLoyalty = false;
+  bool _hideIdentityAndLoyalty = true;
   String _selectedCurrencyCode = 'INR';
   String _selectedCurrencySymbol = '₹';
 
@@ -40,7 +40,7 @@ class StartupSettingsProvider with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _showAuthenticationScreen = prefs.getBool(_authKey) ?? true;
     _defaultScreenIndex = prefs.getInt(_defaultScreenKey) ?? 0;
-    _hideIdentityAndLoyalty = prefs.getBool(_hideKey) ?? false;
+    _hideIdentityAndLoyalty = prefs.getBool(_hideKey) ?? true;
     _selectedCurrencyCode = prefs.getString(_currencyCodeKey) ?? 'INR';
     _selectedCurrencySymbol = prefs.getString(_currencySymbolKey) ?? '₹';
     notifyListeners();
