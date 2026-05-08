@@ -351,20 +351,15 @@ class BarcodeCardDetailScreen extends StatelessWidget {
         children: [
           GestureDetector(
             onTap: () async {
-              final decryptedPath = await EncryptionService.instance
-                  .decryptImageFile(imagePath);
-              if (decryptedPath != null && context.mounted) {
+              final bytes = await EncryptionService.instance
+                  .decryptImageToBytes(imagePath);
+              if (bytes != null && context.mounted) {
                 await Navigator.push(
                   context,
                   SmoothPageRoute(
-                    page: FullScreenImageViewer(imageFile: File(decryptedPath)),
+                    page: FullScreenImageViewer(imageBytes: bytes),
                   ),
                 );
-                // Clean up temp file after navigation
-                final tempFile = File(decryptedPath);
-                if (tempFile.existsSync()) {
-                  tempFile.deleteSync();
-                }
               }
             },
             child: Container(

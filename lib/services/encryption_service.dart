@@ -328,8 +328,11 @@ class EncryptionService {
     }
   }
 
-  /// Decrypt an encrypted image file (supports GCM and CBC).
-  Future<String?> decryptImageFile(String encryptedFilePath) async {
+  /// Decrypt an encrypted image file and return the raw bytes.
+  ///
+  /// This is the preferred method as it avoids writing sensitive data
+  /// to disk in plaintext. The returned bytes can be used with `Image.memory`.
+  Future<Uint8List?> decryptImageToBytes(String encryptedFilePath) async {
     try {
       if (!_isInitialized || _encryptionKey == null) {
         throw StateError('EncryptionService: Not initialized.');
@@ -343,7 +346,8 @@ class EncryptionService {
 
       final content = await encryptedFile.readAsString();
       if (!_isEncrypted(content)) {
-        return encryptedFilePath;
+        // File is not encrypted, read as raw bytes
+        return await encryptedFile.readAsBytes();
       }
 
       final parts = content.split(':');
@@ -359,30 +363,10 @@ class EncryptionService {
       );
       final decryptedBytes = encrypter.decryptBytes(encryptedData, iv: iv);
 
-      final tempDir = await _getTempDirectory();
-      final originalName = encryptedFilePath.split('/').last;
-      final decryptedPath = '${tempDir.path}/decrypted_$originalName';
-      final decryptedFile = File(decryptedPath);
-      await decryptedFile.writeAsBytes(decryptedBytes);
-
-      debugPrint(
-        'EncryptionService: Image decrypted successfully: $decryptedPath',
-      );
-      return decryptedPath;
+      return Uint8List.fromList(decryptedBytes);
     } catch (e) {
       debugPrint('EncryptionService: Image decryption failed: $e');
       throw Exception('Failed to decrypt image: $e');
-    }
-  }
-
-  /// Get a temporary directory for decrypted image files.
-  Future<Directory> _getTempDirectory() async {
-    try {
-      final tempDir = await Directory.systemTemp.createTemp('wallet_images_');
-      return tempDir;
-    } catch (e) {
-      final directory = await getApplicationDocumentsDirectory();
-      return Directory('${directory.path}/temp_images');
     }
   }
 

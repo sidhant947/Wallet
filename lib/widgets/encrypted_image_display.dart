@@ -1,11 +1,11 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:wallet/services/encryption_service.dart';
 
 /// A widget that displays an encrypted image file.
 ///
-/// Automatically decrypts the image when loading and cleans up
-/// temporary decrypted files after use.
+/// Automatically decrypts the image directly into memory for security,
+/// avoiding temporary plaintext files on disk.
 class EncryptedImageDisplay extends StatefulWidget {
   final String imagePath;
   final double? height;
@@ -33,7 +33,7 @@ class EncryptedImageDisplay extends StatefulWidget {
 }
 
 class _EncryptedImageDisplayState extends State<EncryptedImageDisplay> {
-  String? _decryptedImagePath;
+  Uint8List? _imageBytes;
   bool _isLoading = true;
   bool _hasError = false;
 
@@ -47,18 +47,11 @@ class _EncryptedImageDisplayState extends State<EncryptedImageDisplay> {
   void didUpdateWidget(EncryptedImageDisplay oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.imagePath != widget.imagePath) {
-      _clearTempFile();
-      _decryptedImagePath = null;
+      _imageBytes = null;
       _isLoading = true;
       _hasError = false;
       _decryptImage();
     }
-  }
-
-  @override
-  void dispose() {
-    _clearTempFile();
-    super.dispose();
   }
 
   Future<void> _decryptImage() async {
@@ -68,13 +61,13 @@ class _EncryptedImageDisplayState extends State<EncryptedImageDisplay> {
         _hasError = false;
       });
 
-      final decryptedPath = await EncryptionService.instance.decryptImageFile(
+      final bytes = await EncryptionService.instance.decryptImageToBytes(
         widget.imagePath,
       );
 
       if (mounted) {
         setState(() {
-          _decryptedImagePath = decryptedPath;
+          _imageBytes = bytes;
           _isLoading = false;
         });
       }
@@ -85,19 +78,6 @@ class _EncryptedImageDisplayState extends State<EncryptedImageDisplay> {
           _hasError = true;
           _isLoading = false;
         });
-      }
-    }
-  }
-
-  Future<void> _clearTempFile() async {
-    if (_decryptedImagePath != null && _decryptedImagePath!.isNotEmpty) {
-      try {
-        final tempFile = File(_decryptedImagePath!);
-        if (await tempFile.exists()) {
-          await tempFile.delete();
-        }
-      } catch (e) {
-        debugPrint('EncryptedImageDisplay: Failed to cleanup temp file: $e');
       }
     }
   }
@@ -116,7 +96,7 @@ class _EncryptedImageDisplayState extends State<EncryptedImageDisplay> {
           );
     }
 
-    if (_hasError || _decryptedImagePath == null) {
+    if (_hasError || _imageBytes == null) {
       return widget.errorWidget ??
           Container(
             height: widget.height,
@@ -126,8 +106,8 @@ class _EncryptedImageDisplayState extends State<EncryptedImageDisplay> {
           );
     }
 
-    return Image.file(
-      File(_decryptedImagePath!),
+    return Image.memory(
+      _imageBytes!,
       height: widget.height,
       width: widget.width,
       fit: widget.fit,

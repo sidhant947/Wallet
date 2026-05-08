@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -13,11 +13,12 @@ import 'package:wallet/models/startup_settings_provider.dart';
 import 'package:wallet/services/card_utils.dart';
 import 'package:wallet/widgets/glass_credit_card.dart';
 import 'package:wallet/widgets/encrypted_image_display.dart';
+import 'dart:io';
 
 // FullScreenImageViewer with liquid glass theme
 class FullScreenImageViewer extends StatelessWidget {
-  final File imageFile;
-  const FullScreenImageViewer({super.key, required this.imageFile});
+  final Uint8List imageBytes;
+  const FullScreenImageViewer({super.key, required this.imageBytes});
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +45,7 @@ class FullScreenImageViewer extends StatelessWidget {
           panEnabled: true,
           minScale: 1.0,
           maxScale: 4.0,
-          child: Image.file(imageFile, cacheWidth: 2000),
+          child: Image.memory(imageBytes, cacheWidth: 2000),
         ),
       ),
     );
@@ -97,20 +98,15 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
         children: [
           GestureDetector(
             onTap: () async {
-              final decryptedPath = await EncryptionService.instance
-                  .decryptImageFile(imagePath);
-              if (decryptedPath != null && mounted) {
+              final bytes = await EncryptionService.instance
+                  .decryptImageToBytes(imagePath);
+              if (bytes != null && mounted) {
                 await Navigator.push(
                   context,
                   SmoothPageRoute(
-                    page: FullScreenImageViewer(imageFile: File(decryptedPath)),
+                    page: FullScreenImageViewer(imageBytes: bytes),
                   ),
                 );
-                // Cleanup temp file after returning
-                final tempFile = File(decryptedPath);
-                if (tempFile.existsSync()) {
-                  tempFile.deleteSync();
-                }
               }
             },
             child: Container(
