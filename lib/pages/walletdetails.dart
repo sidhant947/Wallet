@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -942,14 +941,23 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(16),
-                        child: Image.file(
-                          imageFile,
-                          height: 150,
-                          width: 250,
-                          fit: BoxFit.cover,
-                          cacheWidth: 500,
-                          cacheHeight: 300,
-                        ),
+                        child: imageFile.path.endsWith('.enc')
+                            ? EncryptedImageDisplay(
+                                imagePath: imageFile.path,
+                                height: 150,
+                                width: 250,
+                                fit: BoxFit.cover,
+                                cacheWidth: 500,
+                                cacheHeight: 300,
+                              )
+                            : Image.file(
+                                imageFile,
+                                height: 150,
+                                width: 250,
+                                fit: BoxFit.cover,
+                                cacheWidth: 500,
+                                cacheHeight: 300,
+                              ),
                       ),
                     ),
                     Positioned(

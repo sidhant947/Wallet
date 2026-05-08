@@ -815,7 +815,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           page: BarcodeCardDetailScreen(identity: identity),
                         ),
                       );
-                      if (result == true && mounted) {
+                      if (result == true && context.mounted) {
                         final identityProvider = Provider.of<IdentityProvider>(context, listen: false);
                         identityProvider.fetchIdentities();
                       }

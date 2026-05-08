@@ -1,24 +1,24 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:archive/archive.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/services/encryption_service.dart';
 
 class BackupService {
-  static const String _backupVersion = '1.0';
+  static const String _backupVersion = '2.0'; // Incremented version for ZIP format
 
   // Create encrypted backup using Storage Access Framework
   static Future<String?> createBackup(String password) async {
     try {
-      // Get all data from databases
+      // 1. Get all data from databases
       final wallets = await DatabaseHelper.instance.getWallets();
-      final identities = await IdentityDatabaseHelper.instance
-          .getAllIdentities();
+      final identities = await IdentityDatabaseHelper.instance.getAllIdentities();
       final loyalties = await LoyaltyDatabaseHelper.instance.getAllLoyalties();
 
-      // Create backup data structure — uses plaintext toMap() so that
-      // backup files are portable and not tied to a specific device key.
       final backupData = {
         'version': _backupVersion,
         'timestamp': DateTime.now().toIso8601String(),
@@ -27,21 +27,52 @@ class BackupService {
         'loyalties': loyalties.map((l) => l.toMap()).toList(),
       };
 
-      // Convert to JSON
       final jsonData = jsonEncode(backupData);
 
-      // Encrypt using real AES-256-GCM with password-derived key
+      // 2. Create a ZIP archive to hold JSON and Images
+      final archive = Archive();
+
+      // Add JSON data
+      final jsonBytes = utf8.encode(jsonData);
+      archive.addFile(ArchiveFile('data.json', jsonBytes.length, jsonBytes));
+
+      // 3. Find and add all encrypted image files
+      final Set<String> imagePaths = {};
+      for (var w in wallets) {
+        if (w.frontImagePath != null) imagePaths.add(w.frontImagePath!);
+        if (w.backImagePath != null) imagePaths.add(w.backImagePath!);
+      }
+      for (var i in identities) {
+        if (i.frontImagePath != null) imagePaths.add(i.frontImagePath!);
+        if (i.backImagePath != null) imagePaths.add(i.backImagePath!);
+      }
+      for (var l in loyalties) {
+        if (l.frontImagePath != null) imagePaths.add(l.frontImagePath!);
+        if (l.backImagePath != null) imagePaths.add(l.backImagePath!);
+      }
+
+      for (String path in imagePaths) {
+        final file = File(path);
+        if (await file.exists()) {
+          final bytes = await file.readAsBytes();
+          final fileName = p.basename(path);
+          archive.addFile(ArchiveFile('images/$fileName', bytes.length, bytes));
+        }
+      }
+
+      // 4. Encode ZIP and then ENCRYPT the whole ZIP
+      final zipData = ZipEncoder().encode(archive);
+
+      // Encrypt using AES-256-GCM
       final encryptedData = EncryptionService.instance.encryptForBackup(
-        jsonData,
+        base64Encode(zipData), // Using base64 to ensure it handles binary via existing text-based method
         password,
       );
 
-      // Create backup file with timestamp
+      // 5. Save the file
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = 'wallet_backup_$timestamp.wbk';
 
-      // Use Storage Access Framework via FilePicker to save file
-      // This doesn't require storage permissions on Android
       final outputFile = await FilePicker.platform.saveFile(
         dialogTitle: 'Save Backup File',
         fileName: fileName,
@@ -50,126 +81,101 @@ class BackupService {
         allowedExtensions: ['wbk'],
       );
 
-      if (outputFile == null) {
-        throw Exception('Save location not selected');
-      }
-
       return outputFile;
     } catch (e) {
+      debugPrint("BackupService: Create failed: $e");
       throw Exception('Failed to create backup: $e');
     }
   }
 
   // Restore from encrypted backup using Storage Access Framework
   static Future<void> restoreBackup(String password) async {
-    // Store current data for rollback in case of failure
-    final List<Wallet> backupWallets;
-    final List<Identity> backupIdentities;
-    final List<Loyalty> backupLoyalties;
+    final List<Wallet> backupWallets = await DatabaseHelper.instance.getWallets();
+    final List<Identity> backupIdentities = await IdentityDatabaseHelper.instance.getAllIdentities();
+    final List<Loyalty> backupLoyalties = await LoyaltyDatabaseHelper.instance.getAllLoyalties();
 
     try {
-      // Backup current data before clearing
-      backupWallets = await DatabaseHelper.instance.getWallets();
-      backupIdentities = await IdentityDatabaseHelper.instance
-          .getAllIdentities();
-      backupLoyalties = await LoyaltyDatabaseHelper.instance.getAllLoyalties();
-    } catch (e) {
-      throw Exception('Failed to backup current data: $e');
-    }
-
-    try {
-      // Pick backup file using Storage Access Framework
-      // This doesn't require storage permissions on Android
       final result = await FilePicker.platform.pickFiles(
         type: FileType.any,
         dialogTitle: 'Select Wallet Backup File',
         allowMultiple: false,
-        withData: true, // Important: Load file data directly
+        withData: true,
       );
 
-      if (result == null || result.files.isEmpty) {
-        throw Exception('No file selected');
-      }
+      if (result == null || result.files.isEmpty) throw Exception('No file selected');
 
       final platformFile = result.files.first;
-
-      // Get encrypted data directly from bytes (SAF approach)
       Uint8List? encryptedData = platformFile.bytes;
 
-      // Fallback to file path if bytes not available (shouldn't happen with withData: true)
-      if (encryptedData == null) {
-        final filePath = platformFile.path;
-        if (filePath == null) {
-          throw Exception('Unable to access file data');
-        }
-        final file = File(filePath);
-        if (!await file.exists()) {
-          throw Exception('Selected file does not exist');
-        }
-        encryptedData = await file.readAsBytes();
+      if (encryptedData == null && platformFile.path != null) {
+        encryptedData = await File(platformFile.path!).readAsBytes();
       }
+      if (encryptedData == null) throw Exception('Unable to access file data');
 
-      // Decrypt using real AES-256 (supports GCM and CBC)
-      final decryptedJson = EncryptionService.instance.decryptForBackup(
+      // 1. Decrypt
+      final decryptedContent = EncryptionService.instance.decryptForBackup(
         encryptedData,
         password,
       );
 
-      // Parse JSON
-      final backupData = jsonDecode(decryptedJson) as Map<String, dynamic>;
+      Map<String, dynamic> backupData;
+      List<ArchiveFile> imageFiles = [];
 
-      // Validate backup version
-      if (backupData['version'] != _backupVersion) {
-        throw Exception('Incompatible backup version');
+      // Detect if it's a legacy JSON backup or a new ZIP backup
+      if (decryptedContent.startsWith('{')) {
+        // Legacy JSON format
+        backupData = jsonDecode(decryptedContent);
+      } else {
+        // New ZIP format (base64 encoded ZIP)
+        final zipBytes = base64Decode(decryptedContent);
+        final archive = ZipDecoder().decodeBytes(zipBytes);
+        
+        final dataFile = archive.findFile('data.json');
+        if (dataFile == null) throw Exception("Invalid backup: data.json missing");
+        
+        backupData = jsonDecode(utf8.decode(dataFile.content as List<int>));
+        imageFiles = archive.where((f) => f.name.startsWith('images/')).toList();
       }
 
-      // Clear existing data
+      // 2. Clear existing data (including images)
       await _clearAllData();
 
-      // Restore wallets — data from backup is plaintext, insertWallet
-      // will encrypt it before writing to the database.
+      // 3. Restore Images first (if any)
+      final appDir = await getApplicationDocumentsDirectory();
+      for (var imgFile in imageFiles) {
+        final fileName = p.basename(imgFile.name);
+        final destPath = p.join(appDir.path, fileName);
+        await File(destPath).writeAsBytes(imgFile.content as List<int>);
+      }
+
+      // 4. Restore Database Records
       final walletsData = backupData['wallets'] as List<dynamic>;
       for (final walletMap in walletsData) {
-        final wallet = Wallet.fromMap(Map<String, dynamic>.from(walletMap));
-        await DatabaseHelper.instance.insertWallet(wallet);
+        await DatabaseHelper.instance.insertWallet(Wallet.fromMap(Map<String, dynamic>.from(walletMap)));
       }
 
-      // Restore identities
       final identitiesData = backupData['identities'] as List<dynamic>;
       for (final identityMap in identitiesData) {
-        final identity = Identity.fromMap(
-          Map<String, dynamic>.from(identityMap),
-        );
-        await IdentityDatabaseHelper.instance.insertIdentity(identity);
+        await IdentityDatabaseHelper.instance.insertIdentity(Identity.fromMap(Map<String, dynamic>.from(identityMap)));
       }
 
-      // Restore loyalties
       final loyaltiesData = backupData['loyalties'] as List<dynamic>;
       for (final loyaltyMap in loyaltiesData) {
-        final loyalty = Loyalty.fromMap(Map<String, dynamic>.from(loyaltyMap));
-        await LoyaltyDatabaseHelper.instance.insertLoyalty(loyalty);
+        await LoyaltyDatabaseHelper.instance.insertLoyalty(Loyalty.fromMap(Map<String, dynamic>.from(loyaltyMap)));
       }
-    } catch (e) {
-      // Rollback: restore the previous data
-      debugPrint('BackupService: Restore failed, rolling back...: $e');
-      try {
-        await _clearAllData();
 
-        for (final wallet in backupWallets) {
-          await DatabaseHelper.instance.insertWallet(wallet);
-        }
-        for (final identity in backupIdentities) {
-          await IdentityDatabaseHelper.instance.insertIdentity(identity);
-        }
-        for (final loyalty in backupLoyalties) {
-          await LoyaltyDatabaseHelper.instance.insertLoyalty(loyalty);
-        }
-        debugPrint('BackupService: Rollback successful');
-      } catch (rollbackError) {
-        debugPrint('BackupService: Rollback failed: $rollbackError');
-        throw Exception(
-          'Restore failed and rollback also failed: $e\nRollback error: $rollbackError',
-        );
+    } catch (e) {
+      debugPrint('BackupService: Restore failed, rolling back...: $e');
+      // Simple rollback logic
+      await _clearAllData();
+      for (var w in backupWallets) {
+        await DatabaseHelper.instance.insertWallet(w);
+      }
+      for (var i in backupIdentities) {
+        await IdentityDatabaseHelper.instance.insertIdentity(i);
+      }
+      for (var l in backupLoyalties) {
+        await LoyaltyDatabaseHelper.instance.insertLoyalty(l);
       }
       throw Exception('Failed to restore backup: $e');
     }
@@ -177,14 +183,24 @@ class BackupService {
 
   // Clear all existing data before restore
   static Future<void> _clearAllData() async {
-    // Use direct database delete for efficiency instead of fetching and looping
+    // Clear databases
     final db = await DatabaseHelper.instance.database;
     await db.delete('wallets');
-
     final identityDb = await IdentityDatabaseHelper.instance.database;
     await identityDb.delete('identities');
-
     final loyaltyDb = await LoyaltyDatabaseHelper.instance.database;
     await loyaltyDb.delete('loyalties');
+
+    // Clear all .enc image files to prevent orphaning
+    final appDir = await getApplicationDocumentsDirectory();
+    final dir = Directory(appDir.path);
+    if (await dir.exists()) {
+      final files = dir.listSync();
+      for (var file in files) {
+        if (file is File && file.path.endsWith('.enc')) {
+          await file.delete();
+        }
+      }
+    }
   }
 }

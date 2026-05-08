@@ -12,6 +12,7 @@ import 'package:wallet/services/card_utils.dart';
 import 'package:wallet/services/encryption_service.dart';
 import 'package:wallet/widgets/glass_credit_card.dart';
 import 'package:wallet/widgets/barcode_card.dart';
+import 'package:wallet/widgets/encrypted_image_display.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 import 'db_helper.dart';
@@ -377,6 +378,13 @@ Future<String?> saveImageToAppDirectory(File imageFile) async {
     final encryptedPath = await EncryptionService.instance.encryptImageFile(
       newFile.path,
     );
+
+    // Securely delete the original source file (e.g. from camera cache or gallery)
+    // to ensure no plaintext traces are left on disk.
+    if (await imageFile.exists()) {
+      await imageFile.delete();
+      debugPrint("EncryptionService: Original source image deleted.");
+    }
 
     return encryptedPath;
   } catch (e) {
@@ -932,22 +940,13 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        existingImagePath,
+                      child: EncryptedImageDisplay(
+                        imagePath: existingImagePath,
                         height: 150,
                         width: 250,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            height: 150,
-                            width: 250,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[300],
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(Icons.error),
-                          );
-                        },
+                        cacheWidth: 500,
+                        cacheHeight: 300,
                       ),
                     ),
                     Positioned(

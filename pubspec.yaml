@@ -11,6 +11,7 @@ environment:
   flutter: ^3.38.5
 
 dependencies:
+  archive: ^4.0.9
   barcode_scan2: ^4.4.0
   barcode_widget: ^2.0.4
   crypto: ^3.0.5
