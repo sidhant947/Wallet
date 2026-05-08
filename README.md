@@ -12,9 +12,11 @@ Stay secure on your favorite platform. Secure Wallet is available on several pri
 
 <div align="center">
 
+
 | **Play Store** | **IzzyOnDroid** | **F-Droid** |
 | :---: | :---: | :---: |
-| [![Google Play](https://github.com/user-attachments/assets/5ff479ee-9c86-47fd-a583-2a4f8f10633e)](https://play.google.com/store/apps/details?id=com.sidhant.wallet) | [![IzzyOnDroid](https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroidButtonGreyBorder_nofont.png)](https://apt.izzysoft.de/packages/com.sidhant.wallet) | [![F-Droid](https://f-droid.org/badge/get-it-on.png)](https://f-droid.org/packages/com.sidhant.wallet) |
+| <a href="https://play.google.com/store/apps/details?id=com.sidhant.wallet"><img src="https://github.com/user-attachments/assets/5ff479ee-9c86-47fd-a583-2a4f8f10633e" height="60"></a> | <a href="https://apt.izzysoft.de/packages/com.sidhant.wallet"><img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroidButtonGreyBorder_nofont.png" height="60"></a> | <a href="https://f-droid.org/packages/com.sidhant.wallet"><img src="https://f-droid.org/badge/get-it-on.png" height="60"></a> |
+
 
 [**Download Latest APK**](https://github.com/sidhant947/Wallet/releases/latest)
 
