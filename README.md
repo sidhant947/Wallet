@@ -1,30 +1,46 @@
-# Wallet
+# Wallet 
 
-Wallet is a Flutter project designed to store card information locally on the device, ensuring that the data is secure and cannot be stolen, as the application does not have internet access. The app is optimized for efficiency, allowing users to quickly copy card details for transactions. 
+[![IzzyOnDroid Yearly Downloads](https://img.shields.io/badge/dynamic/json?url=https://dlstats.izzyondroid.org/iod-stats-collector/stats/basic/yearly/rolling.json&query=$.['com.sidhant.wallet']&label=IzzyOnDroid%20yearly%20downloads)](https://apt.izzysoft.de/packages/com.sidhant.wallet) [![License](https://img.shields.io/github/license/sidhant947/Wallet)](LICENSE)
 
-## Download on IzzyOnDroid
+**Wallet** is a privacy-focused card management application built with Flutter. It allows you to store credit, debit, loyalty, and identity cards locally on your device with absolute security and zero internet access with AES-GCM Encryption.
 
-[<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroidButtonGreyBorder_nofont.png" height="80" alt="Get it at IzzyOnDroid">](https://apt.izzysoft.de/packages/com.sidhant.wallet)
+---
 
-[![IzzyOnDroid Yearly Downloads](https://img.shields.io/badge/dynamic/json?url=https://dlstats.izzyondroid.org/iod-stats-collector/stats/basic/yearly/rolling.json&query=$.['com.sidhant.wallet']&label=IzzyOnDroid%20yearly%20downloads)](https://apt.izzysoft.de/packages/com.sidhant.wallet)
+## 📥 Download
 
-## Download on Play Store
+Stay secure on your favorite platform. Secure Wallet is available on several privacy-respecting and official stores:
 
-<a href="https://play.google.com/store/apps/details?id=com.sidhant.wallet"><img src="https://github.com/user-attachments/assets/5ff479ee-9c86-47fd-a583-2a4f8f10633e" width="250"></a>
+<div align="center">
 
-## Download on f-droid
+| **Play Store** | **IzzyOnDroid** | **F-Droid** |
+| :---: | :---: | :---: |
+| [![Google Play](https://github.com/user-attachments/assets/5ff479ee-9c86-47fd-a583-2a4f8f10633e)](https://play.google.com/store/apps/details?id=com.sidhant.wallet) | [![IzzyOnDroid](https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroidButtonGreyBorder_nofont.png)](https://apt.izzysoft.de/packages/com.sidhant.wallet) | [![F-Droid](https://f-droid.org/badge/get-it-on.png)](https://f-droid.org/packages/com.sidhant.wallet) |
 
-[<img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="80">](https://f-droid.org/packages/com.sidhant.wallet)
+[**Download Latest APK**](https://github.com/sidhant947/Wallet/releases/latest)
+
+</div>
+
+---
+
+## ✨ Key Features
+
+*   🔒 **Offline by Design**: The app does not request internet permissions. Your data never leaves your device.
+*   🛡️ **Military-Grade Security**: Sensitive data and images are encrypted using **AES-256-GCM**.
+*   🎨 **Premium UI**: Featuring a beautiful "Liquid Glass" design with smooth transitions and staggered animations.
+*   📸 **Encrypted Scans**: Store secure photos of your physical cards (front & back).
+*   ⚡ **Tap-to-Copy**: Quickly copy card numbers for seamless online transactions.
+*   🆔 **Versatile Storage**: Manage Payments, Loyalty Programs, and Identity Cards in one place.
+*   🌓 **Theme Support**: Full support for both premium Light and Dark modes.
+
+---
 
 
-## Features
+## 🤝 Contributing
 
-- **Local Storage**: All card information is stored locally on the device, ensuring that data is not exposed to the internet.
-- **Security**: The app is designed to be fully proofed against data theft.
-- **Efficiency**: Users can quickly copy card details for transactions.
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
 
-## Usage
+Check our [Contributing Guidelines](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md).
 
-1. **Add a Card**: Click on the "Add Card" button to add a new card.
-2. **View Card Details**: The card details will be displayed, including the card name, number, expiration date.
-3. **Copy Card Details**: Click on the card details to quickly copy them for transactions.
+## 📄 License
+
+This project is licensed under the terms of the GPL License. See [LICENSE](LICENSE) for more details.

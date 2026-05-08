@@ -1,10 +1,35 @@
-<i>Wallet</i> is a Flutter project designed to store card information locally on the device, ensuring that the data is secure and cannot be stolen, as the application does not have internet access. The app is optimized for efficiency, allowing users to quickly copy card details for transactions.
+Secure Wallet is the ultimate solution for storing your credit, debit, loyalty, and identity cards with absolute privacy. Designed with a security-first approach, Wallet keeps your sensitive data exactly where it belongs: on your device.
 
-<b>Features:</b>
+Why choose Wallet?
 
-* <b>Local Storage:</b> All card information, including brand loyalty and identity cards, is stored locally on the device, ensuring that data is not exposed to the internet.
-* <b>Security:</b> The app is designed to be fully proofed against data theft, safeguarding sensitive information.
-* <b>Efficiency:</b> Users can quickly copy card details for transactions.
-* <b>Brand Loyalty Cards:</b> Users can store their brand loyalty cards within the app for easy access and management.
-* <b>Identity Card Storage:</b> Securely store and manage identity cards, ensuring that sensitive information remains protected.
-* <b>Credit Cards Summary:</b> The app allows users to export a summary of their credit card data as a PDF, offering a quick overview of their financial information for personal tracking or record-keeping.
+🔒 Total Privacy (No Internet Access):
+The application does not have internet permission. Your data never leaves your device, making it immune to cloud leaks, remote hacks, or third-party tracking.
+
+🛡️ Advanced Encryption:
+Your card images and sensitive details are protected using industry-standard AES-256-GCM encryption. All data is decrypted directly into memory, ensuring no plaintext traces are left on your storage.
+
+⚡ Optimized for Efficiency:
+Need your card number for an online purchase? Copy details with a single tap. The app is designed for speed, helping you complete transactions in seconds.
+
+📸 Encrypted Card Scans:
+Store high-quality, encrypted images of the front and back of your cards. Access your physical cards digitally whenever you need them, without compromising security.
+
+💳 All Your Cards in One Place:
+- Payments: Manage credit and debit cards with a premium, intuitive UI.
+- Loyalty: Keep your rewards programs and membership cards organized and ready to scan.
+- Identity: Securely store IDs, licenses, and badges with custom field support.
+
+📊 Financial Summary:
+Generate and export a secure summary of your credit card details for personal record-keeping or offline tracking.
+
+🎨 Premium Experience:
+Enjoy a beautiful, minimal interface with "Liquid Glass" design, smooth transitions, and full support for both Light and Dark modes.
+
+Key Features:
+- 100% Offline: No data collection, no syncing, no tracking.
+- Local Security: Safeguarded against data theft with biometric-ready architecture.
+- Custom Fields: Add unique information for any card type.
+- Quick Barcodes: Instant barcode generation for loyalty and membership cards.
+- Ad-Free: No distractions, just your cards when you need them.
+
+Protect your identity and simplify your life. Experience the peace of mind that comes with true local security.

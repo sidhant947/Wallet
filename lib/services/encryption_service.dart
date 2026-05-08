@@ -7,6 +7,16 @@ import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+/// Data class for passing parameters to encryption isolates
+class _EncryptionParams {
+  final Uint8List data;
+  final encrypt.Key key;
+  final encrypt.IV iv;
+  final encrypt.AESMode mode;
+
+  _EncryptionParams(this.data, this.key, this.iv, this.mode);
+}
+
 /// AES-256-GCM encryption service for securing sensitive local data.
 ///
 /// Uses Authenticated Encryption (GCM) for both confidentiality and integrity.
@@ -33,6 +43,10 @@ class EncryptionService {
 
   encrypt.Key? _encryptionKey;
   bool _isInitialized = false;
+
+  // Simple memory cache for decrypted images to avoid redundant computation
+  final Map<String, Uint8List> _imageCache = {};
+  static const int _maxCacheSize = 20; // Limit cache to 20 images
 
   /// Whether the service has been initialized and is ready to use.
   bool get isInitialized => _isInitialized;
@@ -289,6 +303,7 @@ class EncryptionService {
   }
 
   /// Encrypt an image file using AES-256-GCM.
+  /// Offloads to a separate isolate to prevent UI blocking.
   Future<String?> encryptImageFile(String sourceFilePath) async {
     try {
       if (!_isInitialized || _encryptionKey == null) {
@@ -303,13 +318,20 @@ class EncryptionService {
 
       final imageBytes = await sourceFile.readAsBytes();
       final iv = encrypt.IV(_generateSecureRandomBytes(_gcmIvLength));
-      final encrypter = encrypt.Encrypter(
-        encrypt.AES(_encryptionKey!, mode: encrypt.AESMode.gcm),
+
+      // Offload encryption to isolate
+      final encryptedBytes = await compute(
+        _encryptBytesIsolate,
+        _EncryptionParams(
+          imageBytes,
+          _encryptionKey!,
+          iv,
+          encrypt.AESMode.gcm,
+        ),
       );
-      final encrypted = encrypter.encryptBytes(imageBytes, iv: iv);
 
       // Store as: base64(iv):base64(ciphertext)
-      final encryptedContent = '${iv.base64}:${encrypted.base64}';
+      final encryptedContent = '${iv.base64}:${base64Encode(encryptedBytes)}';
 
       final encryptedPath = '$sourceFilePath.enc';
       final encryptedFile = File(encryptedPath);
@@ -328,10 +350,13 @@ class EncryptionService {
   }
 
   /// Decrypt an encrypted image file and return the raw bytes.
-  ///
-  /// This is the preferred method as it avoids writing sensitive data
-  /// to disk in plaintext. The returned bytes can be used with `Image.memory`.
+  /// Uses a memory cache and offloads to an isolate.
   Future<Uint8List?> decryptImageToBytes(String encryptedFilePath) async {
+    // 1. Check memory cache first
+    if (_imageCache.containsKey(encryptedFilePath)) {
+      return _imageCache[encryptedFilePath];
+    }
+
     try {
       if (!_isInitialized || _encryptionKey == null) {
         throw StateError('EncryptionService: Not initialized.');
@@ -346,27 +371,53 @@ class EncryptionService {
       final content = await encryptedFile.readAsString();
       if (!_isEncrypted(content)) {
         // File is not encrypted, read as raw bytes
-        return await encryptedFile.readAsBytes();
+        final bytes = await encryptedFile.readAsBytes();
+        _addToCache(encryptedFilePath, bytes);
+        return bytes;
       }
 
       final parts = content.split(':');
       final iv = encrypt.IV.fromBase64(parts[0]);
-      final encryptedData = encrypt.Encrypted.fromBase64(parts[1]);
+      final encryptedData = base64Decode(parts[1]);
 
       final mode = iv.bytes.length == _gcmIvLength
           ? encrypt.AESMode.gcm
           : encrypt.AESMode.cbc;
 
-      final encrypter = encrypt.Encrypter(
-        encrypt.AES(_encryptionKey!, mode: mode),
+      // 2. Offload decryption to isolate
+      final decryptedBytes = await compute(
+        _decryptBytesIsolate,
+        _EncryptionParams(
+          Uint8List.fromList(encryptedData),
+          _encryptionKey!,
+          iv,
+          mode,
+        ),
       );
-      final decryptedBytes = encrypter.decryptBytes(encryptedData, iv: iv);
 
-      return Uint8List.fromList(decryptedBytes);
+      final result = Uint8List.fromList(decryptedBytes);
+
+      // 3. Cache the result
+      _addToCache(encryptedFilePath, result);
+
+      return result;
     } catch (e) {
       debugPrint('EncryptionService: Image decryption failed: $e');
       throw Exception('Failed to decrypt image: $e');
     }
+  }
+
+  void _addToCache(String key, Uint8List bytes) {
+    if (_imageCache.length >= _maxCacheSize) {
+      // Remove first (oldest) entry
+      _imageCache.remove(_imageCache.keys.first);
+    }
+    _imageCache[key] = bytes;
+  }
+
+  /// Clear the image cache.
+  void clearImageCache() {
+    _imageCache.clear();
   }
 
   /// Check whether existing data has been migrated to encrypted format.
@@ -379,4 +430,20 @@ class EncryptionService {
   Future<void> markMigrated() async {
     await _secureStorage.write(key: _migrationFlagKey, value: 'true');
   }
+}
+
+/// Isolate entry point for encryption
+Uint8List _encryptBytesIsolate(_EncryptionParams params) {
+  final encrypter = encrypt.Encrypter(
+    encrypt.AES(params.key, mode: params.mode),
+  );
+  return Uint8List.fromList(encrypter.encryptBytes(params.data, iv: params.iv).bytes);
+}
+
+/// Isolate entry point for decryption
+Uint8List _decryptBytesIsolate(_EncryptionParams params) {
+  final encrypter = encrypt.Encrypter(
+    encrypt.AES(params.key, mode: params.mode),
+  );
+  return Uint8List.fromList(encrypter.decryptBytes(encrypt.Encrypted(params.data), iv: params.iv));
 }

@@ -1,33 +1,26 @@
-name: Build and Release
+name: Build & Release APK
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g., v1.0.0)'
+        description: 'Version tag (e.g. v1.0.0)'
         required: true
         default: 'v1.0.0'
-      flutter_version:
-        description: 'Flutter version to use for build (e.g., 3.38.5)'
-        required: true
-        default: '3.38.5'
-      release_notes:
-        description: 'Release notes'
-        required: false
-        default: 'Manual release'
+
+permissions:
+  contents: write
 
 jobs:
-  build_android:
+  build:
+    name: Build & Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Setup Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
@@ -36,9 +29,8 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          flutter-version: ${{ github.event.inputs.flutter_version }}
 
-      - name: Install Dependencies
+      - name: Get Dependencies
         run: flutter pub get
 
       - name: Setup Keystore
@@ -50,23 +42,24 @@ jobs:
           echo "storeFile=upload-keystore.jks" >> android/key.properties
 
       - name: Build Universal APK
-        run: |
-          flutter build apk --release
-          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/app-universal-release.apk
+        run: flutter build apk --release
 
-      - name: Build Split ABIs APKs
+      - name: Build Split APKs
         run: flutter build apk --release --split-per-abi
 
-      - name: Create Release and Upload Android Assets
-        uses: softprops/action-gh-release@v2
+      - name: Build App Bundle
+        run: flutter build appbundle --release
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.event.inputs.version }}
-          name: ${{ github.event.inputs.version }}
-          body: ${{ github.event.inputs.release_notes }}
           files: |
-            build/app/outputs/flutter-apk/app-universal-release.apk
+            build/app/outputs/flutter-apk/app-release.apk
             build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
             build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
             build/app/outputs/flutter-apk/app-x86_64-release.apk
+            build/app/outputs/bundle/release/app-release.aab
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

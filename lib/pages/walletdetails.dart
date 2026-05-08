@@ -15,9 +15,44 @@ import 'package:wallet/widgets/encrypted_image_display.dart';
 import 'dart:io';
 
 // FullScreenImageViewer with liquid glass theme
-class FullScreenImageViewer extends StatelessWidget {
-  final Uint8List imageBytes;
-  const FullScreenImageViewer({super.key, required this.imageBytes});
+class FullScreenImageViewer extends StatefulWidget {
+  final String? imagePath;
+  final Uint8List? imageBytes;
+
+  const FullScreenImageViewer({
+    super.key,
+    this.imagePath,
+    this.imageBytes,
+  }) : assert(imagePath != null || imageBytes != null);
+
+  @override
+  State<FullScreenImageViewer> createState() => _FullScreenImageViewerState();
+}
+
+class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
+  Uint8List? _bytes;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.imageBytes != null) {
+      _bytes = widget.imageBytes;
+    } else {
+      _loadBytes();
+    }
+  }
+
+  Future<void> _loadBytes() async {
+    setState(() => _isLoading = true);
+    final bytes = await EncryptionService.instance.decryptImageToBytes(widget.imagePath!);
+    if (mounted) {
+      setState(() {
+        _bytes = bytes;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,12 +75,16 @@ class FullScreenImageViewer extends StatelessWidget {
         ),
       ),
       body: Center(
-        child: InteractiveViewer(
-          panEnabled: true,
-          minScale: 1.0,
-          maxScale: 4.0,
-          child: Image.memory(imageBytes, cacheWidth: 2000),
-        ),
+        child: _isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : _bytes == null
+                ? const Icon(Icons.broken_image, color: Colors.white54, size: 64)
+                : InteractiveViewer(
+                    panEnabled: true,
+                    minScale: 1.0,
+                    maxScale: 4.0,
+                    child: Image.memory(_bytes!, cacheWidth: 2000),
+                  ),
       ),
     );
   }
@@ -96,17 +135,13 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
       child: Column(
         children: [
           GestureDetector(
-            onTap: () async {
-              final bytes = await EncryptionService.instance
-                  .decryptImageToBytes(imagePath);
-              if (bytes != null && mounted) {
-                await Navigator.push(
-                  context,
-                  SmoothPageRoute(
-                    page: FullScreenImageViewer(imageBytes: bytes),
-                  ),
-                );
-              }
+            onTap: () {
+              Navigator.push(
+                context,
+                SmoothPageRoute(
+                  page: FullScreenImageViewer(imagePath: imagePath),
+                ),
+              );
             },
             child: Container(
               decoration: BoxDecoration(
@@ -438,7 +473,12 @@ class WalletEditScreenState extends State<WalletEditScreen> {
   }
 
   Future<void> _pickImage(ImageSource source, bool isFront) async {
-    final pickedFile = await _picker.pickImage(source: source);
+    final pickedFile = await _picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
     if (pickedFile != null) {
       setState(() {
         if (isFront) {

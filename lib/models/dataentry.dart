@@ -454,7 +454,12 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
   }
 
   Future<void> _pickImage(ImageSource source, bool isFront) async {
-    final pickedFile = await _picker.pickImage(source: source);
+    final pickedFile = await _picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
     if (pickedFile != null) {
       setState(() {
         if (isFront) {
@@ -1032,7 +1037,12 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
                         ),
                       ),
                       onPressed: () async {
-                        final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+                        final pickedFile = await _picker.pickImage(
+                          source: ImageSource.gallery,
+                          maxWidth: 1024,
+                          maxHeight: 1024,
+                          imageQuality: 85,
+                        );
                         if (pickedFile != null) {
                           setState(() {
                             if (isFront) {
