@@ -546,7 +546,7 @@ class LoyaltyDatabaseHelper {
     final path = join(directory.path, 'loyalty.db');
     return openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -558,6 +558,8 @@ class LoyaltyDatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         loyaltyName TEXT,
         loyaltyNumber TEXT,
+        balance TEXT,
+        customFields TEXT,
         color TEXT,
         frontImagePath TEXT,
         backImagePath TEXT,
@@ -578,6 +580,10 @@ class LoyaltyDatabaseHelper {
       await db.execute(
         'ALTER TABLE loyalties ADD COLUMN orderIndex INTEGER DEFAULT 0;',
       );
+    }
+    if (oldVersion < 5) {
+      await db.execute('ALTER TABLE loyalties ADD COLUMN balance TEXT;');
+      await db.execute('ALTER TABLE loyalties ADD COLUMN customFields TEXT;');
     }
   }
 
@@ -658,6 +664,8 @@ class Loyalty {
   final int? id;
   final String loyaltyName;
   final String loyaltyNumber;
+  final String? balance;
+  final Map<String, String>? customFields;
   final String? color;
   final String? frontImagePath;
   final String? backImagePath;
@@ -667,6 +675,8 @@ class Loyalty {
     this.id,
     required this.loyaltyName,
     required this.loyaltyNumber,
+    this.balance,
+    this.customFields,
     this.color,
     this.frontImagePath,
     this.backImagePath,
@@ -679,6 +689,8 @@ class Loyalty {
       'id': id,
       'loyaltyName': loyaltyName,
       'loyaltyNumber': loyaltyNumber,
+      'balance': balance,
+      'customFields': customFields != null ? jsonEncode(customFields) : null,
       'color': color,
       'frontImagePath': frontImagePath,
       'backImagePath': backImagePath,
@@ -693,6 +705,10 @@ class Loyalty {
       'id': id,
       'loyaltyName': enc.encryptText(loyaltyName),
       'loyaltyNumber': enc.encryptText(loyaltyNumber),
+      'balance': enc.encryptText(balance),
+      'customFields': customFields != null
+          ? enc.encryptJson(customFields!.cast<String, dynamic>())
+          : null,
       'color': color,
       'frontImagePath': frontImagePath,
       'backImagePath': backImagePath,
@@ -706,6 +722,10 @@ class Loyalty {
       id: map['id'],
       loyaltyName: map['loyaltyName'],
       loyaltyNumber: map['loyaltyNumber'],
+      balance: map['balance'],
+      customFields: map['customFields'] != null
+          ? Map<String, String>.from(jsonDecode(map['customFields']))
+          : null,
       color: map['color'],
       frontImagePath: map['frontImagePath'],
       backImagePath: map['backImagePath'],
@@ -720,6 +740,10 @@ class Loyalty {
       id: map['id'],
       loyaltyName: enc.decryptText(map['loyaltyName']) ?? '',
       loyaltyNumber: enc.decryptText(map['loyaltyNumber']) ?? '',
+      balance: enc.decryptText(map['balance']),
+      customFields: map['customFields'] != null
+          ? enc.decryptJsonToStringMap(map['customFields'])
+          : null,
       color: map['color'],
       frontImagePath: map['frontImagePath'],
       backImagePath: map['backImagePath'],

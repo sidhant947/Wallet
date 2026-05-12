@@ -42,6 +42,7 @@ class BarcodeCard extends StatelessWidget {
       return _PremiumLoyaltyCard(
         name: cardName,
         number: cardNumber,
+        balance: loyalty!.balance,
         colorData: colorData,
         onTap: onCardTap,
       );
@@ -62,12 +63,14 @@ class BarcodeCard extends StatelessWidget {
 class _PremiumLoyaltyCard extends StatelessWidget {
   final String name;
   final String number;
+  final String? balance;
   final CardColorData colorData;
   final VoidCallback onTap;
 
   const _PremiumLoyaltyCard({
     required this.name,
     required this.number,
+    this.balance,
     required this.colorData,
     required this.onTap,
   });
@@ -146,6 +149,7 @@ class _PremiumLoyaltyCard extends StatelessWidget {
                         children: [
                           // Header
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -180,6 +184,16 @@ class _PremiumLoyaltyCard extends StatelessWidget {
                                   ],
                                 ),
                               ),
+                              if (balance != null && balance!.isNotEmpty)
+                                Text(
+                                  balance!,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
                             ],
                           ),
 

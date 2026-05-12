@@ -6,7 +6,6 @@ import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/models/dataentry.dart';
 import 'package:wallet/pages/walletdetails.dart';
 import 'package:wallet/screens/homescreen.dart';
-import 'package:wallet/services/encryption_service.dart';
 import 'package:wallet/widgets/encrypted_image_display.dart';
 
 class BarcodeCardDetailScreen extends StatelessWidget {
@@ -127,6 +126,28 @@ class BarcodeCardDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 32),
+
+          // Details Section for Loyalty
+          if (isLoyaltyCard && (loyalty!.balance != null || (loyalty!.customFields != null && loyalty!.customFields!.isNotEmpty)))
+            _LiquidGlassSection(
+              title: "Card Details",
+              icon: Icons.info_outline_rounded,
+              isDark: isDark,
+              child: Column(
+                children: [
+                  if (loyalty!.balance != null)
+                    _buildDetailRow("Balance / Points", loyalty!.balance!, isDark),
+                  if (loyalty!.customFields != null)
+                    ...loyalty!.customFields!.entries.map(
+                      (e) => _buildDetailRow(e.key, e.value, isDark),
+                    ),
+                ],
+              ),
+            ),
+
+          if (isLoyaltyCard && (loyalty!.balance != null || (loyalty!.customFields != null && loyalty!.customFields!.isNotEmpty)))
+            const SizedBox(height: 32),
+
           // Other Formats Section
           _LiquidGlassSection(
             title: "Other Formats",
@@ -203,6 +224,35 @@ class BarcodeCardDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: isDark ? Colors.white54 : Colors.black54,
+              fontSize: 14,
+            ),
+          ),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         ],
       ),
     );

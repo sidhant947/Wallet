@@ -773,6 +773,9 @@ class BarcodeCardEntryForm extends StatefulWidget {
 class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
   final _nameController = TextEditingController();
   final _numberController = TextEditingController();
+  final _balanceController = TextEditingController();
+  final _customFieldNameControllers = <TextEditingController>[];
+  final _customFieldValueControllers = <TextEditingController>[];
   String _selectedColor = 'default';
   File? _frontImageFile;
   File? _backImageFile;
@@ -791,9 +794,17 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     if (widget.existingLoyalty != null) {
       _nameController.text = widget.existingLoyalty!.loyaltyName;
       _numberController.text = widget.existingLoyalty!.loyaltyNumber;
+      _balanceController.text = widget.existingLoyalty!.balance ?? '';
       _selectedColor = widget.existingLoyalty!.color ?? 'default';
       _existingFrontImagePath = widget.existingLoyalty!.frontImagePath;
       _existingBackImagePath = widget.existingLoyalty!.backImagePath;
+      
+      if (widget.existingLoyalty!.customFields != null) {
+        widget.existingLoyalty!.customFields!.forEach((key, value) {
+          _customFieldNameControllers.add(TextEditingController(text: key));
+          _customFieldValueControllers.add(TextEditingController(text: value));
+        });
+      }
     } else if (widget.existingIdentity != null) {
       _nameController.text = widget.existingIdentity!.identityName;
       _numberController.text = widget.existingIdentity!.identityNumber;
@@ -805,6 +816,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     // Add listeners to update the preview in real-time
     _nameController.addListener(() => setState(() {}));
     _numberController.addListener(() => setState(() {}));
+    _balanceController.addListener(() => setState(() {}));
   }
 
   // --- ADDED ---
@@ -812,6 +824,13 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
   void dispose() {
     _nameController.dispose();
     _numberController.dispose();
+    _balanceController.dispose();
+    for (var c in _customFieldNameControllers) {
+      c.dispose();
+    }
+    for (var c in _customFieldValueControllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -879,6 +898,15 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         backImagePath = await saveImageToAppDirectory(_backImageFile!);
       }
 
+      Map<String, String> customFields = {};
+      for (int i = 0; i < _customFieldNameControllers.length; i++) {
+        String fieldName = _customFieldNameControllers[i].text;
+        String fieldValue = _customFieldValueControllers[i].text;
+        if (fieldName.isNotEmpty && fieldValue.isNotEmpty) {
+          customFields[fieldName] = fieldValue;
+        }
+      }
+
       if (widget.cardType == BarcodeCardType.identity) {
         final identity = Identity(
           id: widget.existingIdentity?.id,
@@ -899,6 +927,8 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           id: widget.existingLoyalty?.id,
           loyaltyName: name,
           loyaltyNumber: number,
+          balance: _balanceController.text.trim().isNotEmpty ? _balanceController.text.trim() : null,
+          customFields: customFields.isNotEmpty ? customFields : null,
           color: _selectedColor,
           frontImagePath: frontImagePath,
           backImagePath: backImagePath,
@@ -1073,9 +1103,27 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     }
   }
 
+  void _addCustomField() {
+    setState(() {
+      _customFieldNameControllers.add(TextEditingController());
+      _customFieldValueControllers.add(TextEditingController());
+    });
+  }
+
+  void _removeCustomField(int index) {
+    setState(() {
+      _customFieldNameControllers[index].dispose();
+      _customFieldValueControllers[index].dispose();
+      _customFieldNameControllers.removeAt(index);
+      _customFieldValueControllers.removeAt(index);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final config = _getConfig();
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
@@ -1084,6 +1132,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         _BarcodeCardPreview(
           name: _nameController.text,
           number: _numberController.text,
+          balance: _balanceController.text,
           colorName: _selectedColor,
           cardType: widget.cardType,
           namePlaceholder: config['nameHint']!,
@@ -1106,6 +1155,13 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           controller: _numberController,
           decoration: InputDecoration(labelText: config['numberHint']),
         ),
+        if (widget.cardType == BarcodeCardType.loyalty) ...[
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _balanceController,
+            decoration: const InputDecoration(labelText: 'Balance / Points (Optional)'),
+          ),
+        ],
         const SizedBox(height: 24),
         OutlinedButton.icon(
           icon: const Icon(Icons.qr_code_scanner),
@@ -1125,6 +1181,73 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         _buildImagePickerSection(true),
         const SizedBox(height: 16),
         _buildImagePickerSection(false),
+        if (widget.cardType == BarcodeCardType.loyalty) ...[
+          const SizedBox(height: 32),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Custom Fields",
+                style: themeProvider.getTextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.add_circle,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                onPressed: _addCustomField,
+              ),
+            ],
+          ),
+          if (_customFieldNameControllers.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24.0),
+              child: Center(
+                child: Text(
+                  "No custom fields added.",
+                  style: themeProvider.getTextStyle(color: Colors.grey),
+                ),
+              ),
+            ),
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _customFieldNameControllers.length,
+            itemBuilder: (context, index) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _customFieldNameControllers[index],
+                        decoration: const InputDecoration(
+                          labelText: 'Field Name',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _customFieldValueControllers[index],
+                        decoration: const InputDecoration(
+                          labelText: 'Value',
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline),
+                      onPressed: () => _removeCustomField(index),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
         const SizedBox(height: 40),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
@@ -1148,6 +1271,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
 class _BarcodeCardPreview extends StatelessWidget {
   final String name;
   final String number;
+  final String balance;
   final String colorName;
   final BarcodeCardType cardType;
   final String namePlaceholder;
@@ -1156,6 +1280,7 @@ class _BarcodeCardPreview extends StatelessWidget {
   const _BarcodeCardPreview({
     required this.name,
     required this.number,
+    required this.balance,
     required this.colorName,
     required this.cardType,
     required this.namePlaceholder,
@@ -1187,6 +1312,7 @@ class _BarcodeCardPreview extends StatelessWidget {
       final loyalty = Loyalty(
         loyaltyName: name.isEmpty ? namePlaceholder : name,
         loyaltyNumber: number.isEmpty ? numberPlaceholder : number,
+        balance: balance.isEmpty ? null : balance,
         color: colorName,
       );
 
