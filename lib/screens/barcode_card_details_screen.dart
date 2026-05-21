@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:provider/provider.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/models/dataentry.dart';
@@ -8,7 +9,7 @@ import 'package:wallet/pages/walletdetails.dart';
 import 'package:wallet/screens/homescreen.dart';
 import 'package:wallet/widgets/encrypted_image_display.dart';
 
-class BarcodeCardDetailScreen extends StatelessWidget {
+class BarcodeCardDetailScreen extends StatefulWidget {
   final Loyalty? loyalty;
   final Identity? identity;
 
@@ -16,25 +17,58 @@ class BarcodeCardDetailScreen extends StatelessWidget {
     : assert(loyalty != null || identity != null);
 
   @override
+  State<BarcodeCardDetailScreen> createState() => _BarcodeCardDetailScreenState();
+}
+
+class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _maximizeBrightness();
+  }
+
+  Future<void> _maximizeBrightness() async {
+    try {
+      await ScreenBrightness().setScreenBrightness(1.0);
+    } catch (e) {
+      debugPrint('Error setting brightness: $e');
+    }
+  }
+
+  Future<void> _restoreBrightness() async {
+    try {
+      await ScreenBrightness().resetScreenBrightness();
+    } catch (e) {
+      debugPrint('Error resetting brightness: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _restoreBrightness();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
 
     // Determine which card type is being displayed
-    final bool isLoyaltyCard = loyalty != null;
+    final bool isLoyaltyCard = widget.loyalty != null;
 
     final cardName = isLoyaltyCard
-        ? loyalty!.loyaltyName
-        : identity!.identityName;
+        ? widget.loyalty!.loyaltyName
+        : widget.identity!.identityName;
     final barcodeData = isLoyaltyCard
-        ? loyalty!.loyaltyNumber
-        : identity!.identityNumber;
+        ? widget.loyalty!.loyaltyNumber
+        : widget.identity!.identityNumber;
     final frontImagePath = isLoyaltyCard
-        ? loyalty!.frontImagePath
-        : identity!.frontImagePath;
+        ? widget.loyalty!.frontImagePath
+        : widget.identity!.frontImagePath;
     final backImagePath = isLoyaltyCard
-        ? loyalty!.backImagePath
-        : identity!.backImagePath;
+        ? widget.loyalty!.backImagePath
+        : widget.identity!.backImagePath;
 
     bool isPathValid(String? path) => path != null && path.isNotEmpty;
 
@@ -128,24 +162,24 @@ class BarcodeCardDetailScreen extends StatelessWidget {
           const SizedBox(height: 32),
 
           // Details Section for Loyalty
-          if (isLoyaltyCard && (loyalty!.balance != null || (loyalty!.customFields != null && loyalty!.customFields!.isNotEmpty)))
+          if (isLoyaltyCard && (widget.loyalty!.balance != null || (widget.loyalty!.customFields != null && widget.loyalty!.customFields!.isNotEmpty)))
             _LiquidGlassSection(
               title: "Card Details",
               icon: Icons.info_outline_rounded,
               isDark: isDark,
               child: Column(
                 children: [
-                  if (loyalty!.balance != null)
-                    _buildDetailRow("Balance / Points", loyalty!.balance!, isDark),
-                  if (loyalty!.customFields != null)
-                    ...loyalty!.customFields!.entries.map(
+                  if (widget.loyalty!.balance != null)
+                    _buildDetailRow("Balance / Points", widget.loyalty!.balance!, isDark),
+                  if (widget.loyalty!.customFields != null)
+                    ...widget.loyalty!.customFields!.entries.map(
                       (e) => _buildDetailRow(e.key, e.value, isDark),
                     ),
                 ],
               ),
             ),
 
-          if (isLoyaltyCard && (loyalty!.balance != null || (loyalty!.customFields != null && loyalty!.customFields!.isNotEmpty)))
+          if (isLoyaltyCard && (widget.loyalty!.balance != null || (widget.loyalty!.customFields != null && widget.loyalty!.customFields!.isNotEmpty)))
             const SizedBox(height: 32),
 
           // Other Formats Section
@@ -367,7 +401,7 @@ class BarcodeCardDetailScreen extends StatelessWidget {
   }
 
   void _navigateToEditScreen(BuildContext context) async {
-    final bool isLoyaltyCard = loyalty != null;
+    final bool isLoyaltyCard = widget.loyalty != null;
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -375,8 +409,8 @@ class BarcodeCardDetailScreen extends StatelessWidget {
           appBar: AppBar(title: Text('Edit ${isLoyaltyCard ? "Loyalty" : "Identity"} Card')),
           body: BarcodeCardEntryForm(
             cardType: isLoyaltyCard ? BarcodeCardType.loyalty : BarcodeCardType.identity,
-            existingLoyalty: isLoyaltyCard ? loyalty : null,
-            existingIdentity: isLoyaltyCard ? null : identity,
+            existingLoyalty: isLoyaltyCard ? widget.loyalty : null,
+            existingIdentity: isLoyaltyCard ? null : widget.identity,
           ),
         ),
       ),

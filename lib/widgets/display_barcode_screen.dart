@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:barcode_widget/barcode_widget.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 import '../models/theme_provider.dart';
 
 class DisplayBarcodeScreen extends StatefulWidget {
@@ -35,9 +36,29 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
     ];
 
     // Set to max brightness for easy scanning
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(statusBarBrightness: Brightness.light),
-    );
+    _maximizeBrightness();
+  }
+
+  Future<void> _maximizeBrightness() async {
+    try {
+      await ScreenBrightness().setScreenBrightness(1.0);
+    } catch (e) {
+      debugPrint('Error setting brightness: $e');
+    }
+  }
+
+  Future<void> _restoreBrightness() async {
+    try {
+      await ScreenBrightness().resetScreenBrightness();
+    } catch (e) {
+      debugPrint('Error resetting brightness: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _restoreBrightness();
+    super.dispose();
   }
 
   @override

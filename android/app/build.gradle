@@ -73,7 +73,7 @@ android {
             def abiName = output.getFilter(com.android.build.OutputFile.ABI)
             def abiCode = abiCodes.get(abiName)
             if (abiCode != null) {
-                output.versionCodeOverride = variant.versionCode * 10 + abiCode
+                output.versionCodeOverride = variant.versionCode * 100 + abiCode
             }
         }
     }

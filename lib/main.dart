@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:secure_application/secure_application.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/models/startup_settings_provider.dart';
@@ -9,17 +10,12 @@ import 'package:wallet/services/encryption_service.dart';
 import 'models/provider_helper.dart';
 import 'screens/homescreen.dart';
 import 'package:provider/provider.dart';
-// import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:io' show Platform;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // This is for testing Only
-  // databaseFactory = databaseFactoryFfi;
-
   // Initialize AES-256 encryption service BEFORE any database operations.
-  // This generates (or loads) the master encryption key from secure storage.
   await EncryptionService.instance.init();
 
   final themeProvider = ThemeProvider();
@@ -67,25 +63,63 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Selector<ThemeProvider, ({ThemeMode themeMode, bool useSystemFont})>(
-      selector: (_, provider) => (
-        themeMode: provider.currentTheme,
-        useSystemFont: provider.useSystemFont,
+    return SecureApplication(
+      nativeRemoveDelay: 100,
+      autoUnlockNative: true,
+      child: SecureGate(
+        blurr: 20,
+        opacity: 0.6,
+        lockedBuilder: (context, secureNotifier) => Scaffold(
+          backgroundColor: Colors.black,
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.wallet_rounded, size: 80, color: Colors.white),
+                const SizedBox(height: 24),
+                const Text(
+                  'WALLET IS SECURED',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 4,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  onPressed: () => secureNotifier?.unlock(),
+                  icon: const Icon(Icons.lock_open_rounded, color: Colors.white70),
+                  label: const Text(
+                    'Unlock App',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        child: Selector<ThemeProvider, ({ThemeMode themeMode, bool useSystemFont})>(
+          selector: (_, provider) => (
+            themeMode: provider.currentTheme,
+            useSystemFont: provider.useSystemFont,
+          ),
+          builder: (context, data, _) {
+            final themeProvider = Provider.of<ThemeProvider>(
+              context,
+              listen: false,
+            );
+            return MaterialApp(
+              title: 'Wallet',
+              debugShowCheckedModeBanner: false,
+              theme: themeProvider.lightTheme,
+              darkTheme: themeProvider.darkTheme,
+              themeMode: data.themeMode,
+              home: const SplashScreen(),
+            );
+          },
+        ),
       ),
-      builder: (context, data, _) {
-        final themeProvider = Provider.of<ThemeProvider>(
-          context,
-          listen: false,
-        );
-        return MaterialApp(
-          title: 'Wallet',
-          debugShowCheckedModeBanner: false,
-          theme: themeProvider.lightTheme,
-          darkTheme: themeProvider.darkTheme,
-          themeMode: data.themeMode,
-          home: const SplashScreen(),
-        );
-      },
     );
   }
 }
