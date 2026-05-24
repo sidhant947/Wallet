@@ -41,7 +41,9 @@ jobs:
         run: flutter --version
 
       - name: Get Dependencies
-        run: flutter pub get
+        run: |
+          flutter pub get
+          sed -i -e 's/-Wl,/-Wl,--build-id=none,/' ${PUB_CACHE}/hosted/*/jni-*/src/CMakeLists.txt
 
       - name: Setup Keystore
         run: |
