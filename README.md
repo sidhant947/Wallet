@@ -1,6 +1,6 @@
 # Wallet 
 
-[![IzzyOnDroid Yearly Downloads](https://img.shields.io/badge/dynamic/json?url=https://dlstats.izzyondroid.org/iod-stats-collector/stats/basic/yearly/rolling.json&query=$.['com.sidhant.wallet']&label=IzzyOnDroid%20yearly%20downloads)](https://apt.izzysoft.de/packages/com.sidhant.wallet) [![License](https://img.shields.io/github/license/sidhant947/Wallet)](LICENSE)
+[![IzzyOnDroid Yearly Downloads](https://img.shields.io/badge/dynamic/json?url=https://dlstats.izzyondroid.org/iod-stats-collector/stats/basic/yearly/rolling.json&query=$.['com.sidhant.wallet']&label=IzzyOnDroid%20yearly%20downloads)](https://apt.izzysoft.de/packages/com.sidhant.wallet) [![License](https://img.shields.io/github/license/sidhant947/Wallet)](LICENSE) ![Downloads last month](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgithub.com%2Fkitswas%2Ffdroid-metrics-dashboard%2Fraw%2Frefs%2Fheads%2Fmain%2Fprocessed%2Fmonthly%2Fcom.sidhant.wallet.json&query=%24.total_downloads&logo=fdroid&label=Downloads%20last%20month)
 
 **Wallet** is a privacy-focused card management application built with Flutter. It allows you to store credit, debit, loyalty, and identity cards locally on your device with absolute security and zero internet access with AES-GCM Encryption.
 
