@@ -728,14 +728,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.6.0"
-  rxdart:
-    dependency: transitive
-    description:
-      name: rxdart
-      sha256: "5c3004a4a8dbb94bd4bf5412a4def4acdaa12e12f269737a5751369e12d1a962"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.28.0"
   screen_brightness:
     dependency: "direct main"
     description:
@@ -792,14 +784,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.1"
-  secure_application:
-    dependency: "direct main"
-    description:
-      name: secure_application
-      sha256: "1476f2a8df44ed9617bf42f51a1fce2ab0b83bfd4ea58983a5f7d3748b356ef3"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.1.0"
   shared_preferences:
     dependency: "direct main"
     description:
