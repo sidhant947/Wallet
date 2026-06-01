@@ -41,7 +41,7 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
 
   Future<void> _maximizeBrightness() async {
     try {
-      await ScreenBrightness().setScreenBrightness(1.0);
+      await ScreenBrightness().setApplicationScreenBrightness(1.0);
     } catch (e) {
       debugPrint('Error setting brightness: $e');
     }
@@ -49,7 +49,7 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
 
   Future<void> _restoreBrightness() async {
     try {
-      await ScreenBrightness().resetScreenBrightness();
+      await ScreenBrightness().resetApplicationScreenBrightness();
     } catch (e) {
       debugPrint('Error resetting brightness: $e');
     }

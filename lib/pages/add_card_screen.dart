@@ -1,12 +1,7 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/dataentry.dart';
-import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/theme_provider.dart';
-import 'package:wallet/models/provider_helper.dart';
-import 'package:wallet/services/pkpass_service.dart';
-
 import 'package:wallet/models/startup_settings_provider.dart';
 
 class AddCardScreen extends StatefulWidget {
@@ -29,64 +24,6 @@ class _AddCardScreenState extends State<AddCardScreen> {
         .read<StartupSettingsProvider>()
         .hideIdentityAndLoyalty;
     _currentIndex = widget.initialTabIndex;
-  }
-
-  Future<void> _importPkpass() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pkpass'],
-      );
-
-      if (result != null && result.files.single.path != null) {
-        final loyalty = await PkpassService.instance.parsePkpass(result.files.single.path!);
-        if (loyalty != null) {
-          if (mounted) {
-            // Confirm import
-            final confirm = await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('Import Pass'),
-                content: Text('Do you want to import "${loyalty.loyaltyName}"?'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Cancel'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    child: const Text('Import'),
-                  ),
-                ],
-              ),
-            );
-
-            if (confirm == true) {
-              await LoyaltyDatabaseHelper.instance.insertLoyalty(loyalty);
-              if (mounted) {
-                context.read<LoyaltyProvider>().fetchLoyalties();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Pass imported successfully!')),
-                );
-                Navigator.pop(context);
-              }
-            }
-          }
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Failed to parse .pkpass file.')),
-            );
-          }
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
-    }
   }
 
   @override
@@ -114,12 +51,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
           ),
         ),
         actions: [
-          if (_currentIndex == 1) // Only show on Loyalty tab
-            IconButton(
-              icon: const Icon(Icons.file_download_outlined),
-              tooltip: 'Import .pkpass',
-              onPressed: _importPkpass,
-            ),
+          // Removed redundant import button as it's now in the form
         ],
         bottom: _hideIdentityAndLoyalty
             ? null
@@ -139,8 +71,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
                   child: Row(
                     children: [
                       _buildTabItem(0, Icons.credit_card_rounded, 'Payments', isDark),
-                      _buildTabItem(1, Icons.shopping_basket_rounded, 'Loyalty', isDark),
-                      _buildTabItem(2, Icons.fingerprint_rounded, 'Identity', isDark),
+                      _buildTabItem(1, Icons.confirmation_number_rounded, 'Passes', isDark),
                     ],
                   ),
                 ),
@@ -152,8 +83,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
               index: _currentIndex,
               children: const [
                 CreditCardEntryForm(),
-                BarcodeCardEntryForm(cardType: BarcodeCardType.loyalty),
-                BarcodeCardEntryForm(cardType: BarcodeCardType.identity),
+                BarcodeCardEntryForm(),
               ],
             ),
     );

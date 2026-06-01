@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/models/dataentry.dart';
-import 'package:wallet/pages/walletdetails.dart';
 import 'package:wallet/screens/homescreen.dart';
-import 'package:wallet/widgets/encrypted_image_display.dart';
+import 'package:wallet/widgets/display_barcode_screen.dart';
+import 'share_secure_screen.dart';
 
 class BarcodeCardDetailScreen extends StatefulWidget {
-  final Loyalty? loyalty;
-  final Identity? identity;
+  final Pass pass;
 
-  const BarcodeCardDetailScreen({super.key, this.loyalty, this.identity})
-    : assert(loyalty != null || identity != null);
+  const BarcodeCardDetailScreen({super.key, required this.pass});
 
   @override
   State<BarcodeCardDetailScreen> createState() => _BarcodeCardDetailScreenState();
@@ -29,7 +28,7 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
 
   Future<void> _maximizeBrightness() async {
     try {
-      await ScreenBrightness().setScreenBrightness(1.0);
+      await ScreenBrightness().setApplicationScreenBrightness(1.0);
     } catch (e) {
       debugPrint('Error setting brightness: $e');
     }
@@ -37,7 +36,7 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
 
   Future<void> _restoreBrightness() async {
     try {
-      await ScreenBrightness().resetScreenBrightness();
+      await ScreenBrightness().resetApplicationScreenBrightness();
     } catch (e) {
       debugPrint('Error resetting brightness: $e');
     }
@@ -53,28 +52,11 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
-
-    // Determine which card type is being displayed
-    final bool isLoyaltyCard = widget.loyalty != null;
-
-    final cardName = isLoyaltyCard
-        ? widget.loyalty!.loyaltyName
-        : widget.identity!.identityName;
-    final barcodeData = isLoyaltyCard
-        ? widget.loyalty!.loyaltyNumber
-        : widget.identity!.identityNumber;
-    final frontImagePath = isLoyaltyCard
-        ? widget.loyalty!.frontImagePath
-        : widget.identity!.frontImagePath;
-    final backImagePath = isLoyaltyCard
-        ? widget.loyalty!.backImagePath
-        : widget.identity!.backImagePath;
-
-    bool isPathValid(String? path) => path != null && path.isNotEmpty;
+    final p = widget.pass;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(cardName),
+        title: Text(p.organizationName),
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -82,28 +64,35 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
           child: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: isDark ? Colors.white : Colors.black,
-              size: 20,
-            ),
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
         ),
         actions: [
           Container(
             margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0),
-              borderRadius: BorderRadius.circular(12),
-            ),
+            decoration: BoxDecoration(color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(12)),
             child: IconButton(
-              icon: Icon(
-                Icons.edit,
-                color: isDark ? Colors.white : Colors.black,
-                size: 20,
-              ),
-              onPressed: () => _navigateToEditScreen(context),
+              icon: Icon(Icons.share_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
+              tooltip: 'Share Pass (Encrypted Data)',
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                Navigator.push(
+                  context,
+                  SmoothPageRoute(page: ShareSecureScreen(pass: widget.pass)),
+                );
+              },
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(12)),
+            child: IconButton(
+              icon: Icon(Icons.edit, color: isDark ? Colors.white : Colors.black, size: 20),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                _navigateToEditScreen(context);
+              },
             ),
           ),
         ],
@@ -112,153 +101,144 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
         padding: const EdgeInsets.all(16.0),
         children: [
           // Barcode Section
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.059),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
+          if (p.barcodeValue.isNotEmpty) ...[
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.mediumImpact();
+                Navigator.push(
+                  context,
+                  SmoothPageRoute(
+                    page: DisplayBarcodeScreen(
+                      barcodeData: p.barcodeValue,
+                      cardName: p.organizationName,
+                    ),
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    )
+                  ],
                 ),
-              ],
-            ),
-            child: BarcodeWidget(
-              barcode: Barcode.code128(),
-              data: barcodeData,
-              color: Colors.black,
-              height: 100,
-              errorBuilder: (context, error) => const Center(
-                child: Text(
-                  'Invalid Data for this Barcode Type',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.red),
+                child: Column(
+                  children: [
+                    BarcodeWidget(
+                      barcode: _getBarcodeType(p.barcodeFormat),
+                      data: p.barcodeValue,
+                      color: Colors.black,
+                      height: 180,
+                      width: double.infinity,
+                      errorBuilder: (context, error) => const Center(
+                        child: Text('Invalid Barcode Data', style: TextStyle(color: Colors.red)),
+                      ),
+                    ),
+                    if (p.barcodeAltText != null || p.barcodeValue.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      Text(
+                        p.barcodeAltText ?? p.barcodeValue,
+                        style: const TextStyle(
+                          fontFamily: 'Courier',
+                          fontSize: 18,
+                          letterSpacing: 4,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          // Barcode number display
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
-            ),
-            child: Center(
-              child: Text(
-                barcodeData,
-                style: TextStyle(
-                  fontFamily: 'ZSpace',
-                  fontSize: 20,
-                  letterSpacing: 2,
-                  color: isDark ? Colors.white : Colors.black,
-                ),
-              ),
-            ),
-          ),
+            const SizedBox(height: 40),
+          ],
+
+          if (p.description != null && p.description!.isNotEmpty)
+            _buildInfoSection("Description", p.description!, isDark),
+
+          const SizedBox(height: 24),
+
+          // Fields Sections - Structured by Pass Type
+          if (p.fields != null) ...[
+            if (p.fields!['primaryFields'] != null) 
+              _buildFieldsSection(_getSectionTitle(p.type, 'primary'), p.fields!['primaryFields'], isDark, Icons.star_outline_rounded),
+            if (p.fields!['secondaryFields'] != null) 
+              _buildFieldsSection(_getSectionTitle(p.type, 'secondary'), p.fields!['secondaryFields'], isDark, Icons.info_outline_rounded),
+            if (p.fields!['auxiliaryFields'] != null) 
+              _buildFieldsSection(_getSectionTitle(p.type, 'auxiliary'), p.fields!['auxiliaryFields'], isDark, Icons.grid_view_rounded),
+            if (p.fields!['headerFields'] != null) 
+              _buildFieldsSection("Header Details", p.fields!['headerFields'], isDark, Icons.list_alt_rounded),
+            if (p.fields!['backFields'] != null) 
+              _buildFieldsSection("Additional Info", p.fields!['backFields'], isDark, Icons.more_horiz_rounded),
+          ],
+
           const SizedBox(height: 32),
 
-          // Details Section for Loyalty
-          if (isLoyaltyCard && (widget.loyalty!.balance != null || (widget.loyalty!.customFields != null && widget.loyalty!.customFields!.isNotEmpty)))
-            _LiquidGlassSection(
-              title: "Card Details",
-              icon: Icons.info_outline_rounded,
-              isDark: isDark,
-              child: Column(
-                children: [
-                  if (widget.loyalty!.balance != null)
-                    _buildDetailRow("Balance / Points", widget.loyalty!.balance!, isDark),
-                  if (widget.loyalty!.customFields != null)
-                    ...widget.loyalty!.customFields!.entries.map(
-                      (e) => _buildDetailRow(e.key, e.value, isDark),
-                    ),
-                ],
-              ),
-            ),
-
-          if (isLoyaltyCard && (widget.loyalty!.balance != null || (widget.loyalty!.customFields != null && widget.loyalty!.customFields!.isNotEmpty)))
-            const SizedBox(height: 32),
-
-          // Other Formats Section
-          _LiquidGlassSection(
-            title: "Other Formats",
-            icon: Icons.qr_code_2_rounded,
-            isDark: isDark,
-            child: SizedBox(
-              height: 140, // Height for the horizontal scroll
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  _buildAlternativeBarcode(
-                    context,
-                    Barcode.qrCode(),
-                    barcodeData,
-                    'QR Code',
-                    isDark,
-                  ),
-                  _buildAlternativeBarcode(
-                    context,
-                    Barcode.code128(),
-                    barcodeData,
-                    'Code 128',
-                    isDark,
-                  ),
-                  _buildAlternativeBarcode(
-                    context,
-                    Barcode.aztec(),
-                    barcodeData,
-                    'Aztec',
-                    isDark,
-                  ),
-                  _buildAlternativeBarcode(
-                    context,
-                    Barcode.pdf417(),
-                    barcodeData,
-                    'PDF417',
-                    isDark,
-                  ),
-                  _buildAlternativeBarcode(
-                    context,
-                    Barcode.dataMatrix(),
-                    barcodeData,
-                    'Data Matrix',
-                    isDark,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          if (isPathValid(frontImagePath) || isPathValid(backImagePath))
-            _LiquidGlassSection(
-              title: "Card Images",
-              icon: Icons.photo_library_outlined,
-              isDark: isDark,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  if (isPathValid(frontImagePath))
-                    _buildImageThumbnail(
-                      context,
-                      frontImagePath!,
-                      'Front',
-                      isDark,
-                    ),
-                  if (isPathValid(backImagePath))
-                    _buildImageThumbnail(
-                      context,
-                      backImagePath!,
-                      'Back',
-                      isDark,
-                    ),
-                ],
-              ),
-            ),
+          // No Images Section here (removed as per instructions)
         ],
+      ),
+    );
+  }
+
+  String _getSectionTitle(String passType, String fieldType) {
+    switch (passType) {
+      case 'boardingPass':
+        if (fieldType == 'primary') return "Flight Details";
+        if (fieldType == 'secondary') return "Passenger Info";
+        return "Travel Info";
+      case 'eventTicket':
+        if (fieldType == 'primary') return "Event Details";
+        if (fieldType == 'secondary') return "Venue Info";
+        return "Ticket Details";
+      case 'storeCard':
+        if (fieldType == 'primary') return "Loyalty Info";
+        return "Account Details";
+      case 'coupon':
+        if (fieldType == 'primary') return "Offer Details";
+        return "Coupon Info";
+      default:
+        if (fieldType == 'primary') return "Card Details";
+        return "Information";
+    }
+  }
+
+  Barcode _getBarcodeType(String? format) {
+    switch (format?.toUpperCase()) {
+      case 'PKBarcodeFormatQR': return Barcode.qrCode();
+      case 'PKBarcodeFormatPDF417': return Barcode.pdf417();
+      case 'PKBarcodeFormatAztec': return Barcode.aztec();
+      case 'PKBarcodeFormatCode128': return Barcode.code128();
+      default: return Barcode.qrCode();
+    }
+  }
+
+  Widget _buildInfoSection(String title, String content, bool isDark) {
+    return _LiquidGlassSection(
+      title: title,
+      icon: Icons.description_outlined,
+      isDark: isDark,
+      child: Text(content, style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, fontSize: 14, height: 1.5)),
+    );
+  }
+
+  Widget _buildFieldsSection(String title, dynamic fields, bool isDark, IconData icon) {
+    if (fields is! List || fields.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      child: _LiquidGlassSection(
+        title: title,
+        icon: icon,
+        isDark: isDark,
+        child: Column(
+          children: fields.map((f) => _buildDetailRow(f['label'] ?? '', f['value']?.toString() ?? '', isDark)).toList(),
+        ),
       ),
     );
   }
@@ -269,227 +249,24 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: isDark ? Colors.white54 : Colors.black54,
-              fontSize: 14,
-            ),
-          ),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                color: isDark ? Colors.white : Colors.black,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
+          Text(label, style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 13, fontWeight: FontWeight.w500)),
+          Flexible(child: Text(value, textAlign: TextAlign.right, style: TextStyle(color: isDark ? Colors.white : Colors.black, fontSize: 14, fontWeight: FontWeight.bold))),
         ],
-      ),
-    );
-  }
-
-  Widget _buildAlternativeBarcode(
-    BuildContext context,
-    Barcode barcode,
-    String data,
-    String label,
-    bool isDark,
-  ) {
-    return GestureDetector(
-      onTap: () => _showFullScreenBarcode(context, barcode, data, label),
-      child: Padding(
-        padding: const EdgeInsets.only(right: 16.0),
-        child: Column(
-          children: [
-            Container(
-              width: 100,
-              height: 100,
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isDark ? Colors.white24 : Colors.black12,
-                ),
-              ),
-              child: BarcodeWidget(
-                barcode: barcode,
-                data: data,
-                color: Colors.black,
-                errorBuilder: (context, error) => Center(
-                  child: Icon(
-                    Icons.error_outline_rounded,
-                    color: Colors.red.shade300,
-                    size: 32,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? Colors.white70 : Colors.black87,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showFullScreenBarcode(
-    BuildContext context,
-    Barcode barcode,
-    String data,
-    String label,
-  ) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                height: 200,
-                width: 200,
-                child: BarcodeWidget(
-                  barcode: barcode,
-                  data: data,
-                  color: Colors.black,
-                  errorBuilder: (context, error) => const Center(
-                    child: Text(
-                      'Could not generate barcode',
-                      style: TextStyle(color: Colors.red),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                data,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black54,
-                  letterSpacing: 1,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
 
   void _navigateToEditScreen(BuildContext context) async {
-    final bool isLoyaltyCard = widget.loyalty != null;
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
-          appBar: AppBar(title: Text('Edit ${isLoyaltyCard ? "Loyalty" : "Identity"} Card')),
-          body: BarcodeCardEntryForm(
-            cardType: isLoyaltyCard ? BarcodeCardType.loyalty : BarcodeCardType.identity,
-            existingLoyalty: isLoyaltyCard ? widget.loyalty : null,
-            existingIdentity: isLoyaltyCard ? null : widget.identity,
-          ),
+          appBar: AppBar(title: const Text('Edit Pass')),
+          body: BarcodeCardEntryForm(existingPass: widget.pass),
         ),
       ),
     );
-
-    if (result == true && context.mounted) {
-      // Navigate back to refresh the screen
-      Navigator.pop(context, true);
-    }
-  }
-
-  Widget _buildImageThumbnail(
-    BuildContext context,
-    String imagePath,
-    String label,
-    bool isDark,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                SmoothPageRoute(
-                  page: FullScreenImageViewer(imagePath: imagePath),
-                ),
-              );
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.078),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: EncryptedImageDisplay(
-                  imagePath: imagePath,
-                  height: 100,
-                  width: 150,
-                  fit: BoxFit.cover,
-                  cacheHeight: 200,
-                  cacheWidth: 300,
-                  errorWidget: Container(
-                    height: 100,
-                    width: 150,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF1A1A1A)
-                          : const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(
-                      Icons.error_outline,
-                      color: isDark ? Colors.white38 : Colors.black38,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            label,
-            style: TextStyle(
-              color: isDark ? Colors.white60 : Colors.black54,
-              fontSize: 13,
-            ),
-          ),
-        ],
-      ),
-    );
+    if (result == true && context.mounted) Navigator.pop(context, true);
   }
 }
 
@@ -498,13 +275,7 @@ class _LiquidGlassSection extends StatelessWidget {
   final IconData icon;
   final Widget child;
   final bool isDark;
-
-  const _LiquidGlassSection({
-    required this.title,
-    required this.icon,
-    required this.child,
-    required this.isDark,
-  });
+  const _LiquidGlassSection({required this.title, required this.icon, required this.child, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -512,35 +283,10 @@ class _LiquidGlassSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 12),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 16,
-                color: isDark ? Colors.white38 : Colors.black38,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                title.toUpperCase(),
-                style: TextStyle(
-                  color: isDark ? Colors.white38 : Colors.black38,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Row(children: [Icon(icon, size: 14, color: isDark ? Colors.white38 : Colors.black38), const SizedBox(width: 8), Text(title.toUpperCase(), style: TextStyle(color: isDark ? Colors.white38 : Colors.black38, fontWeight: FontWeight.bold, letterSpacing: 1.2, fontSize: 11))]),
         ),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
-          ),
-          child: child,
-        ),
+        Container(padding: const EdgeInsets.all(16), width: double.infinity, decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5)), child: child),
       ],
     );
   }

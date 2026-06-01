@@ -1,17 +1,17 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/startup_settings_provider.dart';
 import 'package:wallet/pages/add_card_screen.dart';
 import 'package:wallet/pages/settings_page.dart';
-import 'package:wallet/screens/barcode_card_details_screen.dart';
-import 'package:wallet/screens/summary.dart';
 import 'package:wallet/widgets/barcode_card.dart';
 import 'package:wallet/widgets/glass_credit_card.dart';
-import 'package:wallet/widgets/liquid_glass.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../models/dataentry.dart';
+import 'package:wallet/screens/barcode_card_details_screen.dart';
+import 'package:wallet/services/encryption_service.dart';
 import '../models/db_helper.dart';
 import '../models/provider_helper.dart';
 import '../models/theme_provider.dart';
@@ -42,6 +42,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   String _selectedFilter = 'all';
+  String _selectedPassFilter = 'all';
 
   late final TextEditingController _searchController;
   String _searchQuery = "";
@@ -53,8 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<WalletProvider>().fetchWallets();
-      context.read<LoyaltyProvider>().fetchLoyalties();
-      context.read<IdentityProvider>().fetchIdentities();
+      context.read<PassProvider>().fetchPasses();
 
       // Initialize selected index from startup settings
       final startupProvider = context.read<StartupSettingsProvider>();
@@ -87,10 +87,91 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _showBarcodeDeleteConfirmationDialog({
+  Future<void> _scanAndImport() async {
+    try {
+      final scanResult = await BarcodeScanner.scan();
+      if (scanResult.type != ResultType.Barcode) return;
+
+      final encryptedData = scanResult.rawContent;
+      final decryptedJson = EncryptionService.instance.decryptFromTransfer(encryptedData);
+
+      if (decryptedJson == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Invalid or corrupted sharing code.')),
+          );
+        }
+        return;
+      }
+
+      final payload = jsonDecode(decryptedJson) as Map<String, dynamic>;
+      final type = payload['type'];
+      final data = payload['data'] as Map<String, dynamic>;
+
+      if (type == 'pass') {
+        final newPass = Pass.fromMap(data);
+        if (mounted) {
+          final confirm = await _showImportConfirmation(newPass.organizationName, 'Pass');
+          if (confirm == true) {
+            await PassDatabaseHelper.instance.insertPass(newPass);
+            if (mounted) {
+              context.read<PassProvider>().fetchPasses();
+              _showSuccessSnackBar('Pass imported successfully!');
+            }
+          }
+        }
+      } else if (type == 'wallet') {
+        final newWallet = Wallet.fromMap(data);
+        if (mounted) {
+          final confirm = await _showImportConfirmation(newWallet.name, 'Payment Card');
+          if (confirm == true) {
+            await DatabaseHelper.instance.insertWallet(newWallet);
+            if (mounted) {
+              context.read<WalletProvider>().fetchWallets();
+              _showSuccessSnackBar('Payment card imported successfully!');
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('QR Scan error: $e');
+    }
+  }
+
+  Future<bool?> _showImportConfirmation(String name, String typeLabel) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0A0A0A) : Colors.white,
+        title: Text('Import Shared $typeLabel'),
+        content: Text('Do you want to import "$name"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Import'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _showPassDeleteConfirmationDialog({
     required int id,
     required String name,
-    required BarcodeCardType type,
   }) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final isDark = themeProvider.isDarkMode;
@@ -102,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
           title: Text(
-            'Delete Card?',
+            'Delete Pass?',
             style: TextStyle(
               color: isDark ? Colors.white : Colors.black,
               fontWeight: FontWeight.bold,
@@ -127,15 +208,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 backgroundColor: Theme.of(context).colorScheme.error,
               ),
               onPressed: () {
-                if (type == BarcodeCardType.loyalty) {
-                  context.read<LoyaltyProvider>().deleteLoyalty(id);
-                } else {
-                  context.read<IdentityProvider>().deleteIdentity(id);
-                }
+                HapticFeedback.mediumImpact();
+                context.read<PassProvider>().deletePass(id);
                 Navigator.of(ctx).pop();
                 ScaffoldMessenger.of(
                   context,
-                ).showSnackBar(const SnackBar(content: Text('Card Deleted!')));
+                ).showSnackBar(const SnackBar(content: Text('Pass Deleted!')));
               },
               child: const Text('Delete'),
             ),
@@ -145,21 +223,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _copyToClipboard(String text) {
-    Clipboard.setData(ClipboardData(text: text));
-    HapticFeedback.mediumImpact();
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Card number copied!')));
-  }
-
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final startupProvider = Provider.of<StartupSettingsProvider>(context);
     final isDark = themeProvider.isDarkMode;
 
-    // Force index to 0 (Payments) if Identity/Loyalty are hidden
+    // Force index to 0 (Payments) if hidden mode is on
     final isHiddenMode = startupProvider.hideIdentityAndLoyalty;
     final effectiveIndex = isHiddenMode ? 0 : _selectedIndex;
 
@@ -184,6 +254,21 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
 
         actions: [
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withValues(alpha: 0.078) : Colors.black.withValues(alpha: 0.051),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: Icon(Icons.qr_code_scanner_rounded, color: isDark ? Colors.white : Colors.black),
+              tooltip: 'Scan to Import',
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                _scanAndImport();
+              },
+            ),
+          ),
           Container(
             margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -225,8 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onPressed: () async {
             HapticFeedback.mediumImpact();
             final walletProvider = context.read<WalletProvider>();
-            final loyaltyProvider = context.read<LoyaltyProvider>();
-            final identityProvider = context.read<IdentityProvider>();
+            final passProvider = context.read<PassProvider>();
             final result = await Navigator.push(
               context,
               SmoothPageRoute(
@@ -235,8 +319,7 @@ class _HomeScreenState extends State<HomeScreen> {
             );
             if (result == true && mounted) {
               await walletProvider.fetchWallets();
-              await loyaltyProvider.fetchLoyalties();
-              await identityProvider.fetchIdentities();
+              await passProvider.fetchPasses();
             }
           },
           child: const Icon(Icons.add_rounded),
@@ -247,8 +330,7 @@ class _HomeScreenState extends State<HomeScreen> {
         index: effectiveIndex,
         children: [
           _buildPaymentsTab(context),
-          _buildLoyaltyTab(context),
-          _buildIdentityTab(context),
+          _buildPassesTab(context),
         ],
       ),
       bottomNavigationBar: isHiddenMode
@@ -276,14 +358,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     label: 'Payments',
                   ),
                   NavigationDestination(
-                    icon: Icon(Icons.loyalty_outlined),
-                    selectedIcon: Icon(Icons.loyalty),
-                    label: 'Loyalty',
-                  ),
-                  NavigationDestination(
-                    icon: Icon(Icons.badge_outlined),
-                    selectedIcon: Icon(Icons.badge),
-                    label: 'Identity',
+                    icon: Icon(Icons.confirmation_number_outlined),
+                    selectedIcon: Icon(Icons.confirmation_number),
+                    label: 'Passes',
                   ),
                 ],
               ),
@@ -384,7 +461,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,
-                      hintText: 'Search by name, number, issuer...',
+                      hintText: 'Search cards...',
                       hintStyle: TextStyle(
                         color: isDark ? Colors.white38 : Colors.black38,
                       ),
@@ -443,7 +520,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 8)),
-            // Cards list — using SliverList for lazy loading
+            // Cards list
             if (filteredWallets.isEmpty)
               SliverToBoxAdapter(
                 child: Padding(
@@ -458,9 +535,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               )
-            else if (_searchQuery.isEmpty && _selectedFilter == 'all')
+            else
               SliverReorderableList(
                 itemCount: filteredWallets.length,
+                // ignore: deprecated_member_use
                 onReorder: (oldIndex, newIndex) {
                   HapticFeedback.lightImpact();
                   context.read<WalletProvider>().reorderWallets(
@@ -480,52 +558,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                         child: Slidable(
                           key: ValueKey(wallet.id),
-                          startActionPane: ActionPane(
+                          endActionPane: ActionPane(
                             motion: const BehindMotion(),
                             extentRatio: 0.25,
                             children: [
-                              SlidableAction(
-                                onPressed: (context) {
-                                  Navigator.push(
-                                    context,
-                                    SmoothPageRoute(
-                                      page: WalletEditScreen(wallet: wallet),
-                                    ),
-                                  );
-                                },
-                                backgroundColor: Colors.transparent,
-                                foregroundColor: Colors.orange,
-                                icon: Icons.edit_rounded,
-                                label: 'Edit',
-                              ),
-                            ],
-                          ),
-                          endActionPane: ActionPane(
-                            motion: const BehindMotion(),
-                            extentRatio: 0.50,
-                            children: [
-                              SlidableAction(
-                                onPressed: (context) {
-                                  _copyToClipboard(wallet.number);
-                                },
-                                backgroundColor: Colors.transparent,
-                                foregroundColor: Colors.blue,
-                                icon: Icons.copy_rounded,
-                                label: 'Copy',
-                              ),
                               SlidableAction(
                                 onPressed: (ctx) async {
                                   HapticFeedback.mediumImpact();
                                   await context
                                       .read<WalletProvider>()
                                       .deleteWallet(wallet.id!);
-                                  if (ctx.mounted) {
-                                    ScaffoldMessenger.of(ctx).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Card deleted'),
-                                      ),
-                                    );
-                                  }
                                 },
                                 backgroundColor: Colors.transparent,
                                 foregroundColor: Colors.red,
@@ -549,124 +591,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   );
                 },
-              )
-            else
-              SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final wallet = filteredWallets[index];
-                  return _AnimatedListItem(
-                    key: ValueKey('anim_${wallet.id}'),
-                    index: index,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                      child: Slidable(
-                        key: ValueKey(wallet.id),
-                        startActionPane: ActionPane(
-                          motion: const BehindMotion(),
-                          extentRatio: 0.25,
-                          children: [
-                            SlidableAction(
-                              onPressed: (context) {
-                                Navigator.push(
-                                  context,
-                                  SmoothPageRoute(
-                                    page: WalletEditScreen(wallet: wallet),
-                                  ),
-                                );
-                              },
-                              backgroundColor: Colors.transparent,
-                              foregroundColor: Colors.orange,
-                              icon: Icons.edit_rounded,
-                              label: 'Edit',
-                            ),
-                          ],
-                        ),
-                        endActionPane: ActionPane(
-                          motion: const BehindMotion(),
-                          extentRatio: 0.50,
-                          children: [
-                            SlidableAction(
-                              onPressed: (context) {
-                                _copyToClipboard(wallet.number);
-                              },
-                              backgroundColor: Colors.transparent,
-                              foregroundColor: Colors.blue,
-                              icon: Icons.copy_rounded,
-                              label: 'Copy',
-                            ),
-                            SlidableAction(
-                              onPressed: (ctx) async {
-                                HapticFeedback.mediumImpact();
-                                await context
-                                    .read<WalletProvider>()
-                                    .deleteWallet(wallet.id!);
-                                if (ctx.mounted) {
-                                  ScaffoldMessenger.of(ctx).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Card deleted'),
-                                    ),
-                                  );
-                                }
-                              },
-                              backgroundColor: Colors.transparent,
-                              foregroundColor: Colors.red,
-                              icon: Icons.delete_outline_rounded,
-                              label: 'Delete',
-                            ),
-                          ],
-                        ),
-                        child: GlassCreditCard(
-                          wallet: wallet,
-                          isMasked: true,
-                          onCardTap: () => Navigator.push(
-                            context,
-                            SmoothPageRoute(
-                              page: WalletDetailScreen(wallet: wallet),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }, childCount: filteredWallets.length),
               ),
-
-            // Financial Summary button
-            if (_selectedFilter == 'all')
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 16.0,
-                  ),
-                  child: LiquidGlassContainer(
-                    padding: EdgeInsets.zero,
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      Navigator.push(
-                        context,
-                        SmoothPageRoute(page: const Summary()),
-                      );
-                    },
-                    child: ListTile(
-                      leading: null,
-                      title: Text(
-                        'View Financial Summary',
-                        style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      trailing: Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 16,
-                        color: isDark ? Colors.white38 : Colors.black26,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            // Bottom padding for FAB
+            // Bottom padding
             const SliverToBoxAdapter(child: SizedBox(height: 80)),
           ],
         );
@@ -674,170 +600,163 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildLoyaltyTab(BuildContext context) {
-    return Consumer<LoyaltyProvider>(
-      builder: (context, provider, child) {
-        final loyalties = provider.loyalties;
-        if (loyalties.isEmpty) {
-          return _buildEmptyState(
-            context,
-            "No loyalty cards added yet.\nTap the '+' to add one.",
-          );
-        }
-        return ReorderableListView.builder(
-          physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics(),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          itemCount: loyalties.length,
-          onReorder: (oldIndex, newIndex) {
-            HapticFeedback.lightImpact();
-            context.read<LoyaltyProvider>().reorderLoyalties(
-              oldIndex,
-              newIndex,
-            );
-          },
-          itemBuilder: (context, index) {
-            final loyalty = loyalties[index];
-            return _AnimatedListItem(
-              key: ValueKey(loyalty.id),
-              index: index,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 12.0),
-                child: Slidable(
-                  key: ValueKey(loyalty.id),
-                  endActionPane: ActionPane(
-                    motion: const BehindMotion(),
-                    extentRatio: 0.25,
-                    children: [
-                      SlidableAction(
-                        onPressed: (context) =>
-                            _showBarcodeDeleteConfirmationDialog(
-                              id: loyalty.id!,
-                              name: loyalty.loyaltyName,
-                              type: BarcodeCardType.loyalty,
-                            ),
-                        backgroundColor: Colors.transparent,
-                        foregroundColor: Colors.red,
-                        icon: Icons.delete_outline_rounded,
-                        label: 'Delete',
-                      ),
-                    ],
-                  ),
-                  child: BarcodeCard(
-                    loyalty: loyalty,
-                    cardType: BarcodeCardType.loyalty,
-                    onCardTap: () async {
-                      final loyaltyProvider = Provider.of<LoyaltyProvider>(context, listen: false);
-                      final result = await Navigator.push(
-                        context,
-                        SmoothPageRoute(
-                          page: BarcodeCardDetailScreen(loyalty: loyalty),
-                        ),
-                      );
-                      if (result == true && mounted) {
-                        loyaltyProvider.fetchLoyalties();
-                      }
-                    },
-                    onCopyTap: () => _copyToClipboard(loyalty.loyaltyNumber),
-                    onDeleteTap: () => _showBarcodeDeleteConfirmationDialog(
-                      id: loyalty.id!,
-                      name: loyalty.loyaltyName,
-                      type: BarcodeCardType.loyalty,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
+  Widget _buildPassesTab(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDark = themeProvider.isDarkMode;
 
-  Widget _buildIdentityTab(BuildContext context) {
-    return Consumer<IdentityProvider>(
+    return Consumer<PassProvider>(
       builder: (context, provider, child) {
-        final identities = provider.identities;
-        if (identities.isEmpty) {
+        final passes = provider.passes;
+        if (passes.isEmpty) {
           return _buildEmptyState(
             context,
-            "No identity cards added yet.\nTap the '+' to add one.",
+            "No passes added yet.\nTap the '+' to add one.",
           );
         }
-        return ReorderableListView.builder(
+
+        final searchedPasses = provider.searchPasses(_searchQuery);
+        final filteredPasses = searchedPasses.where((pass) {
+          if (_selectedPassFilter == 'all') return true;
+          return pass.type == _selectedPassFilter;
+        }).toList();
+
+        return CustomScrollView(
           physics: const BouncingScrollPhysics(
             parent: AlwaysScrollableScrollPhysics(),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          itemCount: identities.length,
-          onReorder: (oldIndex, newIndex) {
-            HapticFeedback.lightImpact();
-            context.read<IdentityProvider>().reorderIdentities(
-              oldIndex,
-              newIndex,
-            );
-          },
-          itemBuilder: (context, index) {
-            final identity = identities[index];
-            return _AnimatedListItem(
-              key: ValueKey(identity.id),
-              index: index,
+          slivers: [
+            // Search field
+            SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 12.0),
-                child: Slidable(
-                  key: ValueKey(identity.id),
-                  endActionPane: ActionPane(
-                    motion: const BehindMotion(),
-                    extentRatio: 0.25,
-                    children: [
-                      SlidableAction(
-                        onPressed: (context) =>
-                            _showBarcodeDeleteConfirmationDialog(
-                              id: identity.id!,
-                              name: identity.identityName,
-                              type: BarcodeCardType.identity,
-                            ),
-                        backgroundColor: Colors.transparent,
-                        foregroundColor: Colors.red,
-                        icon: Icons.delete_outline_rounded,
-                        label: 'Delete',
-                      ),
-                    ],
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: isDark ? Colors.white.withValues(alpha: 0.059) : Colors.black.withValues(alpha: 0.031),
+                    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.102) : Colors.black.withValues(alpha: 0.059)),
                   ),
-                  child: BarcodeCard(
-                    identity: identity,
-                    cardType: BarcodeCardType.identity,
-                    onCardTap: () async {
-                      final result = await Navigator.push(
-                        context,
-                        SmoothPageRoute(
-                          page: BarcodeCardDetailScreen(identity: identity),
-                        ),
-                      );
-                      if (result == true && context.mounted) {
-                        final identityProvider = Provider.of<IdentityProvider>(context, listen: false);
-                        identityProvider.fetchIdentities();
-                      }
-                    },
-                    onCopyTap: () => _copyToClipboard(identity.identityNumber),
-                    onDeleteTap: () => _showBarcodeDeleteConfirmationDialog(
-                      id: identity.id!,
-                      name: identity.identityName,
-                      type: BarcodeCardType.identity,
+                  child: TextField(
+                    controller: _searchController,
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                    decoration: InputDecoration(
+                      filled: false,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      hintText: 'Search passes...',
+                      hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
+                      prefixIcon: Icon(Icons.search_rounded, color: isDark ? Colors.white54 : Colors.black45),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(Icons.clear_rounded, color: isDark ? Colors.white54 : Colors.black45),
+                              onPressed: () {
+                                _searchController.clear();
+                              },
+                            )
+                          : null,
                     ),
                   ),
                 ),
               ),
-            );
-          },
+            ),
+            // Filter chips
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment<String>(value: 'all', label: Text('ALL')),
+                      ButtonSegment<String>(value: 'boardingPass', label: Text('BOARDING PASSES')),
+                      ButtonSegment<String>(value: 'eventTicket', label: Text('EVENT TICKETS')),
+                      ButtonSegment<String>(value: 'coupon', label: Text('COUPONS')),
+                      ButtonSegment<String>(value: 'storeCard', label: Text('STORE CARDS')),
+                      ButtonSegment<String>(value: 'generic', label: Text('OTHER')),
+                    ],
+                    showSelectedIcon: false,
+                    selected: <String>{_selectedPassFilter},
+                    onSelectionChanged: (Set<String> newSelection) {
+                      HapticFeedback.selectionClick();
+                      setState(() => _selectedPassFilter = newSelection.first);
+                    },
+                  ),
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 8)),
+            // Passes list
+            if (filteredPasses.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(48.0),
+                  child: Center(
+                    child: Text(
+                      'No passes found.',
+                      style: TextStyle(color: isDark ? Colors.white54 : Colors.black45),
+                    ),
+                  ),
+                ),
+              )
+            else
+              SliverReorderableList(
+              itemCount: filteredPasses.length,
+              // ignore: deprecated_member_use
+              onReorder: (oldIndex, newIndex) {
+                HapticFeedback.lightImpact();
+                context.read<PassProvider>().reorderPasses(oldIndex, newIndex);
+              },
+              itemBuilder: (context, index) {
+                final pass = filteredPasses[index];
+                return ReorderableDelayedDragStartListener(
+                  key: ValueKey(pass.id),
+                  index: index,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Slidable(
+                      key: ValueKey(pass.id),
+                      endActionPane: ActionPane(
+                        motion: const BehindMotion(),
+                        extentRatio: 0.25,
+                        children: [
+                          SlidableAction(
+                            onPressed: (context) => _showPassDeleteConfirmationDialog(
+                              id: pass.id!,
+                              name: pass.organizationName,
+                            ),
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.red,
+                            icon: Icons.delete_outline_rounded,
+                            label: 'Delete',
+                          ),
+                        ],
+                      ),
+                      child: BarcodeCard(
+                        pass: pass,
+                        onCardTap: () async {
+                          final passProvider = Provider.of<PassProvider>(context, listen: false);
+                          final result = await Navigator.push(
+                            context,
+                            SmoothPageRoute(page: BarcodeCardDetailScreen(pass: pass)),
+                          );
+                          if (result == true && mounted) {
+                            await passProvider.fetchPasses();
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          ],
         );
       },
     );
   }
 }
 
-/// Staggered slide-up + fade-in animation for list items
 class _AnimatedListItem extends StatelessWidget {
   final int index;
   final Widget child;

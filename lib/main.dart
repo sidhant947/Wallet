@@ -31,8 +31,7 @@ void main() async {
 
   await Future.wait([
     DatabaseHelper.instance.database,
-    IdentityDatabaseHelper.instance.database,
-    LoyaltyDatabaseHelper.instance.database,
+    PassDatabaseHelper.instance.database,
   ]);
 
   // One-time migration: encrypt any existing plaintext data in the databases.
@@ -40,8 +39,7 @@ void main() async {
     debugPrint('Running one-time encryption migration...');
     await Future.wait([
       DatabaseHelper.instance.migrateToEncrypted(),
-      IdentityDatabaseHelper.instance.migrateToEncrypted(),
-      LoyaltyDatabaseHelper.instance.migrateToEncrypted(),
+      // Identity and Loyalty are gone, so we don't migrate them anymore.
     ]);
     await EncryptionService.instance.markMigrated();
     debugPrint('Encryption migration complete.');
@@ -51,8 +49,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => WalletProvider()),
-        ChangeNotifierProvider(create: (context) => LoyaltyProvider()),
-        ChangeNotifierProvider(create: (context) => IdentityProvider()),
+        ChangeNotifierProvider(create: (context) => PassProvider()),
         ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider.value(value: startupProvider),
       ],

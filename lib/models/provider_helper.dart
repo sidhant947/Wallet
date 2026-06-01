@@ -179,82 +179,75 @@ class WalletProvider with ChangeNotifier {
   }
 }
 
-class LoyaltyProvider with ChangeNotifier {
-  List<Loyalty> loyalties = [];
+class PassProvider with ChangeNotifier {
+  List<Pass> passes = [];
 
-  Future<void> fetchLoyalties() async {
-    loyalties = await LoyaltyDatabaseHelper.instance.getAllLoyalties();
+  Future<void> fetchPasses() async {
+    passes = await PassDatabaseHelper.instance.getAllPasses();
     notifyListeners();
   }
 
-  Future<void> deleteLoyalty(int id) async {
-    await LoyaltyDatabaseHelper.instance.deleteLoyalty(id);
-    loyalties.removeWhere((l) => l.id == id);
+  Future<void> deletePass(int id) async {
+    await PassDatabaseHelper.instance.deletePass(id);
+    passes.removeWhere((p) => p.id == id);
     notifyListeners();
   }
 
-  Future<void> updateLoyalty(Loyalty updatedLoyalty) async {
-    await LoyaltyDatabaseHelper.instance.updateLoyalty(updatedLoyalty);
-    final index = loyalties.indexWhere((l) => l.id == updatedLoyalty.id);
+  Future<void> updatePass(Pass updatedPass) async {
+    await PassDatabaseHelper.instance.updatePass(updatedPass);
+    final index = passes.indexWhere((p) => p.id == updatedPass.id);
     if (index != -1) {
-      loyalties[index] = updatedLoyalty;
+      passes[index] = updatedPass;
       notifyListeners();
     }
   }
 
-  Future<void> reorderLoyalties(int oldIndex, int newIndex) async {
+  Future<void> reorderPasses(int oldIndex, int newIndex) async {
     if (newIndex > oldIndex) {
       newIndex -= 1;
     }
-    final loyalty = loyalties.removeAt(oldIndex);
-    loyalties.insert(newIndex, loyalty);
+    final pass = passes.removeAt(oldIndex);
+    passes.insert(newIndex, pass);
 
     // Update order indices internally
-    for (int i = 0; i < loyalties.length; i++) {
-      loyalties[i].orderIndex = i;
+    for (int i = 0; i < passes.length; i++) {
+      passes[i].orderIndex = i;
     }
 
-    await LoyaltyDatabaseHelper.instance.updateLoyaltiesOrder(loyalties);
-    notifyListeners();
-  }
-}
-
-class IdentityProvider with ChangeNotifier {
-  List<Identity> identities = [];
-
-  Future<void> fetchIdentities() async {
-    identities = await IdentityDatabaseHelper.instance.getAllIdentities();
+    await PassDatabaseHelper.instance.updatePassesOrder(passes);
     notifyListeners();
   }
 
-  Future<void> deleteIdentity(int id) async {
-    await IdentityDatabaseHelper.instance.deleteIdentity(id);
-    identities.removeWhere((i) => i.id == id);
-    notifyListeners();
-  }
+  /// Deep search through all pass fields
+  List<Pass> searchPasses(String query) {
+    if (query.isEmpty) return passes;
+    final lowercaseQuery = query.toLowerCase();
 
-  Future<void> updateIdentity(Identity updatedIdentity) async {
-    await IdentityDatabaseHelper.instance.updateIdentity(updatedIdentity);
-    final index = identities.indexWhere((i) => i.id == updatedIdentity.id);
-    if (index != -1) {
-      identities[index] = updatedIdentity;
-      notifyListeners();
-    }
-  }
+    return passes.where((pass) {
+      // Basic fields
+      if (pass.organizationName.toLowerCase().contains(lowercaseQuery)) return true;
+      if (pass.description?.toLowerCase().contains(lowercaseQuery) ?? false) return true;
+      if (pass.logoText?.toLowerCase().contains(lowercaseQuery) ?? false) return true;
+      if (pass.barcodeValue.toLowerCase().contains(lowercaseQuery)) return true;
+      if (pass.barcodeAltText?.toLowerCase().contains(lowercaseQuery) ?? false) return true;
 
-  Future<void> reorderIdentities(int oldIndex, int newIndex) async {
-    if (newIndex > oldIndex) {
-      newIndex -= 1;
-    }
-    final identity = identities.removeAt(oldIndex);
-    identities.insert(newIndex, identity);
-
-    // Update order indices internally
-    for (int i = 0; i < identities.length; i++) {
-      identities[i].orderIndex = i;
-    }
-
-    await IdentityDatabaseHelper.instance.updateIdentitiesOrder(identities);
-    notifyListeners();
+      // Search through dynamic fields
+      if (pass.fields != null) {
+        for (final section in pass.fields!.values) {
+          if (section is List) {
+            for (final field in section) {
+              if (field is Map) {
+                final label = field['label']?.toString().toLowerCase() ?? '';
+                final value = field['value']?.toString().toLowerCase() ?? '';
+                if (label.contains(lowercaseQuery) || value.contains(lowercaseQuery)) {
+                  return true;
+                }
+              }
+            }
+          }
+        }
+      }
+      return false;
+    }).toList();
   }
 }

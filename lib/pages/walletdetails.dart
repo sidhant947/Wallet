@@ -12,6 +12,7 @@ import 'package:wallet/models/startup_settings_provider.dart';
 import 'package:wallet/services/card_utils.dart';
 import 'package:wallet/widgets/glass_credit_card.dart';
 import 'package:wallet/widgets/encrypted_image_display.dart';
+import 'package:wallet/screens/share_secure_screen.dart';
 import 'dart:io';
 
 // FullScreenImageViewer with liquid glass theme
@@ -227,6 +228,28 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
           ),
         ),
         actions: [
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.078)
+                  : Colors.black.withValues(alpha: 0.051),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.share_rounded,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                Navigator.push(
+                  context,
+                  SmoothPageRoute(page: ShareSecureScreen(wallet: currentWallet)),
+                );
+              },
+            ),
+          ),
           Container(
             margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(

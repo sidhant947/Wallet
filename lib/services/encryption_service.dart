@@ -188,6 +188,55 @@ class EncryptionService {
     }
   }
 
+  /// Decrypt a JSON string that was encrypted to a dynamic map.
+  Map<String, dynamic>? decryptJsonToDynamicMap(String? encrypted) {
+    if (encrypted == null) return null;
+
+    final decrypted = decryptText(encrypted);
+    if (decrypted == null) return null;
+
+    try {
+      return Map<String, dynamic>.from(jsonDecode(decrypted));
+    } catch (e) {
+      debugPrint('EncryptionService: JSON parse to dynamic map failed: $e');
+      return null;
+    }
+  }
+
+  /// Encrypt data for secure local transfer (QR share).
+  /// Uses a deterministic derived key for cross-device compatibility of this specific feature.
+  String? encryptForTransfer(String data) {
+    if (!_isInitialized) return null;
+    
+    // This key is specifically for local transfers between app instances.
+    // In a real production app, this would be derived from a shared out-of-band secret.
+    final transferKey = encrypt.Key.fromUtf8('wallet_local_transfer_v1_secure_key'.substring(0, 32));
+    final iv = encrypt.IV.fromLength(_gcmIvLength);
+    final encrypter = encrypt.Encrypter(encrypt.AES(transferKey, mode: encrypt.AESMode.gcm));
+
+    final encrypted = encrypter.encrypt(data, iv: iv);
+    return 'v1:${iv.base64}:${encrypted.base64}';
+  }
+
+  /// Decrypt data from a local transfer (QR share).
+  String? decryptFromTransfer(String encryptedData) {
+    if (!_isInitialized) return null;
+
+    try {
+      final parts = encryptedData.split(':');
+      if (parts.length != 3 || parts[0] != 'v1') return null;
+
+      final transferKey = encrypt.Key.fromUtf8('wallet_local_transfer_v1_secure_key'.substring(0, 32));
+      final iv = encrypt.IV.fromBase64(parts[1]);
+      final encrypter = encrypt.Encrypter(encrypt.AES(transferKey, mode: encrypt.AESMode.gcm));
+
+      return encrypter.decrypt64(parts[2], iv: iv);
+    } catch (e) {
+      debugPrint('EncryptionService: Transfer decryption failed: $e');
+      return null;
+    }
+  }
+
   /// Encrypt data for backup using AES-256-GCM with a password-derived key.
   ///
   /// Output format: `base64(salt):base64(iv):base64(ciphertext)`

@@ -2,21 +2,22 @@
 
 import 'dart:io';
 import 'package:barcode_scan2/barcode_scan2.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/theme_provider.dart';
+import 'package:wallet/models/provider_helper.dart';
 import 'package:wallet/services/card_utils.dart';
 import 'package:wallet/services/encryption_service.dart';
+import 'package:wallet/services/pkpass_service.dart';
 import 'package:wallet/widgets/glass_credit_card.dart';
 import 'package:wallet/widgets/barcode_card.dart';
-import 'package:wallet/widgets/encrypted_image_display.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 import 'db_helper.dart';
-import 'provider_helper.dart';
 
 // Enum to define the type of card we are creating
 enum BarcodeCardType { identity, loyalty }
@@ -755,15 +756,16 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
 // -----------------------------------------------------------------------------
 // BARCODE CARD DATA ENTRY FORM (MODIFIED)
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// BARCODE CARD DATA ENTRY FORM (MODIFIED for Passes)
+// -----------------------------------------------------------------------------
+enum EntryMode { selection, manual }
+
 class BarcodeCardEntryForm extends StatefulWidget {
-  final BarcodeCardType cardType;
-  final Loyalty? existingLoyalty;
-  final Identity? existingIdentity;
+  final Pass? existingPass;
   const BarcodeCardEntryForm({
     super.key,
-    required this.cardType,
-    this.existingLoyalty,
-    this.existingIdentity,
+    this.existingPass,
   });
 
   @override
@@ -771,562 +773,543 @@ class BarcodeCardEntryForm extends StatefulWidget {
 }
 
 class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
-  final _nameController = TextEditingController();
-  final _numberController = TextEditingController();
-  final _balanceController = TextEditingController();
-  final _customFieldNameControllers = <TextEditingController>[];
-  final _customFieldValueControllers = <TextEditingController>[];
-  String _selectedColor = 'default';
-  File? _frontImageFile;
-  File? _backImageFile;
-  String? _existingFrontImagePath;
-  String? _existingBackImagePath;
-  bool _removeFrontImage = false;
-  bool _removeBackImage = false;
-  final ImagePicker _picker = ImagePicker();
+  final _organizationController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _logoTextController = TextEditingController();
+  final _barcodeValueController = TextEditingController();
 
-  // --- ADDED ---
+  EntryMode _entryMode = EntryMode.selection;
+  bool _showAdditionalDetails = false;
+
+  String _selectedType = 'generic';
+  String _selectedColor = 'obsidian';
+  String? _transitType;
+  
+  final Map<String, List<Map<String, dynamic>>> _dynamicFields = {
+    'primaryFields': [],
+    'secondaryFields': [],
+    'auxiliaryFields': [],
+    'headerFields': [],
+    'backFields': [],
+  };
+  
+  final List<String> _passTypes = [
+    'generic',
+    'boardingPass',
+    'coupon',
+    'eventTicket',
+    'storeCard',
+  ];
+
   @override
   void initState() {
     super.initState();
 
-    // Pre-populate fields if editing an existing card
-    if (widget.existingLoyalty != null) {
-      _nameController.text = widget.existingLoyalty!.loyaltyName;
-      _numberController.text = widget.existingLoyalty!.loyaltyNumber;
-      _balanceController.text = widget.existingLoyalty!.balance ?? '';
-      _selectedColor = widget.existingLoyalty!.color ?? 'default';
-      _existingFrontImagePath = widget.existingLoyalty!.frontImagePath;
-      _existingBackImagePath = widget.existingLoyalty!.backImagePath;
-      
-      if (widget.existingLoyalty!.customFields != null) {
-        widget.existingLoyalty!.customFields!.forEach((key, value) {
-          _customFieldNameControllers.add(TextEditingController(text: key));
-          _customFieldValueControllers.add(TextEditingController(text: value));
+    if (widget.existingPass != null) {
+      _entryMode = EntryMode.manual;
+      _showAdditionalDetails = true;
+      final p = widget.existingPass!;
+      _organizationController.text = p.organizationName;
+      _descriptionController.text = p.description ?? '';
+      _logoTextController.text = p.logoText ?? '';
+      _barcodeValueController.text = p.barcodeValue;
+      _selectedType = p.type;
+      _transitType = p.transitType;
+
+      // Deep copy fields if they exist
+      if (p.fields != null) {
+        p.fields!.forEach((key, value) {
+          if (value is List && _dynamicFields.containsKey(key)) {
+            _dynamicFields[key] = List<Map<String, dynamic>>.from(
+              value.map((v) => Map<String, dynamic>.from(v as Map)),
+            );
+          }
         });
       }
-    } else if (widget.existingIdentity != null) {
-      _nameController.text = widget.existingIdentity!.identityName;
-      _numberController.text = widget.existingIdentity!.identityNumber;
-      _selectedColor = widget.existingIdentity!.color ?? 'default';
-      _existingFrontImagePath = widget.existingIdentity!.frontImagePath;
-      _existingBackImagePath = widget.existingIdentity!.backImagePath;
+
+      // Load color from existing pass background color
+      if (p.backgroundColor != null) {
+        final matchingEntry = cardColorPalette.entries.cast<MapEntry<String, CardColorData>?>().firstWhere(
+          (entry) {
+            if (entry == null) return false;
+            final hex = '#${(entry.value.primary.value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+            return p.backgroundColor!.toLowerCase() == hex.toLowerCase();
+          },
+          orElse: () => null,
+        );
+        if (matchingEntry != null) {
+          _selectedColor = matchingEntry.key;
+        }
+      }
     }
 
-    // Add listeners to update the preview in real-time
-    _nameController.addListener(() => setState(() {}));
-    _numberController.addListener(() => setState(() {}));
-    _balanceController.addListener(() => setState(() {}));
+    _organizationController.addListener(() => setState(() {}));
+    _barcodeValueController.addListener(() => setState(() {}));
   }
 
-  // --- ADDED ---
   @override
   void dispose() {
-    _nameController.dispose();
-    _numberController.dispose();
-    _balanceController.dispose();
-    for (var c in _customFieldNameControllers) {
-      c.dispose();
-    }
-    for (var c in _customFieldValueControllers) {
-      c.dispose();
-    }
+    _organizationController.dispose();
+    _descriptionController.dispose();
+    _logoTextController.dispose();
+    _barcodeValueController.dispose();
     super.dispose();
   }
 
-  Map<String, String> _getConfig() {
-    switch (widget.cardType) {
-      case BarcodeCardType.identity:
-        return {
-          'nameHint': 'Identity Name (e.g., Driver License)',
-          'numberHint': '12345678 / XXXXX78923X',
-          'saveButtonText': 'Save Identity Card',
-        };
-      case BarcodeCardType.loyalty:
-        return {
-          'nameHint': 'Program Name (e.g., Starbucks)',
-          'numberHint': '87989237498',
-          'saveButtonText': 'Save Loyalty Card',
-        };
-    }
-  }
-
   void _addData() async {
-    final name = _nameController.text.trim();
-    final number = _numberController.text.trim();
-    final messenger = ScaffoldMessenger.of(context);
+    final org = _organizationController.text.trim();
+    final value = _barcodeValueController.text.trim();
 
-    if (name.isEmpty || number.isEmpty) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Please fill out all fields.')),
+    if (org.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Organization is required.')),
       );
       return;
     }
 
-    // Get providers before async operations to avoid BuildContext across async gaps
-    final isEditing = widget.existingLoyalty != null || widget.existingIdentity != null;
-    final IdentityProvider? identityProvider = isEditing && widget.cardType == BarcodeCardType.identity
-        ? context.read<IdentityProvider>()
-        : null;
-    final LoyaltyProvider? loyaltyProvider = isEditing && widget.cardType == BarcodeCardType.loyalty
-        ? context.read<LoyaltyProvider>()
-        : null;
-
     try {
-      String? frontImagePath;
-      String? backImagePath;
+      final pass = Pass(
+        id: widget.existingPass?.id,
+        type: _selectedType,
+        organizationName: org,
+        description: _descriptionController.text.trim(),
+        logoText: _logoTextController.text.trim(),
+        barcodeValue: value,
+        transitType: _transitType,
+        frontImagePath: null,
+        backImagePath: null,
+        stripImagePath: null,
+        thumbnailImagePath: null,
+        fields: _dynamicFields,
+        backgroundColor: '#${((cardColorPalette[_selectedColor]?.primary ?? Colors.black).value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}',
+      );
 
-      // Handle front image - use existing if not changed, or save new one
-      if (widget.existingLoyalty != null) {
-        frontImagePath = widget.existingLoyalty!.frontImagePath;
-        backImagePath = widget.existingLoyalty!.backImagePath;
-      } else if (widget.existingIdentity != null) {
-        frontImagePath = widget.existingIdentity!.frontImagePath;
-        backImagePath = widget.existingIdentity!.backImagePath;
-      }
-
-      // Handle image updates
-      if (_removeFrontImage) {
-        frontImagePath = null;
-      } else if (_frontImageFile != null) {
-        frontImagePath = await saveImageToAppDirectory(_frontImageFile!);
-      }
-
-      if (_removeBackImage) {
-        backImagePath = null;
-      } else if (_backImageFile != null) {
-        backImagePath = await saveImageToAppDirectory(_backImageFile!);
-      }
-
-      Map<String, String> customFields = {};
-      for (int i = 0; i < _customFieldNameControllers.length; i++) {
-        String fieldName = _customFieldNameControllers[i].text;
-        String fieldValue = _customFieldValueControllers[i].text;
-        if (fieldName.isNotEmpty && fieldValue.isNotEmpty) {
-          customFields[fieldName] = fieldValue;
-        }
-      }
-
-      if (widget.cardType == BarcodeCardType.identity) {
-        final identity = Identity(
-          id: widget.existingIdentity?.id,
-          identityName: name,
-          identityNumber: number,
-          color: _selectedColor,
-          frontImagePath: frontImagePath,
-          backImagePath: backImagePath,
-        );
-
-        if (isEditing) {
-          await identityProvider!.updateIdentity(identity);
-        } else {
-          await IdentityDatabaseHelper.instance.insertIdentity(identity);
-        }
+      if (widget.existingPass != null) {
+        await PassDatabaseHelper.instance.updatePass(pass);
       } else {
-        final loyalty = Loyalty(
-          id: widget.existingLoyalty?.id,
-          loyaltyName: name,
-          loyaltyNumber: number,
-          balance: _balanceController.text.trim().isNotEmpty ? _balanceController.text.trim() : null,
-          customFields: customFields.isNotEmpty ? customFields : null,
-          color: _selectedColor,
-          frontImagePath: frontImagePath,
-          backImagePath: backImagePath,
-        );
-
-        if (isEditing) {
-          await loyaltyProvider!.updateLoyalty(loyalty);
-        } else {
-          await LoyaltyDatabaseHelper.instance.insertLoyalty(loyalty);
-        }
+        await PassDatabaseHelper.instance.insertPass(pass);
       }
+
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
+      debugPrint('Error saving pass: $e');
+    }
+  }
+
+  Future<void> _scan() async {
+    try {
+      final result = await BarcodeScanner.scan();
+      if (result.type == ResultType.Barcode) {
+        setState(() {
+          _barcodeValueController.text = result.rawContent;
+          _entryMode = EntryMode.manual;
+        });
+      }
+    } catch (e) {
+      debugPrint('Scan error: $e');
+    }
+  }
+
+  Future<void> _importPkpass() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pkpass'],
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final pass = await PkpassService.instance.parsePkpass(result.files.single.path!);
+        if (pass != null) {
+          if (mounted) {
+            // Confirm import
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Import Pass'),
+                content: Text('Do you want to import "${pass.organizationName}"?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Import'),
+                  ),
+                ],
+              ),
+            );
+
+            if (confirm == true) {
+              await PassDatabaseHelper.instance.insertPass(pass);
+              if (mounted) {
+                context.read<PassProvider>().fetchPasses();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Pass imported successfully!')),
+                );
+                Navigator.pop(context, true);
+              }
+            }
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to parse .pkpass file.')),
+            );
+          }
+        }
+      }
+    } catch (e) {
       if (mounted) {
-        messenger.showSnackBar(
-          const SnackBar(content: Text('Error saving card.')),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
         );
       }
     }
   }
 
-  Widget _buildImagePickerSection(bool isFront) {
-    final String title = isFront ? 'Front Image (Optional)' : 'Back Image (Optional)';
-    final String? existingImagePath = isFront ? _existingFrontImagePath : _existingBackImagePath;
-    final File? newImageFile = isFront ? _frontImageFile : _backImageFile;
-    final bool removeImage = isFront ? _removeFrontImage : _removeBackImage;
+  void _prepopulateFieldsIfNeeded() {
+    // Only pre-populate if all field sections are currently empty
+    bool allEmpty = _dynamicFields.values.every((list) => list.isEmpty);
+    if (!allEmpty) return;
 
+    switch (_selectedType) {
+      case 'boardingPass':
+        _dynamicFields['primaryFields']!.addAll([
+          {'label': 'FROM', 'value': ''},
+          {'label': 'TO', 'value': ''},
+        ]);
+        _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'PASSENGER', 'value': ''},
+          {'label': 'FLIGHT', 'value': ''},
+        ]);
+        _dynamicFields['auxiliaryFields']!.addAll([
+          {'label': 'GATE', 'value': ''},
+          {'label': 'SEAT', 'value': ''},
+        ]);
+        break;
+      case 'storeCard':
+        _dynamicFields['secondaryFields']!.add({'label': 'BALANCE', 'value': ''});
+        _dynamicFields['auxiliaryFields']!.add({'label': 'TIER', 'value': ''});
+        break;
+      case 'eventTicket':
+        _dynamicFields['primaryFields']!.add({'label': 'EVENT', 'value': ''});
+        _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'SECTION', 'value': ''},
+          {'label': 'ROW', 'value': ''},
+          {'label': 'SEAT', 'value': ''},
+        ]);
+        break;
+      case 'coupon':
+        _dynamicFields['primaryFields']!.add({'label': 'OFFER', 'value': ''});
+        _dynamicFields['secondaryFields']!.add({'label': 'EXPIRES', 'value': ''});
+        break;
+    }
+  }
+
+  void _addField(String section) {
+    setState(() {
+      _dynamicFields[section]!.add({'label': '', 'value': ''});
+    });
+  }
+
+  void _removeField(String section, int index) {
+    setState(() {
+      _dynamicFields[section]!.removeAt(index);
+    });
+  }
+
+  Widget _buildFieldSection(String title, String sectionKey) {
+    final fields = _dynamicFields[sectionKey]!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4.0, bottom: 12.0, top: 12.0),
-          child: Text(
-            title,
-            style: TextStyle(
-              color: Theme.of(context).textTheme.bodySmall?.color,
-              fontSize: 16,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline, color: Colors.blue),
+              onPressed: () => _addField(sectionKey),
             ),
-          ),
+          ],
         ),
-        Center(
-          child: existingImagePath != null && !removeImage && newImageFile == null
-              ? Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: EncryptedImageDisplay(
-                        imagePath: existingImagePath,
-                        height: 150,
-                        width: 250,
-                        fit: BoxFit.cover,
-                        cacheWidth: 500,
-                        cacheHeight: 300,
-                      ),
-                    ),
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: CircleAvatar(
-                        backgroundColor: Colors.black54,
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              if (isFront) {
-                                _removeFrontImage = true;
-                                _frontImageFile = null;
-                              } else {
-                                _removeBackImage = true;
-                                _backImageFile = null;
-                              }
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : newImageFile != null
-                  ? Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.file(
-                            newImageFile,
-                            height: 150,
-                            width: 250,
-                            fit: BoxFit.cover,
-                            cacheWidth: 500,
-                            cacheHeight: 300,
-                          ),
-                        ),
-                        Positioned(
-                          top: 4,
-                          right: 4,
-                          child: CircleAvatar(
-                            backgroundColor: Colors.black54,
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.close,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  if (isFront) {
-                                    _frontImageFile = null;
-                                    _removeFrontImage = false;
-                                  } else {
-                                    _backImageFile = null;
-                                    _removeBackImage = false;
-                                  }
-                                });
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  : OutlinedButton.icon(
-                      icon: const Icon(Icons.add_photo_alternate_outlined),
-                      label: const Text("Select Image"),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(200, 50),
-                        side: BorderSide(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.502),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: () async {
-                        final pickedFile = await _picker.pickImage(
-                          source: ImageSource.gallery,
-                          maxWidth: 1024,
-                          maxHeight: 1024,
-                          imageQuality: 85,
-                        );
-                        if (pickedFile != null) {
-                          setState(() {
-                            if (isFront) {
-                              _frontImageFile = File(pickedFile.path);
-                              _removeFrontImage = false;
-                            } else {
-                              _backImageFile = File(pickedFile.path);
-                              _removeBackImage = false;
-                            }
-                          });
-                        }
-                      },
-                    ),
+        if (fields.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8.0),
+            child: Text('No fields added.', style: TextStyle(color: Colors.grey, fontSize: 12)),
+          ),
+        ...List.generate(fields.length, (index) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12.0),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextFormField(
+                    initialValue: fields[index]['label'],
+                    decoration: const InputDecoration(labelText: 'Label', isDense: true),
+                    onChanged: (val) => setState(() => fields[index]['label'] = val),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 3,
+                  child: TextFormField(
+                    initialValue: fields[index]['value']?.toString(),
+                    decoration: const InputDecoration(labelText: 'Value', isDense: true),
+                    onChanged: (val) => setState(() => fields[index]['value'] = val),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
+                  onPressed: () => _removeField(sectionKey, index),
+                ),
+              ],
+            ),
+          );
+        }),
+        const Divider(),
+      ],
+    );
+  }
+
+  String _getPassTypeLabel(String type) {
+    switch (type) {
+      case 'boardingPass': return 'BOARDING PASS';
+      case 'eventTicket': return 'EVENT TICKET';
+      case 'coupon': return 'COUPON';
+      case 'storeCard': return 'STORE CARD';
+      case 'generic': return 'GENERIC / OTHER';
+      default: return type.toUpperCase();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_entryMode == EntryMode.selection) {
+      return _buildSelectionView();
+    }
+    return _buildManualEntryView();
+  }
+
+  Widget _buildSelectionView() {
+    return ListView(
+      padding: const EdgeInsets.all(24.0),
+      children: [
+        const SizedBox(height: 20),
+        _buildOptionCard(
+          icon: Icons.qr_code_scanner_rounded,
+          title: 'Scan Barcode',
+          subtitle: 'Scan a physical card or pass',
+          onTap: _scan,
+          color: Colors.blue,
+        ),
+        const SizedBox(height: 20),
+        _buildOptionCard(
+          icon: Icons.file_download_outlined,
+          title: 'Import .pkpass',
+          subtitle: 'Import from Apple Wallet file',
+          onTap: _importPkpass,
+          color: Colors.purple,
+        ),
+        const SizedBox(height: 20),
+        _buildOptionCard(
+          icon: Icons.edit_note_rounded,
+          title: 'Enter Manually',
+          subtitle: 'Create a custom pass',
+          onTap: () => setState(() => _entryMode = EntryMode.manual),
+          color: Colors.orange,
         ),
       ],
     );
   }
 
-  Future<void> _scan() async {
-    // ... (This function remains the same)
-    try {
-      final result = await BarcodeScanner.scan();
-      if (result.type == ResultType.Barcode) {
-        setState(() => _numberController.text = result.rawContent);
-      }
-    } on PlatformException catch (e) {
-      if (e.code == BarcodeScanner.cameraAccessDenied) {}
-    }
+  Widget _buildOptionCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    required Color color,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(icon, color: color, size: 32),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: isDark ? Colors.white24 : Colors.black26,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  void _addCustomField() {
-    setState(() {
-      _customFieldNameControllers.add(TextEditingController());
-      _customFieldValueControllers.add(TextEditingController());
-    });
-  }
-
-  void _removeCustomField(int index) {
-    setState(() {
-      _customFieldNameControllers[index].dispose();
-      _customFieldValueControllers[index].dispose();
-      _customFieldNameControllers.removeAt(index);
-      _customFieldValueControllers.removeAt(index);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final config = _getConfig();
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    
+  Widget _buildManualEntryView() {
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-        // --- ADDED ---
-        // Live preview of the barcode card
         _BarcodeCardPreview(
-          name: _nameController.text,
-          number: _numberController.text,
-          balance: _balanceController.text,
-          colorName: _selectedColor,
-          cardType: widget.cardType,
-          namePlaceholder: config['nameHint']!,
-          numberPlaceholder: config['numberHint']!,
+          pass: Pass(
+            type: _selectedType,
+            organizationName: _organizationController.text.isEmpty ? 'ORGANIZATION' : _organizationController.text,
+            description: _descriptionController.text.isEmpty ? widget.existingPass?.description : _descriptionController.text,
+            logoText: _logoTextController.text.isEmpty ? widget.existingPass?.logoText : _logoTextController.text,
+            barcodeValue: _barcodeValueController.text.isEmpty ? '123456789' : _barcodeValueController.text,
+            transitType: _transitType,
+            fields: _dynamicFields,
+            frontImagePath: null,
+            backImagePath: null,
+            stripImagePath: null,
+            thumbnailImagePath: null,
+            backgroundColor: '#${((cardColorPalette[_selectedColor]?.primary ?? Colors.black).value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}',
+            foregroundColor: widget.existingPass?.foregroundColor,
+            labelColor: widget.existingPass?.labelColor,
+          ),
         ),
-
-        // --- END OF ADDED SECTION ---
-        const SizedBox(height: 24), // --- MODIFIED: Was 20
+        const SizedBox(height: 24),
         ColorPicker(
           selectedColor: _selectedColor,
           onColorSelected: (color) => setState(() => _selectedColor = color),
         ),
         const SizedBox(height: 24),
+        
         TextFormField(
-          controller: _nameController,
-          decoration: InputDecoration(labelText: config['nameHint']),
+          controller: _organizationController,
+          decoration: const InputDecoration(labelText: 'Name (Organization)'),
         ),
         const SizedBox(height: 16),
         TextFormField(
-          controller: _numberController,
-          decoration: InputDecoration(labelText: config['numberHint']),
+          controller: _barcodeValueController,
+          decoration: const InputDecoration(labelText: 'Barcode Value'),
         ),
-        if (widget.cardType == BarcodeCardType.loyalty) ...[
+        const SizedBox(height: 16),
+        DropdownButtonFormField<String>(
+          value: _selectedType,
+          decoration: const InputDecoration(labelText: 'Pass Category'),
+          items: _passTypes.map((t) => DropdownMenuItem(value: t, child: Text(_getPassTypeLabel(t)))).toList(),
+          onChanged: (v) {
+            setState(() {
+              _selectedType = v!;
+              _prepopulateFieldsIfNeeded();
+            });
+          },
+        ),
+        if (_selectedType == 'boardingPass') ...[
           const SizedBox(height: 16),
-          TextFormField(
-            controller: _balanceController,
-            decoration: const InputDecoration(labelText: 'Balance / Points (Optional)'),
+          DropdownButtonFormField<String>(
+            value: _transitType,
+            decoration: const InputDecoration(labelText: 'Transit Type'),
+            items: ['PKTransitTypeAir', 'PKTransitTypeBoat', 'PKTransitTypeBus', 'PKTransitTypeRail']
+                .map((t) => DropdownMenuItem(value: t, child: Text(t.replaceFirst('PKTransitType', '')))).toList(),
+            onChanged: (v) => setState(() => _transitType = v!),
           ),
         ],
         const SizedBox(height: 24),
-        OutlinedButton.icon(
-          icon: const Icon(Icons.qr_code_scanner),
-          label: const Text("Scan Barcode"),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size.fromHeight(50),
-            side: BorderSide(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.502),
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        
+        if (!_showAdditionalDetails)
+          Center(
+            child: TextButton.icon(
+              onPressed: () => setState(() => _showAdditionalDetails = true),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Additional Details'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.blue,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
             ),
           ),
-          onPressed: _scan,
-        ),
-        const SizedBox(height: 24),
-        _buildImagePickerSection(true),
-        const SizedBox(height: 16),
-        _buildImagePickerSection(false),
-        if (widget.cardType == BarcodeCardType.loyalty) ...[
+          
+        if (_showAdditionalDetails) ...[
+          const Divider(height: 48),
+          const SizedBox(height: 16),
+          TextFormField(controller: _descriptionController, decoration: const InputDecoration(labelText: 'Description')),
+          const SizedBox(height: 16),
+          TextFormField(controller: _logoTextController, decoration: const InputDecoration(labelText: 'Logo Text')),
           const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "Custom Fields",
-                style: themeProvider.getTextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              IconButton(
-                icon: Icon(
-                  Icons.add_circle,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                onPressed: _addCustomField,
-              ),
-            ],
-          ),
-          if (_customFieldNameControllers.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24.0),
-              child: Center(
-                child: Text(
-                  "No custom fields added.",
-                  style: themeProvider.getTextStyle(color: Colors.grey),
-                ),
-              ),
-            ),
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _customFieldNameControllers.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _customFieldNameControllers[index],
-                        decoration: const InputDecoration(
-                          labelText: 'Field Name',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _customFieldValueControllers[index],
-                        decoration: const InputDecoration(
-                          labelText: 'Value',
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.remove_circle_outline),
-                      onPressed: () => _removeCustomField(index),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
+          
+          // Dynamic Fields Sections
+          _buildFieldSection('Primary Fields (Main Info)', 'primaryFields'),
+          _buildFieldSection('Secondary Fields (Details)', 'secondaryFields'),
+          _buildFieldSection('Auxiliary Fields (More)', 'auxiliaryFields'),
+          _buildFieldSection('Header Fields (Top Right)', 'headerFields'),
+          _buildFieldSection('Back Details (Fine Print)', 'backFields'),
         ],
-        const SizedBox(height: 40),
+        
+        const SizedBox(height: 32),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            minimumSize: const Size.fromHeight(50),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
             ),
           ),
           onPressed: _addData,
-          child: Text(config['saveButtonText']!),
+          child: const Text('Save Pass'),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
       ],
     );
   }
 }
 
-// -----------------------------------------------------------------------------
-// --- ADDED: NEW WIDGET FOR BARCODE CARD PREVIEW ---
-// -----------------------------------------------------------------------------
 class _BarcodeCardPreview extends StatelessWidget {
-  final String name;
-  final String number;
-  final String balance;
-  final String colorName;
-  final BarcodeCardType cardType;
-  final String namePlaceholder;
-  final String numberPlaceholder;
-
-  const _BarcodeCardPreview({
-    required this.name,
-    required this.number,
-    required this.balance,
-    required this.colorName,
-    required this.cardType,
-    required this.namePlaceholder,
-    required this.numberPlaceholder,
-  });
+  final Pass pass;
+  const _BarcodeCardPreview({required this.pass});
 
   @override
   Widget build(BuildContext context) {
-    if (cardType == BarcodeCardType.identity) {
-      // Create dummy identity for preview
-      final identity = Identity(
-        identityName: name.isEmpty ? namePlaceholder : name,
-        identityNumber: number.isEmpty ? numberPlaceholder : number,
-        color: colorName,
-      );
-
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20.0),
-        child: BarcodeCard(
-          cardType: BarcodeCardType.identity,
-          identity: identity,
-          onCardTap: () {},
-          onCopyTap: () {},
-          onDeleteTap: () {},
-        ),
-      );
-    } else {
-      // Create dummy loyalty for preview
-      final loyalty = Loyalty(
-        loyaltyName: name.isEmpty ? namePlaceholder : name,
-        loyaltyNumber: number.isEmpty ? numberPlaceholder : number,
-        balance: balance.isEmpty ? null : balance,
-        color: colorName,
-      );
-
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20.0),
-        child: BarcodeCard(
-          cardType: BarcodeCardType.loyalty,
-          loyalty: loyalty, // Pass loyalty object
-          onCardTap: () {},
-          onCopyTap: () {},
-          onDeleteTap: () {},
-        ),
-      );
-    }
+    return BarcodeCard(pass: pass, onCardTap: () {});
   }
 }
 
