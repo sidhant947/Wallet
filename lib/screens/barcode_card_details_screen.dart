@@ -198,7 +198,7 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
         if (fieldType == 'secondary') return "Venue Info";
         return "Ticket Details";
       case 'storeCard':
-        if (fieldType == 'primary') return "Loyalty Info";
+        if (fieldType == 'primary') return "Pass Details";
         return "Account Details";
       case 'coupon':
         if (fieldType == 'primary') return "Offer Details";

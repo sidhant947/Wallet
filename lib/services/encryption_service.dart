@@ -17,6 +17,15 @@ class _EncryptionParams {
   _EncryptionParams(this.data, this.key, this.iv, this.mode);
 }
 
+/// Data class for passing parameters to backup isolates
+class _BackupParams {
+  final Uint8List data;
+  final String password;
+  final bool isEncryption;
+
+  _BackupParams(this.data, this.password, {this.isEncryption = true});
+}
+
 /// AES-256-GCM encryption service for securing sensitive local data.
 ///
 /// Uses Authenticated Encryption (GCM) for both confidentiality and integrity.
@@ -238,87 +247,21 @@ class EncryptionService {
   }
 
   /// Encrypt data for backup using AES-256-GCM with a password-derived key.
-  ///
-  /// Output format: `base64(salt):base64(iv):base64(ciphertext)`
-  Uint8List encryptForBackup(String data, String password) {
-    final salt = _generateSecureRandomBytes(16);
-    final keyBytes = _deriveKeyPBKDF2(password, salt);
-    final key = encrypt.Key(Uint8List.fromList(keyBytes));
-    final iv = encrypt.IV(_generateSecureRandomBytes(_gcmIvLength));
-
-    final encrypter = encrypt.Encrypter(
-      encrypt.AES(key, mode: encrypt.AESMode.gcm),
+  /// Offloads to an isolate to prevent UI blocking.
+  Future<Uint8List> encryptForBackup(Uint8List data, String password) async {
+    return await compute(
+      _backupIsolate,
+      _BackupParams(data, password, isEncryption: true),
     );
-    final encrypted = encrypter.encrypt(data, iv: iv);
-
-    final saltB64 = base64Encode(salt);
-    final ivB64 = iv.base64;
-    final cipherB64 = encrypted.base64;
-    return utf8.encode('$saltB64:$ivB64:$cipherB64');
   }
 
   /// Decrypt backup data (supports AES-256-GCM and legacy AES-256-CBC).
-  String decryptForBackup(Uint8List encryptedData, String password) {
-    try {
-      final content = utf8.decode(encryptedData);
-      final parts = content.split(':');
-
-      if (parts.length == 3) {
-        // Format with salt: base64(salt):base64(iv):base64(ciphertext)
-        final salt = base64Decode(parts[0]);
-        final iv = encrypt.IV.fromBase64(parts[1]);
-        final ciphertext = encrypt.Encrypted.fromBase64(parts[2]);
-
-        final keyBytes = _deriveKeyPBKDF2(password, salt);
-        final key = encrypt.Key(Uint8List.fromList(keyBytes));
-
-        final mode = iv.bytes.length == _gcmIvLength
-            ? encrypt.AESMode.gcm
-            : encrypt.AESMode.cbc;
-
-        final encrypter = encrypt.Encrypter(
-          encrypt.AES(key, mode: mode),
-        );
-        return encrypter.decrypt(ciphertext, iv: iv);
-      } else if (parts.length == 2) {
-        // Legacy format without salt: base64(iv):base64(ciphertext)
-        final iv = encrypt.IV.fromBase64(parts[0]);
-        final ciphertext = encrypt.Encrypted.fromBase64(parts[1]);
-
-        final keyBytes = _deriveKeyFromPassword(password);
-        final key = encrypt.Key(Uint8List.fromList(keyBytes));
-
-        // Legacy format without salt was always CBC
-        final encrypter = encrypt.Encrypter(
-          encrypt.AES(key, mode: encrypt.AESMode.cbc),
-        );
-        return encrypter.decrypt(ciphertext, iv: iv);
-      }
-    } catch (e) {
-      // Not UTF-8 or failed to decrypt
-    }
-
-    return _decryptLegacyBackup(encryptedData, password);
-  }
-
-  /// Decrypt legacy raw byte backup (always CBC).
-  String _decryptLegacyBackup(Uint8List encryptedData, String password) {
-    if (encryptedData.length < 17) {
-      throw Exception('Invalid encrypted data: too short');
-    }
-
-    final keyBytes = _deriveKeyFromPassword(password);
-    final key = encrypt.Key(Uint8List.fromList(keyBytes));
-
-    final iv = encrypt.IV(Uint8List.fromList(encryptedData.sublist(0, 16)));
-    final ciphertext = encrypt.Encrypted(
-      Uint8List.fromList(encryptedData.sublist(16)),
+  /// Offloads to an isolate to prevent UI blocking.
+  Future<Uint8List> decryptForBackup(Uint8List encryptedData, String password) async {
+    return await compute(
+      _backupIsolate,
+      _BackupParams(encryptedData, password, isEncryption: false),
     );
-
-    final encrypter = encrypt.Encrypter(
-      encrypt.AES(key, mode: encrypt.AESMode.cbc),
-    );
-    return encrypter.decrypt(ciphertext, iv: iv);
   }
 
   /// Derive a 256-bit key using PBKDF2-HMAC-SHA256 with 100,000 iterations.
@@ -495,4 +438,75 @@ Uint8List _decryptBytesIsolate(_EncryptionParams params) {
     encrypt.AES(params.key, mode: params.mode),
   );
   return Uint8List.fromList(encrypter.decryptBytes(encrypt.Encrypted(params.data), iv: params.iv));
+}
+
+/// Isolate entry point for backup encryption/decryption
+Uint8List _backupIsolate(_BackupParams params) {
+  final service = EncryptionService.instance;
+
+  if (params.isEncryption) {
+    final salt = service._generateSecureRandomBytes(16);
+    final keyBytes = service._deriveKeyPBKDF2(params.password, salt);
+    final key = encrypt.Key(Uint8List.fromList(keyBytes));
+    final iv = encrypt.IV(service._generateSecureRandomBytes(12));
+
+    final encrypter = encrypt.Encrypter(
+      encrypt.AES(key, mode: encrypt.AESMode.gcm),
+    );
+    // Note: backup data is passed as Uint8List (the ZIP bytes)
+    final encrypted = encrypter.encryptBytes(params.data, iv: iv);
+
+    final saltB64 = base64Encode(salt);
+    final ivB64 = iv.base64;
+    final cipherB64 = encrypted.base64;
+    return utf8.encode('$saltB64:$ivB64:$cipherB64');
+  } else {
+    // Decryption logic
+    String? content;
+    try {
+      content = utf8.decode(params.data);
+    } catch (_) {}
+
+    if (content != null && content.contains(':')) {
+      final parts = content.split(':');
+      if (parts.length == 3) {
+        try {
+          final salt = base64Decode(parts[0]);
+          final iv = encrypt.IV.fromBase64(parts[1]);
+          final ciphertext = encrypt.Encrypted.fromBase64(parts[2]);
+          final keyBytes = service._deriveKeyPBKDF2(params.password, salt);
+          final key = encrypt.Key(Uint8List.fromList(keyBytes));
+          final mode = iv.bytes.length == 12 ? encrypt.AESMode.gcm : encrypt.AESMode.cbc;
+          final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: mode));
+          return Uint8List.fromList(encrypter.decryptBytes(ciphertext, iv: iv));
+        } catch (e) {
+          throw Exception('Invalid password or corrupted backup file.');
+        }
+      } else if (parts.length == 2) {
+        try {
+          final iv = encrypt.IV.fromBase64(parts[0]);
+          final ciphertext = encrypt.Encrypted.fromBase64(parts[1]);
+          final keyBytes = service._deriveKeyFromPassword(params.password);
+          final key = encrypt.Key(Uint8List.fromList(keyBytes));
+          final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+          return Uint8List.fromList(encrypter.decryptBytes(ciphertext, iv: iv));
+        } catch (e) {
+          throw Exception('Invalid password or corrupted legacy backup.');
+        }
+      }
+    }
+
+    // Raw legacy fallback
+    try {
+      if (params.data.length < 17) throw Exception('Data too short');
+      final keyBytes = service._deriveKeyFromPassword(params.password);
+      final key = encrypt.Key(Uint8List.fromList(keyBytes));
+      final iv = encrypt.IV(Uint8List.fromList(params.data.sublist(0, 16)));
+      final ciphertext = encrypt.Encrypted(Uint8List.fromList(params.data.sublist(16)));
+      final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+      return Uint8List.fromList(encrypter.decryptBytes(ciphertext, iv: iv));
+    } catch (e) {
+      throw Exception('Failed to decrypt backup. Ensure the password is correct.');
+    }
+  }
 }

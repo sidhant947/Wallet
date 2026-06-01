@@ -6,19 +6,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 class StartupSettingsProvider with ChangeNotifier {
   bool _showAuthenticationScreen = true;
   int _defaultScreenIndex = 0;
-  bool _hideIdentityAndLoyalty = false;
+  bool _paymentsOnlyMode = false;
   String _selectedCurrencyCode = 'INR';
   String _selectedCurrencySymbol = '₹';
 
   static const String _authKey = 'showAuthenticationScreen';
   static const String _defaultScreenKey = 'defaultScreenIndex';
-  static const String _hideKey = 'hideIdentityAndLoyalty';
+  static const String _paymentsOnlyKey = 'paymentsOnlyMode';
   static const String _currencyCodeKey = 'selectedCurrencyCode';
   static const String _currencySymbolKey = 'selectedCurrencySymbol';
 
   bool get showAuthenticationScreen => _showAuthenticationScreen;
   int get defaultScreenIndex => _defaultScreenIndex;
-  bool get hideIdentityAndLoyalty => _hideIdentityAndLoyalty;
+  bool get paymentsOnlyMode => _paymentsOnlyMode;
   String get selectedCurrencyCode => _selectedCurrencyCode;
   String get selectedCurrencySymbol => _selectedCurrencySymbol;
 
@@ -40,7 +40,7 @@ class StartupSettingsProvider with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _showAuthenticationScreen = prefs.getBool(_authKey) ?? true;
     _defaultScreenIndex = prefs.getInt(_defaultScreenKey) ?? 0;
-    _hideIdentityAndLoyalty = prefs.getBool(_hideKey) ?? false;
+    _paymentsOnlyMode = prefs.getBool(_paymentsOnlyKey) ?? prefs.getBool('hideIdentityAndLoyalty') ?? false;
     _selectedCurrencyCode = prefs.getString(_currencyCodeKey) ?? 'INR';
     _selectedCurrencySymbol = prefs.getString(_currencySymbolKey) ?? '₹';
     notifyListeners();
@@ -60,13 +60,13 @@ class StartupSettingsProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> toggleHideIdentityAndLoyalty() async {
-    _hideIdentityAndLoyalty = !_hideIdentityAndLoyalty;
-    if (_hideIdentityAndLoyalty) {
+  Future<void> togglePaymentsOnlyMode() async {
+    _paymentsOnlyMode = !_paymentsOnlyMode;
+    if (_paymentsOnlyMode) {
       _defaultScreenIndex = 0; // Force default to payment if others hidden
     }
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_hideKey, _hideIdentityAndLoyalty);
+    await prefs.setBool(_paymentsOnlyKey, _paymentsOnlyMode);
     await prefs.setInt(_defaultScreenKey, _defaultScreenIndex);
     notifyListeners();
   }

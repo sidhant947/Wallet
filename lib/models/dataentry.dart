@@ -19,9 +19,6 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 import 'db_helper.dart';
 
-// Enum to define the type of card we are creating
-enum BarcodeCardType { identity, loyalty }
-
 // --- Premium Liquid Glass Color Palette ---
 // These colors are carefully chosen to complement the liquid glass aesthetic
 // with deep, sophisticated tones that work beautifully with transparency effects

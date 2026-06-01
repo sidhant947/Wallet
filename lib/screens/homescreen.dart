@@ -58,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Initialize selected index from startup settings
       final startupProvider = context.read<StartupSettingsProvider>();
-      if (startupProvider.hideIdentityAndLoyalty) {
+      if (startupProvider.paymentsOnlyMode) {
         setState(() => _selectedIndex = 0);
       } else {
         setState(() => _selectedIndex = startupProvider.defaultScreenIndex);
@@ -230,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = themeProvider.isDarkMode;
 
     // Force index to 0 (Payments) if hidden mode is on
-    final isHiddenMode = startupProvider.hideIdentityAndLoyalty;
+    final isHiddenMode = startupProvider.paymentsOnlyMode;
     final effectiveIndex = isHiddenMode ? 0 : _selectedIndex;
 
     return Scaffold(

@@ -996,7 +996,7 @@ class _StoreCardLayout extends StatelessWidget {
     if (pass.fields?['secondaryFields'] != null && (pass.fields!['secondaryFields'] as List).isNotEmpty) {
       final list = pass.fields!['secondaryFields'] as List;
       points = list[0]['value']?.toString() ?? '7,500';
-      tier = list[0]['label']?.toString().toUpperCase() ?? 'LOYALTY MEMBER';
+      tier = list[0]['label']?.toString().toUpperCase() ?? 'MEMBER';
     } else {
       if (pass.description != null && pass.description!.isNotEmpty) {
         tier = pass.description!.toUpperCase();

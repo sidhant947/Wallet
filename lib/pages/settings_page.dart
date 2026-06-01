@@ -108,7 +108,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 onTap: () => _showCurrencyDialog(context, startupProvider),
               ),
               Divider(color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8), height: 1),
-              if (!startupProvider.hideIdentityAndLoyalty) ...[
+              if (!startupProvider.paymentsOnlyMode) ...[
                 _LiquidGlassTile(
                   icon: Icons.home_filled,
                   title: 'Default Screen',
@@ -122,9 +122,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: 'Payments Only Mode',
                 subtitle: 'Hide Passes screen',
                 trailing: Switch(
-                  value: startupProvider.hideIdentityAndLoyalty,
+                  value: startupProvider.paymentsOnlyMode,
                   onChanged: (_) {
-                    startupProvider.toggleHideIdentityAndLoyalty();
+                    startupProvider.togglePaymentsOnlyMode();
                   },
                 ),
               ),
@@ -302,7 +302,6 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showBackupDialog(BuildContext context, ThemeProvider themeProvider) {
-    final passwordController = TextEditingController();
     final isDark = themeProvider.isDarkMode;
     showDialog(
       context: context,
@@ -310,26 +309,32 @@ class _SettingsPageState extends State<SettingsPage> {
         title: 'Create Backup',
         content: 'Enter a strong password to encrypt your backup file.',
         buttonText: 'Create Backup',
-        passwordController: passwordController,
         isDark: isDark,
-        onConfirm: () async {
-          if (passwordController.text.isEmpty) return;
+        onConfirm: (password) async {
           try {
-            final path = await BackupService.createBackup(passwordController.text);
+            final path = await BackupService.createBackup(password);
             if (dialogContext.mounted) {
               Navigator.pop(dialogContext);
-              ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text('Backup saved to: $path'), backgroundColor: Colors.green));
+              if (path != null) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('Backup saved successfully!'), backgroundColor: Colors.green)
+                );
+              }
             }
           } catch (e) {
-             if (dialogContext.mounted) ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text('Backup failed: $e'), backgroundColor: Colors.red));
+             if (dialogContext.mounted) {
+               final errorMsg = e.toString().replaceFirst('Exception: ', '');
+               ScaffoldMessenger.of(dialogContext).showSnackBar(
+                 SnackBar(content: Text('Backup failed: $errorMsg'), backgroundColor: Colors.red)
+               );
+             }
           }
         },
       ),
-    ).then((_) => passwordController.dispose());
+    );
   }
 
   void _showRestoreDialog(BuildContext context, ThemeProvider themeProvider) {
-    final passwordController = TextEditingController();
     final isDark = themeProvider.isDarkMode;
     showDialog(
       context: context,
@@ -338,24 +343,29 @@ class _SettingsPageState extends State<SettingsPage> {
         content: 'Enter the password for the backup file. This will replace all current data.',
         buttonText: 'Restore',
         isDestructive: true,
-        passwordController: passwordController,
         isDark: isDark,
-        onConfirm: () async {
-          if (passwordController.text.isEmpty) return;
+        onConfirm: (password) async {
           try {
-            await BackupService.restoreBackup(passwordController.text);
+            await BackupService.restoreBackup(password);
             if (dialogContext.mounted) {
               context.read<WalletProvider>().fetchWallets();
               context.read<PassProvider>().fetchPasses();
               Navigator.pop(dialogContext);
-              ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('Restored successfully!'), backgroundColor: Colors.green));
+              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                const SnackBar(content: Text('Restored successfully!'), backgroundColor: Colors.green)
+              );
             }
           } catch (e) {
-             if (dialogContext.mounted) ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text('Restore failed: $e'), backgroundColor: Colors.red));
+             if (dialogContext.mounted) {
+               final errorMsg = e.toString().replaceFirst('Exception: ', '');
+               ScaffoldMessenger.of(dialogContext).showSnackBar(
+                 SnackBar(content: Text('Restore failed: $errorMsg'), backgroundColor: Colors.red)
+               );
+             }
           }
         },
       ),
-    ).then((_) => passwordController.dispose());
+    );
   }
 
   void _showDeleteAllDataDialog(BuildContext context, ThemeProvider themeProvider) {
@@ -470,18 +480,30 @@ class _LiquidGlassPasswordDialog extends StatefulWidget {
   final String content;
   final String buttonText;
   final bool isDestructive;
-  final TextEditingController passwordController;
   final bool isDark;
-  final Future<void> Function() onConfirm;
-  const _LiquidGlassPasswordDialog({required this.title, required this.content, required this.buttonText, this.isDestructive = false, required this.passwordController, required this.isDark, required this.onConfirm});
+  final Future<void> Function(String) onConfirm;
+  const _LiquidGlassPasswordDialog({required this.title, required this.content, required this.buttonText, this.isDestructive = false, required this.isDark, required this.onConfirm});
 
   @override
   State<_LiquidGlassPasswordDialog> createState() => _LiquidGlassPasswordDialogState();
 }
 
 class _LiquidGlassPasswordDialogState extends State<_LiquidGlassPasswordDialog> {
+  late final TextEditingController _passwordController;
   bool _isLoading = false;
   bool _obscure = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -494,7 +516,7 @@ class _LiquidGlassPasswordDialogState extends State<_LiquidGlassPasswordDialog> 
           Text(widget.content, style: TextStyle(color: widget.isDark ? Colors.white70 : Colors.black87)),
           const SizedBox(height: 16),
           TextField(
-            controller: widget.passwordController,
+            controller: _passwordController,
             obscureText: _obscure,
             style: TextStyle(color: widget.isDark ? Colors.white : Colors.black),
             decoration: InputDecoration(
@@ -507,7 +529,12 @@ class _LiquidGlassPasswordDialogState extends State<_LiquidGlassPasswordDialog> 
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         FilledButton(
-          onPressed: () async { setState(() => _isLoading = true); await widget.onConfirm(); if (mounted) setState(() => _isLoading = false); },
+          onPressed: () async { 
+            if (_passwordController.text.isEmpty) return;
+            setState(() => _isLoading = true); 
+            await widget.onConfirm(_passwordController.text); 
+            if (mounted) setState(() => _isLoading = false); 
+          },
           style: FilledButton.styleFrom(backgroundColor: widget.isDestructive ? Colors.red : (widget.isDark ? Colors.white : Colors.black)),
           child: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(widget.buttonText),
         ),

@@ -39,7 +39,7 @@ void main() async {
     debugPrint('Running one-time encryption migration...');
     await Future.wait([
       DatabaseHelper.instance.migrateToEncrypted(),
-      // Identity and Loyalty are gone, so we don't migrate them anymore.
+      // Old card categories are gone, so we don't migrate them anymore.
     ]);
     await EncryptionService.instance.markMigrated();
     debugPrint('Encryption migration complete.');

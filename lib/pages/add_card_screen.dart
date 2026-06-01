@@ -15,14 +15,14 @@ class AddCardScreen extends StatefulWidget {
 
 class _AddCardScreenState extends State<AddCardScreen> {
   int _currentIndex = 0;
-  bool _hideIdentityAndLoyalty = false;
+  bool _paymentsOnlyMode = false;
 
   @override
   void initState() {
     super.initState();
-    _hideIdentityAndLoyalty = context
+    _paymentsOnlyMode = context
         .read<StartupSettingsProvider>()
-        .hideIdentityAndLoyalty;
+        .paymentsOnlyMode;
     _currentIndex = widget.initialTabIndex;
   }
 
@@ -53,7 +53,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
         actions: [
           // Removed redundant import button as it's now in the form
         ],
-        bottom: _hideIdentityAndLoyalty
+        bottom: _paymentsOnlyMode
             ? null
             : PreferredSize(
                 preferredSize: const Size.fromHeight(60),
@@ -77,7 +77,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
                 ),
               ),
       ),
-      body: _hideIdentityAndLoyalty
+      body: _paymentsOnlyMode
           ? const CreditCardEntryForm()
           : IndexedStack(
               index: _currentIndex,
