@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:provider/provider.dart';
-import 'package:screen_brightness/screen_brightness.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/models/dataentry.dart';
@@ -20,34 +19,6 @@ class BarcodeCardDetailScreen extends StatefulWidget {
 }
 
 class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
-  @override
-  void initState() {
-    super.initState();
-    _maximizeBrightness();
-  }
-
-  Future<void> _maximizeBrightness() async {
-    try {
-      await ScreenBrightness().setApplicationScreenBrightness(1.0);
-    } catch (e) {
-      debugPrint('Error setting brightness: $e');
-    }
-  }
-
-  Future<void> _restoreBrightness() async {
-    try {
-      await ScreenBrightness().resetApplicationScreenBrightness();
-    } catch (e) {
-      debugPrint('Error resetting brightness: $e');
-    }
-  }
-
-  @override
-  void dispose() {
-    _restoreBrightness();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);

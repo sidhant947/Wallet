@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:barcode_widget/barcode_widget.dart';
-import 'package:screen_brightness/screen_brightness.dart';
 import '../models/theme_provider.dart';
 
 class DisplayBarcodeScreen extends StatefulWidget {
@@ -34,31 +33,6 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
       _BarcodeFormat(Barcode.aztec(), 'Aztec', Icons.blur_circular_rounded),
       _BarcodeFormat(Barcode.dataMatrix(), 'Matrix', Icons.grid_4x4_rounded),
     ];
-
-    // Set to max brightness for easy scanning
-    _maximizeBrightness();
-  }
-
-  Future<void> _maximizeBrightness() async {
-    try {
-      await ScreenBrightness().setApplicationScreenBrightness(1.0);
-    } catch (e) {
-      debugPrint('Error setting brightness: $e');
-    }
-  }
-
-  Future<void> _restoreBrightness() async {
-    try {
-      await ScreenBrightness().resetApplicationScreenBrightness();
-    } catch (e) {
-      debugPrint('Error resetting brightness: $e');
-    }
-  }
-
-  @override
-  void dispose() {
-    _restoreBrightness();
-    super.dispose();
   }
 
   @override

@@ -29,8 +29,6 @@ dependencies:
   path_provider: ^2.1.5
   percent_indicator: ^4.2.5
   provider: ^6.1.2
-  # screen_brightness: ^2.1.7
-  screen_brightness: ^2.1.8
   shared_preferences: ^2.3.3
   sqflite: ^2.4.1
   sqflite_common_ffi: ^2.3.4+4
