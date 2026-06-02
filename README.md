@@ -36,16 +36,6 @@ Stay secure on your favorite platform. Secure Wallet is available on several pri
 
 ---
 
-## 🛠️ Technical Implementation
-
-- **Encryption**: AES-256-GCM (Galois/Counter Mode) for authenticated encryption.
-- **Key Storage**: Master keys are stored in the **Android Keystore** / **iOS Keychain**.
-- **Key Derivation**: Backups use **PBKDF2** with **100,000 iterations** to protect against brute-force attacks.
-- **Privacy**: Implements `FLAG_SECURE` to prevent screenshots and screen recording of sensitive information.
-- **Framework**: Built with **Flutter** for high-performance rendering and a native feel.
-
----
-
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
