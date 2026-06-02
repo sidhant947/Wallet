@@ -1,1 +1,1 @@
-Securely store credit, loyalty, and ID cards locally. No internet, total privacy.
+Offline card vault with AES-256-GCM encryption. Zero internet, total privacy.

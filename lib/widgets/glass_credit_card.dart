@@ -1,8 +1,6 @@
 // lib/widgets/glass_credit_card.dart - ULTRA PREMIUM DESIGN
 
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:wallet/models/dataentry.dart';
 import '../models/db_helper.dart';
 
@@ -22,45 +20,7 @@ class GlassCreditCard extends StatefulWidget {
   State<GlassCreditCard> createState() => _GlassCreditCardState();
 }
 
-class _GlassCreditCardState extends State<GlassCreditCard>
-    with SingleTickerProviderStateMixin {
-  bool _isFront = true;
-  late AnimationController _flipController;
-  late Animation<double> _flipAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _flipController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _flipAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _flipController,
-        curve: Curves.easeInOutCubic,
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _flipController.dispose();
-    super.dispose();
-  }
-
-  void _toggleFlip() {
-    HapticFeedback.mediumImpact();
-    if (_isFront) {
-      _flipController.forward();
-    } else {
-      _flipController.reverse();
-    }
-    setState(() {
-      _isFront = !_isFront;
-    });
-  }
-
+class _GlassCreditCardState extends State<GlassCreditCard> {
   static final RegExp _fourDigitPattern = RegExp(r".{4}");
 
   String _formatCardNumber(String input) {
@@ -90,28 +50,7 @@ class _GlassCreditCardState extends State<GlassCreditCard>
       child: RepaintBoundary(
         child: GestureDetector(
           onTap: widget.onCardTap,
-          onLongPress: _toggleFlip,
-          child: AnimatedBuilder(
-            animation: _flipAnimation,
-            builder: (context, child) {
-              final angle = _flipAnimation.value * math.pi;
-              final isShowingBack = angle > math.pi / 2;
-              
-              return Transform(
-                transform: Matrix4.identity()
-                  ..setEntry(3, 2, 0.001)
-                  ..rotateY(angle),
-                alignment: Alignment.center,
-                child: isShowingBack
-                    ? Transform(
-                        transform: Matrix4.identity()..rotateY(math.pi),
-                        alignment: Alignment.center,
-                        child: _buildBack(colorData),
-                      )
-                    : _buildFront(colorData, lastFour),
-              );
-            },
-          ),
+          child: _buildFront(colorData, lastFour),
         ),
       ),
     );
@@ -221,104 +160,6 @@ class _GlassCreditCardState extends State<GlassCreditCard>
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBack(CardColorData colorData) {
-    return AspectRatio(
-      aspectRatio: 1.586,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(15),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomRight,
-                    end: Alignment.topLeft,
-                    colors: [
-                      colorData.accent,
-                      colorData.secondary,
-                      colorData.primary,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Column(
-              children: [
-                const SizedBox(height: 20),
-                Container(
-                  height: 40,
-                  width: double.infinity,
-                  color: Colors.black.withValues(alpha: 0.8),
-                ),
-                const SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Container(
-                          height: 35,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.8),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Text(
-                                widget.isMasked ? "•••" : "123",
-                                style: const TextStyle(
-                                  fontFamily: 'Courier',
-                                  fontStyle: FontStyle.italic,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Expanded(
-                        flex: 1,
-                        child: Text(
-                          "CVV",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Align(
-                    alignment: Alignment.bottomRight,
-                    child: Text(
-                      "AUTHORIZED SIGNATURE",
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ),
           ],
         ),

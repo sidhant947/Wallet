@@ -151,7 +151,7 @@ class DatabaseHelper {
     final List<Map<String, dynamic>> maps = await db.query('wallets');
 
     for (final map in maps) {
-      final wallet = Wallet.fromMap(map);
+      final wallet = Wallet.fromEncryptedMap(map);
       await db.update(
         'wallets',
         wallet.toEncryptedMap(),
@@ -259,6 +259,22 @@ class PassDatabaseHelper {
     }
     await batch.commit(noResult: true);
   }
+
+  Future<void> migrateToEncrypted() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('passes');
+
+    for (final map in maps) {
+      final pass = Pass.fromEncryptedMap(map);
+      await db.update(
+        'passes',
+        pass.toEncryptedMap(),
+        where: 'id = ?',
+        whereArgs: [pass.id],
+      );
+    }
+    debugPrint('PassDatabaseHelper: Pass migration to encrypted format complete.');
+  }
 }
 
 class Pass {
@@ -343,7 +359,7 @@ class Pass {
       'barcodeFormat': barcodeFormat,
       'barcodeAltText': enc.encryptText(barcodeAltText),
       'transitType': transitType,
-      'relevantDate': relevantDate,
+      'relevantDate': enc.encryptText(relevantDate),
       'frontImagePath': frontImagePath,
       'backImagePath': backImagePath,
       'stripImagePath': stripImagePath,
@@ -392,7 +408,7 @@ class Pass {
       barcodeFormat: map['barcodeFormat'],
       barcodeAltText: enc.decryptText(map['barcodeAltText']),
       transitType: map['transitType'],
-      relevantDate: map['relevantDate'],
+      relevantDate: enc.decryptText(map['relevantDate']),
       frontImagePath: map['frontImagePath'],
       backImagePath: map['backImagePath'],
       stripImagePath: map['stripImagePath'],
@@ -479,13 +495,13 @@ class Wallet {
       'customFields': customFields != null
           ? enc.encryptJson(customFields!.cast<String, dynamic>())
           : null,
-      'spends': spends,
-      'rewards': rewards,
-      'annualFeeWaiver': annualFeeWaiver,
-      'maxlimit': maxlimit,
-      'cardtype': cardtype,
-      'billdate': billdate,
-      'category': category,
+      'spends': enc.encryptText(spends),
+      'rewards': enc.encryptText(rewards),
+      'annualFeeWaiver': enc.encryptText(annualFeeWaiver),
+      'maxlimit': enc.encryptText(maxlimit),
+      'cardtype': enc.encryptText(cardtype),
+      'billdate': enc.encryptText(billdate),
+      'category': enc.encryptText(category),
       'color': color,
       'frontImagePath': frontImagePath,
       'backImagePath': backImagePath,
@@ -530,13 +546,13 @@ class Wallet {
       customFields: map['customFields'] != null
           ? enc.decryptJsonToStringMap(map['customFields'])
           : null,
-      spends: map['spends'],
-      rewards: map['rewards'],
-      annualFeeWaiver: map['annualFeeWaiver'],
-      maxlimit: map['maxlimit'],
-      cardtype: map['cardtype'],
-      billdate: map['billdate'],
-      category: map['category'],
+      spends: enc.decryptText(map['spends']),
+      rewards: enc.decryptText(map['rewards']),
+      annualFeeWaiver: enc.decryptText(map['annualFeeWaiver']),
+      maxlimit: enc.decryptText(map['maxlimit']),
+      cardtype: enc.decryptText(map['cardtype']),
+      billdate: enc.decryptText(map['billdate']),
+      category: enc.decryptText(map['category']),
       color: map['color'],
       frontImagePath: map['frontImagePath'],
       backImagePath: map['backImagePath'],

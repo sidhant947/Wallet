@@ -663,7 +663,12 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                   },
                 ),
                 const SizedBox(height: 24),
-                _buildTextField(_nameController, 'Card Name', isDark),
+                _buildTextField(
+                  _nameController,
+                  'Card Name',
+                  isDark,
+                  validator: (v) => v!.isEmpty ? 'Please enter a name' : null,
+                ),
                 const SizedBox(height: 16),
                 _buildTextField(
                   _numberController,
@@ -710,6 +715,7 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                   _issuerController,
                   'Card Issuer (e.g. HDFC)',
                   isDark,
+                  validator: (v) => v!.isEmpty ? 'Please enter an issuer' : null,
                 ),
                 const SizedBox(height: 16),
                 _buildDropdown('Card Network', _network, isDark, (newValue) {
@@ -892,7 +898,7 @@ class WalletEditScreenState extends State<WalletEditScreen> {
         controller: controller,
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
-        validator: validator ?? (v) => v!.isEmpty ? 'Cannot be empty' : null,
+        validator: validator,
         style: TextStyle(color: textColor),
         decoration: InputDecoration(
           labelText: label,

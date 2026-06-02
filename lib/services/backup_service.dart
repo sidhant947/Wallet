@@ -27,17 +27,50 @@ class BackupService {
       debugPrint("BackupService: Encoding JSON data...");
       final String jsonString = jsonEncode(backupData);
       final jsonBytes = utf8.encode(jsonString);
-      
+
       final archive = Archive();
       archive.addFile(ArchiveFile('data.json', jsonBytes.length, jsonBytes));
 
+      // Add images to backup
+      final imagePaths = <String>{};
+      for (final w in wallets) {
+        if (w.frontImagePath != null) imagePaths.add(w.frontImagePath!);
+        if (w.backImagePath != null) imagePaths.add(w.backImagePath!);
+      }
+      for (final p in passes) {
+        if (p.frontImagePath != null) imagePaths.add(p.frontImagePath!);
+        if (p.backImagePath != null) imagePaths.add(p.backImagePath!);
+        if (p.stripImagePath != null) imagePaths.add(p.stripImagePath!);
+        if (p.thumbnailImagePath != null) imagePaths.add(p.thumbnailImagePath!);
+      }
+
+      debugPrint("BackupService: Processing ${imagePaths.length} images...");
+      for (final path in imagePaths) {
+        try {
+          final decryptedBytes =
+              await EncryptionService.instance.decryptImageToBytes(path);
+          if (decryptedBytes != null) {
+            final fileName = p.basename(path).replaceAll('.enc', '');
+            archive.addFile(
+              ArchiveFile(
+                'images/$fileName',
+                decryptedBytes.length,
+                decryptedBytes,
+              ),
+            );
+          }
+        } catch (e) {
+          debugPrint("BackupService: Failed to add image $path to backup: $e");
+        }
+      }
+
       debugPrint("BackupService: Compressing archive...");
       final zipData = ZipEncoder().encode(archive);
-      
+
       debugPrint("BackupService: Encrypting backup (background)...");
       final encryptedData = await EncryptionService.instance.encryptForBackup(
-        zipData is Uint8List ? zipData : Uint8List.fromList(zipData), 
-        password
+        zipData is Uint8List ? zipData : Uint8List.fromList(zipData),
+        password,
       );
 
       debugPrint("BackupService: Requesting file save...");
@@ -48,7 +81,7 @@ class BackupService {
         type: FileType.custom,
         allowedExtensions: ['wbk'],
       );
-      
+
       debugPrint("BackupService: Backup creation complete. Result: $result");
       return result;
     } catch (e, stack) {
@@ -65,22 +98,27 @@ class BackupService {
         withData: true,
         allowMultiple: false,
       );
-      
+
       if (result == null || result.files.isEmpty) return;
 
       final platformFile = result.files.first;
       Uint8List? encryptedData = platformFile.bytes;
-      
+
       if (encryptedData == null && platformFile.path != null) {
         final file = File(platformFile.path!);
         if (await file.exists()) {
           encryptedData = await file.readAsBytes();
         }
       }
-      
-      if (encryptedData == null) throw Exception('Unable to access backup file data.');
 
-      final decryptedData = await EncryptionService.instance.decryptForBackup(encryptedData, password);
+      if (encryptedData == null) {
+        throw Exception('Unable to access backup file data.');
+      }
+
+      final decryptedData = await EncryptionService.instance.decryptForBackup(
+        encryptedData,
+        password,
+      );
       if (decryptedData.isEmpty) throw Exception('Decrypted content is empty.');
 
       Map<String, dynamic> backupData;
@@ -117,15 +155,20 @@ class BackupService {
           }
 
           if (archive == null) throw Exception("Could not decode backup archive.");
-          
+
           final dataFile = archive.findFile('data.json');
-          if (dataFile == null) throw Exception("Invalid backup format: data.json missing.");
-          
+          if (dataFile == null) {
+            throw Exception("Invalid backup format: data.json missing.");
+          }
+
           backupData = jsonDecode(utf8.decode(dataFile.content as List<int>));
-          imageFiles = archive.where((f) => f.name.startsWith('images/')).toList();
+          imageFiles =
+              archive.where((f) => f.name.startsWith('images/')).toList();
         } catch (e) {
           debugPrint("BackupService: ZIP/JSON decode failed: $e");
-          throw Exception('Failed to process backup archive. It might be corrupted.');
+          throw Exception(
+            'Failed to process backup archive. It might be corrupted.',
+          );
         }
       }
 
@@ -133,19 +176,58 @@ class BackupService {
       await _clearAllData();
 
       final appDir = await getApplicationDocumentsDirectory();
+      final Map<String, String> oldToNewImagePaths = {};
+
       for (var imgFile in imageFiles) {
         try {
-          final targetPath = p.join(appDir.path, p.basename(imgFile.name));
-          await File(targetPath).writeAsBytes(imgFile.content as List<int>);
+          final fileName = p.basename(imgFile.name);
+          final tempPath = p.join(appDir.path, 'temp_$fileName');
+          final tempFile = File(tempPath);
+          await tempFile.writeAsBytes(imgFile.content as List<int>);
+
+          // Re-encrypt image with the new master key
+          final encryptedPath = await EncryptionService.instance
+              .encryptImageFile(tempPath);
+
+          if (encryptedPath != null) {
+            // Store mapping to update DB paths if they changed (e.g. extension added)
+            // But usually we want to keep the filename from backupData
+            oldToNewImagePaths[fileName] = encryptedPath;
+            // The original .enc was removed by encryptImageFile, so we are good.
+          }
         } catch (e) {
-          debugPrint("BackupService: Failed to restore image ${imgFile.name}: $e");
+          debugPrint(
+            "BackupService: Failed to restore/encrypt image ${imgFile.name}: $e",
+          );
         }
       }
 
       final walletsData = backupData['wallets'] as List<dynamic>? ?? [];
       for (final w in walletsData) {
         try {
-          await DatabaseHelper.instance.insertWallet(Wallet.fromMap(Map<String, dynamic>.from(w)));
+          final walletMap = Map<String, dynamic>.from(w);
+
+          // Update image paths if they were re-encrypted to a different filename/extension
+          if (walletMap['frontImagePath'] != null) {
+            final oldName = p.basename(walletMap['frontImagePath']).replaceAll(
+              '.enc',
+              '',
+            );
+            if (oldToNewImagePaths.containsKey(oldName)) {
+              walletMap['frontImagePath'] = oldToNewImagePaths[oldName];
+            }
+          }
+          if (walletMap['backImagePath'] != null) {
+            final oldName = p.basename(walletMap['backImagePath']).replaceAll(
+              '.enc',
+              '',
+            );
+            if (oldToNewImagePaths.containsKey(oldName)) {
+              walletMap['backImagePath'] = oldToNewImagePaths[oldName];
+            }
+          }
+
+          await DatabaseHelper.instance.insertWallet(Wallet.fromMap(walletMap));
         } catch (e) {
           debugPrint("BackupService: Failed to restore wallet: $e");
         }
@@ -154,7 +236,25 @@ class BackupService {
       final passesData = backupData['passes'] as List<dynamic>? ?? [];
       for (final pass in passesData) {
         try {
-          await PassDatabaseHelper.instance.insertPass(Pass.fromMap(Map<String, dynamic>.from(pass)));
+          final passMap = Map<String, dynamic>.from(pass);
+
+          // Update image paths
+          final imageFields = [
+            'frontImagePath',
+            'backImagePath',
+            'stripImagePath',
+            'thumbnailImagePath',
+          ];
+          for (final field in imageFields) {
+            if (passMap[field] != null) {
+              final oldName = p.basename(passMap[field]).replaceAll('.enc', '');
+              if (oldToNewImagePaths.containsKey(oldName)) {
+                passMap[field] = oldToNewImagePaths[oldName];
+              }
+            }
+          }
+
+          await PassDatabaseHelper.instance.insertPass(Pass.fromMap(passMap));
         } catch (e) {
           debugPrint("BackupService: Failed to restore pass: $e");
         }

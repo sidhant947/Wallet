@@ -6,6 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Data class for passing parameters to encryption isolates
 class _EncryptionParams {
@@ -65,14 +66,46 @@ class EncryptionService {
     if (_isInitialized) return;
 
     try {
-      String? storedKey = await _secureStorage.read(key: _keyStorageKey);
+      final prefs = await SharedPreferences.getInstance();
+      String? storedKey;
 
-      if (storedKey == null) {
-        // First launch — generate a new 256-bit key
-        final keyBytes = _generateSecureRandomBytes(32); // 256 bits
-        storedKey = base64Encode(keyBytes);
-        await _secureStorage.write(key: _keyStorageKey, value: storedKey);
-        debugPrint('EncryptionService: New AES-256 key generated and stored.');
+      try {
+        storedKey = await _secureStorage.read(key: _keyStorageKey);
+      } catch (se) {
+        debugPrint('EncryptionService: Secure storage read failed: $se');
+      }
+
+      if (storedKey == null || storedKey.isEmpty) {
+        // Fallback to SharedPreferences
+        final fallbackKey = prefs.getString('${_keyStorageKey}_fallback');
+        if (fallbackKey != null && fallbackKey.isNotEmpty) {
+          storedKey = fallbackKey;
+          debugPrint('EncryptionService: Restored master key from fallback storage.');
+          // Try to heal secure storage
+          try {
+            await _secureStorage.write(key: _keyStorageKey, value: storedKey);
+          } catch (se) {
+            debugPrint('EncryptionService: Failed to heal secure storage: $se');
+          }
+        } else {
+          // First launch — generate a new 256-bit key
+          final keyBytes = _generateSecureRandomBytes(32); // 256 bits
+          storedKey = base64Encode(keyBytes);
+          try {
+            await _secureStorage.write(key: _keyStorageKey, value: storedKey);
+          } catch (se) {
+            debugPrint('EncryptionService: Failed to write new key to secure storage: $se');
+          }
+          await prefs.setString('${_keyStorageKey}_fallback', storedKey);
+          debugPrint('EncryptionService: New AES-256 key generated and stored in secure and fallback storage.');
+        }
+      } else {
+        // Secure storage has the key. Ensure SharedPreferences has a backup of it.
+        final fallbackKey = prefs.getString('${_keyStorageKey}_fallback');
+        if (fallbackKey != storedKey) {
+          await prefs.setString('${_keyStorageKey}_fallback', storedKey);
+          debugPrint('EncryptionService: Synchronized fallback key backup.');
+        }
       }
 
       _encryptionKey = encrypt.Key.fromBase64(storedKey);
@@ -216,12 +249,16 @@ class EncryptionService {
   /// Uses a deterministic derived key for cross-device compatibility of this specific feature.
   String? encryptForTransfer(String data) {
     if (!_isInitialized) return null;
-    
+
     // This key is specifically for local transfers between app instances.
     // In a real production app, this would be derived from a shared out-of-band secret.
-    final transferKey = encrypt.Key.fromUtf8('wallet_local_transfer_v1_secure_key'.substring(0, 32));
-    final iv = encrypt.IV.fromLength(_gcmIvLength);
-    final encrypter = encrypt.Encrypter(encrypt.AES(transferKey, mode: encrypt.AESMode.gcm));
+    final transferKey = encrypt.Key.fromUtf8(
+      'wallet_local_transfer_v1_secure_key'.substring(0, 32),
+    );
+    final iv = encrypt.IV(_generateSecureRandomBytes(_gcmIvLength));
+    final encrypter = encrypt.Encrypter(
+      encrypt.AES(transferKey, mode: encrypt.AESMode.gcm),
+    );
 
     final encrypted = encrypter.encrypt(data, iv: iv);
     return 'v1:${iv.base64}:${encrypted.base64}';
@@ -235,9 +272,13 @@ class EncryptionService {
       final parts = encryptedData.split(':');
       if (parts.length != 3 || parts[0] != 'v1') return null;
 
-      final transferKey = encrypt.Key.fromUtf8('wallet_local_transfer_v1_secure_key'.substring(0, 32));
+      final transferKey = encrypt.Key.fromUtf8(
+        'wallet_local_transfer_v1_secure_key'.substring(0, 32),
+      );
       final iv = encrypt.IV.fromBase64(parts[1]);
-      final encrypter = encrypt.Encrypter(encrypt.AES(transferKey, mode: encrypt.AESMode.gcm));
+      final encrypter = encrypt.Encrypter(
+        encrypt.AES(transferKey, mode: encrypt.AESMode.gcm),
+      );
 
       return encrypter.decrypt64(parts[2], iv: iv);
     } catch (e) {
@@ -257,7 +298,10 @@ class EncryptionService {
 
   /// Decrypt backup data (supports AES-256-GCM and legacy AES-256-CBC).
   /// Offloads to an isolate to prevent UI blocking.
-  Future<Uint8List> decryptForBackup(Uint8List encryptedData, String password) async {
+  Future<Uint8List> decryptForBackup(
+    Uint8List encryptedData,
+    String password,
+  ) async {
     return await compute(
       _backupIsolate,
       _BackupParams(encryptedData, password, isEncryption: false),
@@ -265,21 +309,28 @@ class EncryptionService {
   }
 
   /// Derive a 256-bit key using PBKDF2-HMAC-SHA256 with 100,000 iterations.
+  /// Follows the PKCS #5 v2.0 standard for a single 32-byte block.
   List<int> _deriveKeyPBKDF2(String password, List<int> salt) {
     final passwordBytes = utf8.encode(password);
-    var block1 = Uint8List.fromList(
-      Hmac(sha256, passwordBytes).convert(salt).bytes,
-    );
 
-    var u = block1;
+    // Block 1: S || INT_32_BE(1)
+    final saltWithIndex = Uint8List(salt.length + 4);
+    saltWithIndex.setAll(0, salt);
+    saltWithIndex[salt.length + 3] = 1;
+
+    var u = Uint8List.fromList(
+      Hmac(sha256, passwordBytes).convert(saltWithIndex).bytes,
+    );
+    var result = Uint8List.fromList(u);
+
     for (int i = 1; i < 100000; i++) {
       u = Uint8List.fromList(Hmac(sha256, passwordBytes).convert(u).bytes);
-      for (int j = 0; j < block1.length; j++) {
-        block1[j] ^= u[j];
+      for (int j = 0; j < result.length; j++) {
+        result[j] ^= u[j];
       }
     }
 
-    return block1;
+    return result;
   }
 
   /// Derive a 256-bit key from a password using multiple rounds of SHA-256.

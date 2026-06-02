@@ -15,8 +15,10 @@ import 'dart:io' show Platform;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // This is for testing Only
-  databaseFactory = databaseFactoryFfi;
+  // This is for desktop/testing Only
+  if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
+    databaseFactory = databaseFactoryFfi;
+  }
 
   // Initialize AES-256 encryption service BEFORE any database operations.
   await EncryptionService.instance.init();
@@ -39,7 +41,7 @@ void main() async {
     debugPrint('Running one-time encryption migration...');
     await Future.wait([
       DatabaseHelper.instance.migrateToEncrypted(),
-      // Old card categories are gone, so we don't migrate them anymore.
+      PassDatabaseHelper.instance.migrateToEncrypted(),
     ]);
     await EncryptionService.instance.markMigrated();
     debugPrint('Encryption migration complete.');

@@ -1,35 +1,36 @@
-Secure Wallet is the ultimate solution for storing your credit, debit, loyalty, and identity cards with absolute privacy. Designed with a security-first approach, Wallet keeps your sensitive data exactly where it belongs: on your device.
+Wallet is the ultimate privacy-first vault for your credit, debit, loyalty, and identity cards. Designed with a zero-knowledge architecture, Wallet ensures your most sensitive information stays exactly where it belongs: encrypted on your device.
 
 Why choose Wallet?
 
-🔒 Total Privacy (No Internet Access):
-The application does not have internet permission. Your data never leaves your device, making it immune to cloud leaks, remote hacks, or third-party tracking.
+🚫 TOTAL PRIVACY (OFFLINE BY DESIGN)
+Wallet does not have internet permission. Your data never leaves your device, making it 100% immune to cloud leaks, remote hacks, or third-party tracking. True privacy is offline.
 
-🛡️ Advanced Encryption:
-Your card images and sensitive details are protected using industry-standard AES-256-GCM encryption. All data is decrypted directly into memory, ensuring no plaintext traces are left on your storage.
+🛡️ MILITARY-GRADE ENCRYPTION
+Every detail—card numbers, images, and custom fields—is protected using industry-standard AES-256-GCM authenticated encryption. Your master key stays safely in your device's hardware keystore.
 
-⚡ Optimized for Efficiency:
-Need your card number for an online purchase? Copy details with a single tap. The app is designed for speed, helping you complete transactions in seconds.
+🎨 PREMIUM "LIQUID GLASS" DESIGN
+Experience a beautiful, modern interface with glassmorphism effects, smooth staggered animations, and full support for premium Light and OLED Dark modes.
 
-📸 Encrypted Card Scans:
-Store high-quality, encrypted images of the front and back of your cards. Access your physical cards digitally whenever you need them, without compromising security.
+📲 APPLE WALLET & PKPASS SUPPORT
+Easily import your digital passes and tickets. Support for .pkpass files allows you to move your boarding passes, coupons, and event tickets into a secure, offline vault.
 
-💳 All Your Cards in One Place:
-- Payments: Manage credit and debit cards with a premium, intuitive UI.
-- Loyalty: Keep your rewards programs and membership cards organized and ready to scan.
-- Identity: Securely store IDs, licenses, and badges with custom field support.
+🔐 BIOMETRIC PROTECTION
+Secure your vault with your fingerprint or face unlock. Experience instant, secure access with platform-native authentication.
 
-📊 Financial Summary:
-Generate and export a secure summary of your credit card details for personal record-keeping or offline tracking.
+🔄 SECURE ENCRYPTED SHARING
+Share passes or loyalty cards securely via End-to-End Encrypted (E2EE) QR codes. Your data is encrypted for transfer and can only be decrypted by another instance of the app.
 
-🎨 Premium Experience:
-Enjoy a beautiful, minimal interface with "Liquid Glass" design, smooth transitions, and full support for both Light and Dark modes.
+💾 SECURE BACKUPS
+Create encrypted backups (.wbk) of your entire vault, including images. Every backup is protected by a password-derived key using PBKDF2-HMAC-SHA256 with 100,000 iterations.
+
+📸 ENCRYPTED CARD SCANS
+Store high-quality, encrypted images of the front and back of your physical cards. Access them digitally whenever you need them, without compromising your security.
 
 Key Features:
-- 100% Offline: No data collection, no syncing, no tracking.
-- Local Security: Safeguarded against data theft with biometric-ready architecture.
-- Custom Fields: Add unique information for any card type.
-- Quick Barcodes: Instant barcode generation for loyalty and membership cards.
-- Ad-Free: No distractions, just your cards when you need them.
+- 100% Ad-Free: No distractions, no tracking, just your cards.
+- Privacy Protected: Prevents screenshots and screen recording for maximum security.
+- Smart Detection: Automatic card network detection (Visa, Mastercard, RuPay, etc.).
+- Custom Fields: Add unique data points to any card or pass.
+- Tap-to-Copy: Instantly copy details for seamless online transactions.
 
 Protect your identity and simplify your life. Experience the peace of mind that comes with true local security.

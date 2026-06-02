@@ -11,6 +11,7 @@ import 'package:wallet/models/provider_helper.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -418,6 +419,8 @@ class _SettingsPageState extends State<SettingsPage> {
       }
       
       await const FlutterSecureStorage().deleteAll();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('wallet_aes_256_master_key_fallback');
       if (context.mounted) {
         context.read<WalletProvider>().fetchWallets();
         context.read<PassProvider>().fetchPasses();

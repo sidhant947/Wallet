@@ -16,6 +16,7 @@ import '../models/db_helper.dart';
 import '../models/provider_helper.dart';
 import '../models/theme_provider.dart';
 import '../pages/walletdetails.dart';
+import 'package:wallet/models/dataentry.dart';
 
 /// Smooth route builder — used across the app for premium transitions
 class SmoothPageRoute<T> extends PageRouteBuilder<T> {
@@ -558,6 +559,27 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                         child: Slidable(
                           key: ValueKey(wallet.id),
+                          startActionPane: ActionPane(
+                            motion: const BehindMotion(),
+                            extentRatio: 0.25,
+                            children: [
+                              SlidableAction(
+                                onPressed: (ctx) {
+                                  HapticFeedback.lightImpact();
+                                  Navigator.push(
+                                    context,
+                                    SmoothPageRoute(
+                                      page: WalletEditScreen(wallet: wallet),
+                                    ),
+                                  );
+                                },
+                                backgroundColor: Colors.transparent,
+                                foregroundColor: Colors.blue,
+                                icon: Icons.edit_outlined,
+                                label: 'Edit',
+                              ),
+                            ],
+                          ),
                           endActionPane: ActionPane(
                             motion: const BehindMotion(),
                             extentRatio: 0.25,
@@ -715,6 +737,33 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                     child: Slidable(
                       key: ValueKey(pass.id),
+                      startActionPane: ActionPane(
+                        motion: const BehindMotion(),
+                        extentRatio: 0.25,
+                        children: [
+                          SlidableAction(
+                            onPressed: (ctx) async {
+                              HapticFeedback.lightImpact();
+                              final result = await Navigator.push(
+                                ctx,
+                                SmoothPageRoute(
+                                  page: Scaffold(
+                                    appBar: AppBar(title: const Text('Edit Pass')),
+                                    body: BarcodeCardEntryForm(existingPass: pass),
+                                  ),
+                                ),
+                              );
+                              if (result == true && ctx.mounted) {
+                                ctx.read<PassProvider>().fetchPasses();
+                              }
+                            },
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.blue,
+                            icon: Icons.edit_outlined,
+                            label: 'Edit',
+                          ),
+                        ],
+                      ),
                       endActionPane: ActionPane(
                         motion: const BehindMotion(),
                         extentRatio: 0.25,
