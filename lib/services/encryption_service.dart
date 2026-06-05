@@ -465,13 +465,29 @@ class EncryptionService {
 
   /// Check whether existing data has been migrated to encrypted format.
   Future<bool> isMigrated() async {
-    final flag = await _secureStorage.read(key: _migrationFlagKey);
-    return flag == 'true';
+    try {
+      final flag = await _secureStorage.read(key: _migrationFlagKey);
+      if (flag != null) return flag == 'true';
+    } catch (e) {
+      debugPrint('EncryptionService: Failed to read migration flag from secure storage: $e');
+    }
+
+    // Fallback to SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_migrationFlagKey) ?? false;
   }
 
   /// Mark the database as having been migrated to encrypted format.
   Future<void> markMigrated() async {
-    await _secureStorage.write(key: _migrationFlagKey, value: 'true');
+    try {
+      await _secureStorage.write(key: _migrationFlagKey, value: 'true');
+    } catch (e) {
+      debugPrint('EncryptionService: Failed to write migration flag to secure storage: $e');
+    }
+
+    // Always update SharedPreferences as a fallback
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_migrationFlagKey, true);
   }
 }
 

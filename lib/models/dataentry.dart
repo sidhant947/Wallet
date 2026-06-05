@@ -409,6 +409,7 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
   String _selectedColor = 'default';
   File? _frontImageFile;
   File? _backImageFile;
+  bool _showAdditionalDetails = false;
 
   final _customFieldNameControllers = <TextEditingController>[];
   final _customFieldValueControllers = <TextEditingController>[];
@@ -647,91 +648,106 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
               ),
             ],
           ),
-          _FormSection(
-            children: [
-              ImagePickerWidget(
-                title: 'Front Image',
-                imageFile: _frontImageFile,
-                onPickImage: () => _pickImage(ImageSource.gallery, true),
-                onRemoveImage: () => setState(() => _frontImageFile = null),
-              ),
-              const SizedBox(height: 16),
-              ImagePickerWidget(
-                title: 'Back Image',
-                imageFile: _backImageFile,
-                onPickImage: () => _pickImage(ImageSource.gallery, false),
-                onRemoveImage: () => setState(() => _backImageFile = null),
-              ),
-            ],
-          ),
-          _FormSection(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Custom Fields",
-                    style: themeProvider.getTextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.add_circle,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    onPressed: _addCustomField,
-                  ),
-                ],
-              ),
-              if (_customFieldNameControllers.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24.0),
-                  child: Center(
-                    child: Text(
-                      "No custom fields added.",
-                      style: themeProvider.getTextStyle(color: Colors.grey),
-                    ),
-                  ),
+          if (!_showAdditionalDetails)
+            Center(
+              child: TextButton.icon(
+                onPressed: () => setState(() => _showAdditionalDetails = true),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Additional Info'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.blue,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _customFieldNameControllers.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _customFieldNameControllers[index],
-                            decoration: const InputDecoration(
-                              labelText: 'Field Name',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _customFieldValueControllers[index],
-                            decoration: const InputDecoration(
-                              labelText: 'Value',
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.remove_circle_outline),
-                          onPressed: () => _removeCustomField(index),
-                        ),
-                      ],
-                    ),
-                  );
-                },
               ),
-            ],
-          ),
+            ),
+          if (_showAdditionalDetails) ...[
+            _FormSection(
+              children: [
+                ImagePickerWidget(
+                  title: 'Front Image',
+                  imageFile: _frontImageFile,
+                  onPickImage: () => _pickImage(ImageSource.gallery, true),
+                  onRemoveImage: () => setState(() => _frontImageFile = null),
+                ),
+                const SizedBox(height: 16),
+                ImagePickerWidget(
+                  title: 'Back Image',
+                  imageFile: _backImageFile,
+                  onPickImage: () => _pickImage(ImageSource.gallery, false),
+                  onRemoveImage: () => setState(() => _backImageFile = null),
+                ),
+              ],
+            ),
+            _FormSection(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Custom Fields",
+                      style: themeProvider.getTextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.add_circle,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      onPressed: _addCustomField,
+                    ),
+                  ],
+                ),
+                if (_customFieldNameControllers.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24.0),
+                    child: Center(
+                      child: Text(
+                        "No custom fields added.",
+                        style: themeProvider.getTextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _customFieldNameControllers.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _customFieldNameControllers[index],
+                              decoration: const InputDecoration(
+                                labelText: 'Field Name',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _customFieldValueControllers[index],
+                              decoration: const InputDecoration(
+                                labelText: 'Value',
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: () => _removeCustomField(index),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -965,10 +981,20 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     }
   }
 
-  void _prepopulateFieldsIfNeeded() {
-    // Only pre-populate if all field sections are currently empty
-    bool allEmpty = _dynamicFields.values.every((list) => list.isEmpty);
-    if (!allEmpty) return;
+  void _prepopulateFields({bool force = false}) {
+    if (force) {
+      for (var list in _dynamicFields.values) {
+        list.clear();
+      }
+      // Reset transit type if not boarding pass
+      if (_selectedType != 'boardingPass') {
+        _transitType = null;
+      }
+    } else {
+      // Only pre-populate if all field sections are currently empty
+      bool allEmpty = _dynamicFields.values.every((list) => list.isEmpty);
+      if (!allEmpty) return;
+    }
 
     switch (_selectedType) {
       case 'boardingPass':
@@ -1236,10 +1262,12 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           decoration: const InputDecoration(labelText: 'Pass Category'),
           items: _passTypes.map((t) => DropdownMenuItem(value: t, child: Text(_getPassTypeLabel(t)))).toList(),
           onChanged: (v) {
-            setState(() {
-              _selectedType = v!;
-              _prepopulateFieldsIfNeeded();
-            });
+            if (v != null && v != _selectedType) {
+              setState(() {
+                _selectedType = v;
+                _prepopulateFields(force: true);
+              });
+            }
           },
         ),
         if (_selectedType == 'boardingPass') ...[
