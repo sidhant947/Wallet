@@ -4,7 +4,6 @@ description: "Wallet is a Flutter project designed to store card information
   as the application does not have internet access. The app is optimized for
   efficiency, allowing users to quickly copy card details for transactions."
 publish_to: "none"
-version: 1.0.35+38
 
 environment:
   sdk: ^3.10.4
@@ -23,17 +22,14 @@ dependencies:
   flutter_slidable: ^4.0.0
   image_picker: ^1.2.0
   local_auth: ^2.3.0
-  package_info_plus: ^8.3.0
   # lottie: ^3.3.0
   path: ^1.9.0
   path_provider: ^2.1.5
-  percent_indicator: ^4.2.5
   provider: ^6.1.2
   shared_preferences: ^2.3.3
   sqflite: ^2.4.1
   sqflite_common_ffi: ^2.3.4+4
   url_launcher: ^6.3.1
-  uuid: ^4.5.1
 
 dev_dependencies:
   flutter_test:
@@ -51,9 +47,6 @@ flutter:
     - family: Bebas
       fonts:
         - asset: assets/fonts/BebasNeue-Regular.ttf
-    - family: ZenDots
-      fonts:
-        - asset: assets/fonts/ZenDots-Regular.ttf
     - family: ZSpace
       fonts:
         - asset: assets/fonts/SpaceGrotesk-VariableFont_wght.ttf

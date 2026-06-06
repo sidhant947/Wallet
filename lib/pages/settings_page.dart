@@ -10,7 +10,6 @@ import 'package:wallet/services/backup_service.dart';
 import 'package:wallet/models/provider_helper.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -21,25 +20,10 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  String _appVersion = 'Loading...';
 
   @override
   void initState() {
     super.initState();
-    _loadVersion();
-  }
-
-  Future<void> _loadVersion() async {
-    try {
-      final packageInfo = await PackageInfo.fromPlatform();
-      if (mounted) {
-        setState(() {
-          _appVersion = 'v${packageInfo.version} (${packageInfo.buildNumber})';
-        });
-      }
-    } catch (e) {
-      debugPrint('Failed to load version: $e');
-    }
   }
 
   String _getThemeDisplayName(ThemePreference preference) {
@@ -196,7 +180,6 @@ class _SettingsPageState extends State<SettingsPage> {
               _LiquidGlassTile(
                 icon: Icons.favorite_outline_rounded,
                 title: 'Made with ❤️ by Sidhant',
-                subtitle: _appVersion,
               ),
             ],
           ),
@@ -459,10 +442,10 @@ class _LiquidGlassSection extends StatelessWidget {
 class _LiquidGlassTile extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final Widget? trailing;
   final VoidCallback? onTap;
-  const _LiquidGlassTile({required this.icon, required this.title, required this.subtitle, this.trailing, this.onTap});
+  const _LiquidGlassTile({required this.icon, required this.title, this.subtitle, this.trailing, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -472,7 +455,7 @@ class _LiquidGlassTile extends StatelessWidget {
       onTap: onTap,
       leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: textColor, size: 20)),
       title: Text(title, style: TextStyle(color: textColor, fontWeight: FontWeight.w500, fontSize: 14)),
-      subtitle: Text(subtitle, style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 12)),
+      subtitle: subtitle != null ? Text(subtitle!, style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 12)) : null,
       trailing: trailing ?? (onTap != null ? Icon(Icons.arrow_forward_ios_rounded, size: 14, color: isDark ? Colors.white30 : Colors.black26) : null),
     );
   }

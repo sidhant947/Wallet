@@ -17,7 +17,6 @@ import 'package:wallet/services/barcode_utils.dart';
 import 'package:wallet/widgets/glass_credit_card.dart';
 import 'package:wallet/widgets/barcode_card.dart';
 import 'package:path/path.dart' as p;
-import 'package:uuid/uuid.dart';
 import 'db_helper.dart';
 
 // --- Premium Liquid Glass Color Palette ---
@@ -369,7 +368,7 @@ Future<String?> saveImageToAppDirectory(File imageFile) async {
   try {
     final directory = await getApplicationDocumentsDirectory();
     final fileExtension = p.extension(imageFile.path);
-    final newFileName = '${const Uuid().v4()}$fileExtension';
+    final newFileName = '${DateTime.now().microsecondsSinceEpoch}$fileExtension';
     final newPath = p.join(directory.path, newFileName);
     final newFile = await imageFile.copy(newPath);
 

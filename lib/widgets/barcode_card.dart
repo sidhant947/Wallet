@@ -14,6 +14,12 @@ class BarcodeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return RepaintBoundary(
+      child: _buildLayout(context),
+    );
+  }
+
+  Widget _buildLayout(BuildContext context) {
     switch (pass.type) {
       case 'boardingPass':
         return _BoardingPassLayout(pass: pass, onTap: onCardTap);

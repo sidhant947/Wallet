@@ -784,6 +784,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: BarcodeCard(
                         pass: pass,
                         onCardTap: () async {
+                          HapticFeedback.selectionClick();
                           final passProvider = Provider.of<PassProvider>(context, listen: false);
                           final result = await Navigator.push(
                             context,
