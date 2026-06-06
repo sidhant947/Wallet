@@ -6,6 +6,7 @@ import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/models/dataentry.dart';
 import 'package:wallet/screens/homescreen.dart';
+import 'package:wallet/services/barcode_utils.dart';
 import 'package:wallet/widgets/display_barcode_screen.dart';
 import 'share_secure_screen.dart';
 
@@ -81,6 +82,7 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
                   SmoothPageRoute(
                     page: DisplayBarcodeScreen(
                       barcodeData: p.barcodeValue,
+                      barcodeFormat: p.barcodeFormat,
                       cardName: p.organizationName,
                     ),
                   ),
@@ -181,13 +183,7 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
   }
 
   Barcode _getBarcodeType(String? format) {
-    switch (format?.toUpperCase()) {
-      case 'PKBarcodeFormatQR': return Barcode.qrCode();
-      case 'PKBarcodeFormatPDF417': return Barcode.pdf417();
-      case 'PKBarcodeFormatAztec': return Barcode.aztec();
-      case 'PKBarcodeFormatCode128': return Barcode.code128();
-      default: return Barcode.qrCode();
-    }
+    return BarcodeUtils.getBarcodeFromFormat(format);
   }
 
   Widget _buildInfoSection(String title, String content, bool isDark) {

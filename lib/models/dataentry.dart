@@ -13,6 +13,7 @@ import 'package:wallet/models/provider_helper.dart';
 import 'package:wallet/services/card_utils.dart';
 import 'package:wallet/services/encryption_service.dart';
 import 'package:wallet/services/pkpass_service.dart';
+import 'package:wallet/services/barcode_utils.dart';
 import 'package:wallet/widgets/glass_credit_card.dart';
 import 'package:wallet/widgets/barcode_card.dart';
 import 'package:path/path.dart' as p;
@@ -791,11 +792,11 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
   final _logoTextController = TextEditingController();
   final _barcodeValueController = TextEditingController();
 
-  EntryMode _entryMode = EntryMode.selection;
   bool _showAdditionalDetails = false;
 
   String _selectedType = 'generic';
   String _selectedColor = 'obsidian';
+  String _selectedBarcodeFormat = 'QR Code';
   String? _transitType;
   
   final Map<String, List<Map<String, dynamic>>> _dynamicFields = {
@@ -819,7 +820,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     super.initState();
 
     if (widget.existingPass != null) {
-      _entryMode = EntryMode.manual;
+
       _showAdditionalDetails = true;
       final p = widget.existingPass!;
       _organizationController.text = p.organizationName;
@@ -828,6 +829,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
       _barcodeValueController.text = p.barcodeValue;
       _selectedType = p.type;
       _transitType = p.transitType;
+      _selectedBarcodeFormat = BarcodeUtils.getLabelFromFormat(p.barcodeFormat);
 
       // Deep copy fields if they exist
       if (p.fields != null) {
@@ -854,6 +856,8 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           _selectedColor = matchingEntry.key;
         }
       }
+    } else {
+      _prepopulateFields();
     }
 
     _organizationController.addListener(() => setState(() {}));
@@ -888,6 +892,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         description: _descriptionController.text.trim(),
         logoText: _logoTextController.text.trim(),
         barcodeValue: value,
+        barcodeFormat: BarcodeUtils.getInternalFormatName(_selectedBarcodeFormat),
         transitType: _transitType,
         frontImagePath: null,
         backImagePath: null,
@@ -915,7 +920,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
       if (result.type == ResultType.Barcode) {
         setState(() {
           _barcodeValueController.text = result.rawContent;
-          _entryMode = EntryMode.manual;
+    
         });
       }
     } catch (e) {
@@ -1009,90 +1014,82 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         _dynamicFields['auxiliaryFields']!.addAll([
           {'label': 'GATE', 'value': ''},
           {'label': 'SEAT', 'value': ''},
+          {'label': 'DEPARTURE', 'value': ''},
+          {'label': 'ARRIVAL', 'value': ''},
         ]);
         break;
       case 'storeCard':
-        _dynamicFields['secondaryFields']!.add({'label': 'BALANCE', 'value': ''});
-        _dynamicFields['auxiliaryFields']!.add({'label': 'TIER', 'value': ''});
+        _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'BALANCE', 'value': ''},
+          {'label': 'MEMBER NAME', 'value': ''},
+        ]);
+        _dynamicFields['auxiliaryFields']!.addAll([
+          {'label': 'TIER', 'value': ''},
+          {'label': 'ACCOUNT #', 'value': ''},
+        ]);
         break;
       case 'eventTicket':
         _dynamicFields['primaryFields']!.add({'label': 'EVENT', 'value': ''});
         _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'VENUE', 'value': ''},
+          {'label': 'DATE', 'value': ''},
+        ]);
+        _dynamicFields['auxiliaryFields']!.addAll([
           {'label': 'SECTION', 'value': ''},
           {'label': 'ROW', 'value': ''},
           {'label': 'SEAT', 'value': ''},
+          {'label': 'TIME', 'value': ''},
         ]);
         break;
       case 'coupon':
         _dynamicFields['primaryFields']!.add({'label': 'OFFER', 'value': ''});
-        _dynamicFields['secondaryFields']!.add({'label': 'EXPIRES', 'value': ''});
+        _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'EXPIRES', 'value': ''},
+          {'label': 'MERCHANT', 'value': ''},
+        ]);
+        _dynamicFields['auxiliaryFields']!.add({'label': 'TERMS', 'value': ''});
+        break;
+      case 'generic':
+        _dynamicFields['secondaryFields']!.add({'label': 'DETAILS', 'value': ''});
+        _dynamicFields['auxiliaryFields']!.add({'label': 'DATE', 'value': ''});
         break;
     }
-  }
-
-  void _addField(String section) {
-    setState(() {
-      _dynamicFields[section]!.add({'label': '', 'value': ''});
-    });
-  }
-
-  void _removeField(String section, int index) {
-    setState(() {
-      _dynamicFields[section]!.removeAt(index);
-    });
+    
+    // Always add some default back fields
+    _dynamicFields['backFields']!.addAll([
+      {'label': 'TERMS & CONDITIONS', 'value': ''},
+      {'label': 'CONTACT', 'value': ''},
+    ]);
   }
 
   Widget _buildFieldSection(String title, String sectionKey) {
     final fields = _dynamicFields[sectionKey]!;
+    if (fields.isEmpty) return const SizedBox.shrink();
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline, color: Colors.blue),
-              onPressed: () => _addField(sectionKey),
-            ),
-          ],
-        ),
-        if (fields.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.0),
-            child: Text('No fields added.', style: TextStyle(color: Colors.grey, fontSize: 12)),
-          ),
+        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 12),
         ...List.generate(fields.length, (index) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: TextFormField(
-                    initialValue: fields[index]['label'],
-                    decoration: const InputDecoration(labelText: 'Label', isDense: true),
-                    onChanged: (val) => setState(() => fields[index]['label'] = val),
-                  ),
+            child: TextFormField(
+              initialValue: fields[index]['value']?.toString(),
+              decoration: InputDecoration(
+                labelText: fields[index]['label']?.toString().toUpperCase(),
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 3,
-                  child: TextFormField(
-                    initialValue: fields[index]['value']?.toString(),
-                    decoration: const InputDecoration(labelText: 'Value', isDense: true),
-                    onChanged: (val) => setState(() => fields[index]['value'] = val),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
-                  onPressed: () => _removeField(sectionKey, index),
-                ),
-              ],
+              ),
+              onChanged: (val) => setState(() => fields[index]['value'] = val),
             ),
           );
         }),
+        const SizedBox(height: 12),
         const Divider(),
+        const SizedBox(height: 12),
       ],
     );
   }
@@ -1110,125 +1107,21 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
 
   @override
   Widget build(BuildContext context) {
-    if (_entryMode == EntryMode.selection) {
-      return _buildSelectionView();
-    }
     return _buildManualEntryView();
-  }
-
-  Widget _buildSelectionView() {
-    return ListView(
-      padding: const EdgeInsets.all(24.0),
-      children: [
-        const SizedBox(height: 20),
-        _buildOptionCard(
-          icon: Icons.qr_code_scanner_rounded,
-          title: 'Scan Barcode',
-          subtitle: 'Scan a physical card or pass',
-          onTap: _scan,
-          color: Colors.blue,
-        ),
-        const SizedBox(height: 20),
-        _buildOptionCard(
-          icon: Icons.file_download_outlined,
-          title: 'Import .pkpass',
-          subtitle: 'Import from Apple Wallet file',
-          onTap: _importPkpass,
-          color: Colors.purple,
-        ),
-        const SizedBox(height: 20),
-        _buildOptionCard(
-          icon: Icons.edit_note_rounded,
-          title: 'Enter Manually',
-          subtitle: 'Create a custom pass',
-          onTap: () => setState(() => _entryMode = EntryMode.manual),
-          color: Colors.orange,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildOptionCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    required Color color,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(icon, color: color, size: 32),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDark ? Colors.white70 : Colors.black54,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 16,
-              color: isDark ? Colors.white24 : Colors.black26,
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _buildManualEntryView() {
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-        _BarcodeCardPreview(
+        BarcodeCard(
           pass: Pass(
             type: _selectedType,
             organizationName: _organizationController.text.isEmpty ? 'ORGANIZATION' : _organizationController.text,
             description: _descriptionController.text.isEmpty ? widget.existingPass?.description : _descriptionController.text,
             logoText: _logoTextController.text.isEmpty ? widget.existingPass?.logoText : _logoTextController.text,
             barcodeValue: _barcodeValueController.text.isEmpty ? '123456789' : _barcodeValueController.text,
+            barcodeFormat: BarcodeUtils.getInternalFormatName(_selectedBarcodeFormat),
             transitType: _transitType,
             fields: _dynamicFields,
             frontImagePath: null,
@@ -1239,14 +1132,9 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
             foregroundColor: widget.existingPass?.foregroundColor,
             labelColor: widget.existingPass?.labelColor,
           ),
+          onCardTap: () {},
         ),
         const SizedBox(height: 24),
-        ColorPicker(
-          selectedColor: _selectedColor,
-          onColorSelected: (color) => setState(() => _selectedColor = color),
-        ),
-        const SizedBox(height: 24),
-        
         TextFormField(
           controller: _organizationController,
           decoration: const InputDecoration(labelText: 'Name (Organization)'),
@@ -1254,7 +1142,21 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _barcodeValueController,
-          decoration: const InputDecoration(labelText: 'Barcode Value'),
+          decoration: InputDecoration(
+            labelText: 'Barcode Value',
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.camera_alt_rounded),
+              tooltip: 'Scan Barcode',
+              onPressed: _scan,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        DropdownButtonFormField<String>(
+          value: _selectedBarcodeFormat,
+          decoration: const InputDecoration(labelText: 'Barcode Format'),
+          items: BarcodeUtils.supportedFormats.keys.map((f) => DropdownMenuItem(value: f, child: Text(f))).toList(),
+          onChanged: (v) => setState(() => _selectedBarcodeFormat = v!),
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
@@ -1322,19 +1224,19 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           onPressed: _addData,
           child: const Text('Save Pass'),
         ),
+        const SizedBox(height: 16),
+        TextButton.icon(
+          onPressed: _importPkpass,
+          icon: const Icon(Icons.file_download_outlined),
+          label: const Text('Import .pkpass file'),
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.purple,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+          ),
+        ),
         const SizedBox(height: 24),
       ],
     );
-  }
-}
-
-class _BarcodeCardPreview extends StatelessWidget {
-  final Pass pass;
-  const _BarcodeCardPreview({required this.pass});
-
-  @override
-  Widget build(BuildContext context) {
-    return BarcodeCard(pass: pass, onCardTap: () {});
   }
 }
 

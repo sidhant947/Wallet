@@ -5,14 +5,17 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import '../models/theme_provider.dart';
+import '../services/barcode_utils.dart';
 
 class DisplayBarcodeScreen extends StatefulWidget {
   final String barcodeData;
+  final String? barcodeFormat;
   final String cardName;
 
   const DisplayBarcodeScreen({
     super.key,
     required this.barcodeData,
+    this.barcodeFormat,
     required this.cardName,
   });
 
@@ -27,12 +30,22 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
   @override
   void initState() {
     super.initState();
-    _formats = [
-      _BarcodeFormat(Barcode.code128(), 'Barcode', Icons.view_week_rounded),
-      _BarcodeFormat(Barcode.qrCode(), 'QR Code', Icons.qr_code_2_rounded),
-      _BarcodeFormat(Barcode.aztec(), 'Aztec', Icons.blur_circular_rounded),
-      _BarcodeFormat(Barcode.dataMatrix(), 'Matrix', Icons.grid_4x4_rounded),
-    ];
+    
+    // Build list of formats from BarcodeUtils
+    _formats = BarcodeUtils.supportedFormats.entries.map((e) => _BarcodeFormat(
+      e.value,
+      e.key,
+      BarcodeUtils.getIconForFormat(e.key),
+    )).toList();
+
+    // Set initial selection based on pass format
+    if (widget.barcodeFormat != null) {
+      final label = BarcodeUtils.getLabelFromFormat(widget.barcodeFormat);
+      final index = _formats.indexWhere((f) => f.name == label);
+      if (index != -1) {
+        _selectedIndex = index;
+      }
+    }
   }
 
   @override
@@ -149,7 +162,11 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
 
   Widget _buildBarcodeCard(bool isDark) {
     final format = _formats[_selectedIndex];
-    final isSquare = _selectedIndex > 0; // QR, Aztec, Matrix are square
+    // Check if it's a 2D/Square-ish barcode
+    final is2D = format.name == 'QR Code' || 
+                 format.name == 'Aztec' || 
+                 format.name == 'Data Matrix' || 
+                 format.name == 'PDF417';
 
     return Container(
       width: double.infinity,
@@ -173,14 +190,14 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
           // Barcode
           Container(
             constraints: BoxConstraints(
-              maxWidth: isSquare ? 200 : double.infinity,
-              minHeight: isSquare ? 200 : 80,
+              maxWidth: is2D ? 200 : double.infinity,
+              minHeight: is2D ? 200 : 80,
             ),
             child: BarcodeWidget(
               barcode: format.barcode,
               data: widget.barcodeData,
               color: Colors.black,
-              height: isSquare ? 200 : 80,
+              height: is2D ? 200 : 80,
               errorBuilder: (context, error) => _buildError(),
             ),
           ),
@@ -233,57 +250,59 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
 
   Widget _buildFormatSelector(bool isDark, Color textColor) {
     return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.047) : Colors.black.withValues(alpha: 0.031),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: List.generate(_formats.length, (index) {
+      height: 80,
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _formats.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
           final format = _formats[index];
           final isSelected = index == _selectedIndex;
 
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _selectedIndex = index),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? (isDark ? Colors.white : Colors.black)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      format.icon,
-                      size: 22,
+          return GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              setState(() => _selectedIndex = index);
+            },
+            child: Container(
+              width: 80,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? (isDark ? Colors.white : Colors.black)
+                    : (isDark ? Colors.white.withValues(alpha: 0.047) : Colors.black.withValues(alpha: 0.031)),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    format.icon,
+                    size: 20,
+                    color: isSelected
+                        ? (isDark ? Colors.black : Colors.white)
+                        : (isDark ? Colors.white54 : Colors.black45),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    format.name,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                       color: isSelected
                           ? (isDark ? Colors.black : Colors.white)
                           : (isDark ? Colors.white54 : Colors.black45),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      format.name,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: isSelected
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        color: isSelected
-                            ? (isDark ? Colors.black : Colors.white)
-                            : (isDark ? Colors.white54 : Colors.black45),
-                      ),
-                    ),
-                  ],
-                ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
           );
-        }),
+        },
       ),
     );
   }
