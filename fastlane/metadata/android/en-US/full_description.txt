@@ -28,7 +28,6 @@ Store high-quality, encrypted images of the front and back of your physical card
 
 Key Features:
 - 100% Ad-Free: No distractions, no tracking, just your cards.
-- Privacy Protected: Prevents screenshots and screen recording for maximum security.
 - Smart Detection: Automatic card network detection (Visa, Mastercard, RuPay, etc.).
 - Custom Fields: Add unique data points to any card or pass.
 - Tap-to-Copy: Instantly copy details for seamless online transactions.
