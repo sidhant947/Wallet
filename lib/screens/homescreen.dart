@@ -20,6 +20,7 @@ import '../pages/walletdetails.dart';
 import 'package:wallet/widgets/barcode_card_entry_form.dart';
 import 'package:wallet/widgets/identity_card_widget.dart';
 import 'package:wallet/widgets/identity_card_entry_form.dart';
+import 'package:wallet/screens/identity_card_details_screen.dart';
 
 /// Smooth route builder — used across the app for premium transitions
 class SmoothPageRoute<T> extends PageRouteBuilder<T> {
@@ -1087,12 +1088,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: IdentityCardWidget(
                         card: card,
-                        onTap: () {
+                        onTap: () async {
                            HapticFeedback.selectionClick();
-                           Clipboard.setData(ClipboardData(text: card.value));
-                           ScaffoldMessenger.of(context).showSnackBar(
-                             SnackBar(content: Text('ID number copied: ${card.value}')),
+                           final identityProvider = Provider.of<IdentityProvider>(context, listen: false);
+                           final result = await Navigator.push(
+                             context,
+                             SmoothPageRoute(page: IdentityCardDetailScreen(card: card)),
                            );
+                           if (result == true && mounted) {
+                             await identityProvider.fetchIdentities();
+                           }
                         },
                       ),
                     ),

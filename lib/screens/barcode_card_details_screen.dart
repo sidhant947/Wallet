@@ -8,6 +8,9 @@ import 'package:wallet/widgets/barcode_card_entry_form.dart';
 import 'package:wallet/screens/homescreen.dart';
 import 'package:wallet/services/barcode_utils.dart';
 import 'package:wallet/widgets/display_barcode_screen.dart';
+import 'package:wallet/widgets/encrypted_image_display.dart';
+import 'package:wallet/widgets/full_screen_image_viewer.dart';
+import 'package:wallet/widgets/barcode_card.dart';
 import 'share_secure_screen.dart';
 
 class BarcodeCardDetailScreen extends StatefulWidget {
@@ -20,6 +23,76 @@ class BarcodeCardDetailScreen extends StatefulWidget {
 }
 
 class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
+  bool _isPathValid(String? path) => path != null && path.isNotEmpty;
+
+  Widget _buildImageThumbnail(String imagePath, String label, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                SmoothPageRoute(
+                  page: FullScreenImageViewer(imagePath: imagePath),
+                ),
+              );
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.102)
+                      : Colors.black.withValues(alpha: 0.078),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark
+                        ? Colors.black.withValues(alpha: 0.302)
+                        : Colors.black.withValues(alpha: 0.078),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: EncryptedImageDisplay(
+                  imagePath: imagePath,
+                  height: 100,
+                  width: 150,
+                  fit: BoxFit.cover,
+                  cacheHeight: 200,
+                  cacheWidth: 300,
+                  errorWidget: Container(
+                    height: 100,
+                    width: 150,
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.051)
+                        : Colors.black.withValues(alpha: 0.031),
+                    child: Icon(
+                      Icons.error_outline,
+                      color: isDark ? Colors.white38 : Colors.black38,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: isDark ? Colors.white60 : Colors.black54,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -72,6 +145,26 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          BarcodeCard(
+            pass: p,
+            onCardTap: () {
+              if (p.barcodeValue.isNotEmpty) {
+                HapticFeedback.mediumImpact();
+                Navigator.push(
+                  context,
+                  SmoothPageRoute(
+                    page: DisplayBarcodeScreen(
+                      barcodeData: p.barcodeValue,
+                      barcodeFormat: p.barcodeFormat,
+                      cardName: p.organizationName,
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
+          const SizedBox(height: 24),
+
           // Barcode Section
           if (p.barcodeValue.isNotEmpty) ...[
             GestureDetector(
@@ -132,6 +225,44 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
             ),
             const SizedBox(height: 40),
           ],
+
+          if (_isPathValid(p.frontImagePath) ||
+              _isPathValid(p.backImagePath) ||
+              _isPathValid(p.stripImagePath) ||
+              _isPathValid(p.thumbnailImagePath))
+            _LiquidGlassSection(
+              title: "Pass Images",
+              icon: Icons.photo_library_outlined,
+              isDark: isDark,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_isPathValid(p.frontImagePath))
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: _buildImageThumbnail(p.frontImagePath!, 'Front', isDark),
+                      ),
+                    if (_isPathValid(p.backImagePath))
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: _buildImageThumbnail(p.backImagePath!, 'Back', isDark),
+                      ),
+                    if (_isPathValid(p.stripImagePath))
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: _buildImageThumbnail(p.stripImagePath!, 'Strip', isDark),
+                      ),
+                    if (_isPathValid(p.thumbnailImagePath))
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: _buildImageThumbnail(p.thumbnailImagePath!, 'Thumbnail', isDark),
+                      ),
+                  ],
+                ),
+              ),
+            ),
 
           if (p.description != null && p.description!.isNotEmpty)
             _buildInfoSection("Description", p.description!, isDark),

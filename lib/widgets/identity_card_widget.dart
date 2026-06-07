@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wallet/models/identity_card.dart';
+import 'package:wallet/models/card_color_data.dart';
 
 class IdentityCardWidget extends StatelessWidget {
   final IdentityCard card;
@@ -14,6 +15,8 @@ class IdentityCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorKey = card.color ?? (isDark ? 'obsidian' : 'slate');
+    final colorData = cardColorPalette[colorKey] ?? cardColorPalette['obsidian']!;
     
     return GestureDetector(
       onTap: onTap,
@@ -25,9 +28,11 @@ class IdentityCardWidget extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: isDark 
-                ? [const Color(0xFF1E1E1E), const Color(0xFF0F0F0F)]
-                : [const Color(0xFFF8F9FA), const Color(0xFFE9ECEF)],
+              colors: [
+                colorData.accent,
+                colorData.secondary,
+                colorData.primary,
+              ],
             ),
             boxShadow: [
               BoxShadow(
@@ -37,7 +42,7 @@ class IdentityCardWidget extends StatelessWidget {
               ),
             ],
             border: Border.all(
-              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               width: 1,
             ),
           ),
@@ -52,7 +57,7 @@ class IdentityCardWidget extends StatelessWidget {
                   child: Icon(
                     Icons.security_rounded,
                     size: 140,
-                    color: (isDark ? Colors.white : Colors.blue.shade900).withValues(alpha: 0.03),
+                    color: Colors.white.withValues(alpha: 0.03),
                   ),
                 ),
                 
@@ -68,23 +73,23 @@ class IdentityCardWidget extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: (isDark ? Colors.blue.shade400 : Colors.blue.shade700).withValues(alpha: 0.1),
+                              color: Colors.white.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               card.cardType.toUpperCase(),
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 1.5,
-                                color: isDark ? Colors.blue.shade300 : Colors.blue.shade800,
+                                color: Colors.white70,
                               ),
                             ),
                           ),
-                          Icon(
+                          const Icon(
                             Icons.nfc_rounded,
                             size: 20,
-                            color: isDark ? Colors.white24 : Colors.black12,
+                            color: Colors.white24,
                           ),
                         ],
                       ),
@@ -92,23 +97,23 @@ class IdentityCardWidget extends StatelessWidget {
                       const Spacer(),
                       
                       // Cardholder Name
-                      Text(
+                      const Text(
                         'NAME',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1,
-                          color: isDark ? Colors.white38 : Colors.black38,
+                          color: Colors.white38,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         card.name.toUpperCase(),
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w300,
                           letterSpacing: 0.5,
-                          color: isDark ? Colors.white : Colors.black87,
+                          color: Colors.white,
                         ),
                       ),
                       
@@ -122,24 +127,24 @@ class IdentityCardWidget extends StatelessWidget {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
                                 'DOCUMENT NUMBER',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 1,
-                                  color: isDark ? Colors.white38 : Colors.black38,
+                                  color: Colors.white38,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 card.value,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w500,
                                   fontFamily: 'Courier',
                                   letterSpacing: 1.5,
-                                  color: isDark ? Colors.blue.shade200 : Colors.blue.shade900,
+                                  color: Colors.white,
                                 ),
                               ),
                             ],

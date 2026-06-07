@@ -3,6 +3,7 @@ import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/services/barcode_utils.dart';
 import 'package:wallet/services/encryption_service.dart';
 import 'package:flutter/foundation.dart';
+import 'package:wallet/models/card_color_data.dart';
 
 class BarcodeCard extends StatelessWidget {
   final Pass pass;
@@ -93,6 +94,19 @@ class _BasePassLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Attempt to find a matching premium color data
+    CardColorData? matchingColorData;
+    if (pass.backgroundColor != null) {
+      final hex = pass.backgroundColor!.toLowerCase();
+      for (var entry in cardColorPalette.entries) {
+        final paletteHex = '#${(entry.value.primary.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+        if (hex == paletteHex.toLowerCase()) {
+          matchingColorData = entry.value;
+          break;
+        }
+      }
+    }
+
     final bgColor = _parseColor(pass.backgroundColor, const Color(0xFF1E293B));
     final fgColor = _parseColor(pass.foregroundColor, Colors.white);
 
@@ -103,17 +117,27 @@ class _BasePassLayout extends StatelessWidget {
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              stops: const [0.0, 0.4, 0.9, 1.0],
-              colors: [
-                bgColor,
-                bgColor.withValues(alpha: 0.95),
-                Color.alphaBlend(Colors.black38, bgColor),
-                Color.alphaBlend(Colors.black54, bgColor),
-              ],
-            ),
+            gradient: matchingColorData != null
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      matchingColorData.accent,
+                      matchingColorData.secondary,
+                      matchingColorData.primary,
+                    ],
+                  )
+                : LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    stops: const [0.0, 0.4, 0.9, 1.0],
+                    colors: [
+                      bgColor,
+                      bgColor.withValues(alpha: 0.95),
+                      Color.alphaBlend(Colors.black38, bgColor),
+                      Color.alphaBlend(Colors.black54, bgColor),
+                    ],
+                  ),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: Colors.white.withValues(alpha: 0.1),
@@ -131,26 +155,21 @@ class _BasePassLayout extends StatelessWidget {
             borderRadius: BorderRadius.circular(24),
             child: Stack(
               children: [
-                // Background Image (if any)
-                if (pass.frontImagePath != null && pass.frontImagePath!.isNotEmpty)
-                  _buildBackgroundImage(pass.frontImagePath!),
-
-                // Mesh Glow (Only if no image, to avoid clutter)
-                if (pass.frontImagePath == null || pass.frontImagePath!.isEmpty)
-                  Positioned(
-                    top: -50,
-                    right: -50,
-                    child: Container(
-                      width: 200,
-                      height: 200,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [fgColor.withValues(alpha: 0.08), Colors.transparent],
-                        ),
+                // Mesh Glow
+                Positioned(
+                  top: -50,
+                  right: -50,
+                  child: Container(
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [fgColor.withValues(alpha: 0.08), Colors.transparent],
                       ),
                     ),
                   ),
+                ),
                 Padding(
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
@@ -183,40 +202,6 @@ class _BasePassLayout extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildBackgroundImage(String path) {
-    return FutureBuilder<Uint8List?>(
-      future: EncryptionService.instance.decryptImageToBytes(path),
-      builder: (context, snapshot) {
-        if (snapshot.hasData && snapshot.data != null) {
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.memory(
-                snapshot.data!,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-              ),
-              // Subtle darkening overlay to ensure text legibility
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.3),
-                      Colors.black.withValues(alpha: 0.6),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-        }
-        return const SizedBox.shrink();
-      },
     );
   }
 }

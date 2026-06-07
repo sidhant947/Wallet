@@ -11,6 +11,7 @@ import 'package:wallet/services/image_service.dart';
 import 'package:wallet/services/pkpass_service.dart';
 import 'package:wallet/widgets/barcode_card.dart';
 import 'package:wallet/models/card_color_data.dart';
+import 'package:wallet/widgets/color_picker.dart';
 
 class BarcodeCardEntryForm extends StatefulWidget {
   final Pass? existingPass;
@@ -432,19 +433,21 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-        SizedBox(
-          width: double.infinity,
-          child: TextButton.icon(
-            onPressed: _importPkpass,
-            icon: const Icon(Icons.file_download_outlined),
-            label: const Text('Import .pkpass file'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.purple,
-              padding: const EdgeInsets.symmetric(vertical: 12),
+        if (widget.existingPass == null) ...[
+          SizedBox(
+            width: double.infinity,
+            child: TextButton.icon(
+              onPressed: _importPkpass,
+              icon: const Icon(Icons.file_download_outlined),
+              label: const Text('Import .pkpass file'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.purple,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
             ),
           ),
-        ),
-        const Divider(height: 32),
+          const Divider(height: 32),
+        ],
         BarcodeCard(
           pass: Pass(
             type: _selectedType,
@@ -479,6 +482,11 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
             labelColor: widget.existingPass?.labelColor,
           ),
           onCardTap: () {},
+        ),
+        const SizedBox(height: 24),
+        ColorPicker(
+          selectedColor: _selectedColor,
+          onColorSelected: (color) => setState(() => _selectedColor = color),
         ),
         const SizedBox(height: 24),
         TextFormField(

@@ -319,7 +319,7 @@ class IdentityDatabaseHelper {
     final path = join(directory.path, 'identities.db');
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE identities(
@@ -329,6 +329,7 @@ class IdentityDatabaseHelper {
             cardType TEXT,
             frontImagePath TEXT,
             backImagePath TEXT,
+            color TEXT,
             orderIndex INTEGER DEFAULT 0
           )
         ''');
@@ -339,6 +340,9 @@ class IdentityDatabaseHelper {
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
           await db.execute('ALTER TABLE identities ADD COLUMN cardType TEXT;');
+        }
+        if (oldVersion < 3) {
+          await db.execute('ALTER TABLE identities ADD COLUMN color TEXT;');
         }
       },
     );

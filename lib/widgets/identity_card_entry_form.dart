@@ -6,6 +6,7 @@ import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/provider_helper.dart';
 import 'package:wallet/services/image_service.dart';
 import 'package:wallet/widgets/identity_card_widget.dart';
+import 'package:wallet/widgets/color_picker.dart';
 
 class IdentityCardEntryForm extends StatefulWidget {
   final IdentityCard? existingCard;
@@ -21,6 +22,7 @@ class _IdentityCardEntryFormState extends State<IdentityCardEntryForm> {
   final _cardTypeController = TextEditingController();
   String? _frontImagePath;
   String? _backImagePath;
+  String _selectedColor = 'obsidian';
   bool _isSaving = false;
 
   @override
@@ -32,6 +34,7 @@ class _IdentityCardEntryFormState extends State<IdentityCardEntryForm> {
       _cardTypeController.text = widget.existingCard!.cardType;
       _frontImagePath = widget.existingCard!.frontImagePath;
       _backImagePath = widget.existingCard!.backImagePath;
+      _selectedColor = widget.existingCard!.color ?? 'obsidian';
     }
     _nameController.addListener(() => setState(() {}));
     _valueController.addListener(() => setState(() {}));
@@ -85,6 +88,7 @@ class _IdentityCardEntryFormState extends State<IdentityCardEntryForm> {
         cardType: cardType.isEmpty ? 'Identity Card' : cardType,
         frontImagePath: _frontImagePath,
         backImagePath: _backImagePath,
+        color: _selectedColor,
         orderIndex: widget.existingCard?.orderIndex ?? 0,
       );
 
@@ -124,8 +128,15 @@ class _IdentityCardEntryFormState extends State<IdentityCardEntryForm> {
                 : _cardTypeController.text,
             frontImagePath: _frontImagePath,
             backImagePath: _backImagePath,
+            color: _selectedColor,
           ),
           onTap: () {},
+        ),
+        const SizedBox(height: 32),
+
+        ColorPicker(
+          selectedColor: _selectedColor,
+          onColorSelected: (color) => setState(() => _selectedColor = color),
         ),
         const SizedBox(height: 32),
 
