@@ -5,23 +5,37 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/services/encryption_service.dart';
 
 class BackupService {
-  static const String _backupVersion = '3.0'; // Incremented version for Passes support
+  static const String _backupVersion = '4.0'; // Incremented for settings support
 
   static Future<String?> createBackup(String password) async {
     try {
       debugPrint("BackupService: Starting backup creation...");
       final wallets = await DatabaseHelper.instance.getWallets();
       final passes = await PassDatabaseHelper.instance.getAllPasses();
+      
+      // Fetch settings from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final settings = <String, dynamic>{};
+      final keys = prefs.getKeys();
+      for (final key in keys) {
+        // DO NOT backup encryption keys or migration flags
+        if (key.startsWith('wallet_aes_256_master_key') || key == 'wallet_encryption_migrated') {
+          continue;
+        }
+        settings[key] = prefs.get(key);
+      }
 
       final backupData = {
         'version': _backupVersion,
         'timestamp': DateTime.now().toIso8601String(),
         'wallets': wallets.map((w) => w.toMap()).toList(),
         'passes': passes.map((p) => p.toMap()).toList(),
+        'settings': settings,
       };
 
       debugPrint("BackupService: Encoding JSON data...");
@@ -69,7 +83,7 @@ class BackupService {
 
       debugPrint("BackupService: Encrypting backup (background)...");
       final encryptedData = await EncryptionService.instance.encryptForBackup(
-        zipData is Uint8List ? zipData : Uint8List.fromList(zipData),
+        Uint8List.fromList(zipData),
         password,
       );
 
@@ -174,6 +188,28 @@ class BackupService {
 
       // If we got here, we have valid data. Proceed with restoration.
       await _clearAllData();
+
+      // Restore settings
+      if (backupData.containsKey('settings')) {
+        final settings = backupData['settings'] as Map<String, dynamic>;
+        final prefs = await SharedPreferences.getInstance();
+        for (final entry in settings.entries) {
+          final key = entry.key;
+          final value = entry.value;
+          if (value is bool) {
+            await prefs.setBool(key, value);
+          } else if (value is int) {
+            await prefs.setInt(key, value);
+          } else if (value is double) {
+            await prefs.setDouble(key, value);
+          } else if (value is String) {
+            await prefs.setString(key, value);
+          } else if (value is List) {
+            await prefs.setStringList(key, List<String>.from(value));
+          }
+        }
+        debugPrint("BackupService: Restored ${settings.length} settings.");
+      }
 
       final appDir = await getApplicationDocumentsDirectory();
       final Map<String, String> oldToNewImagePaths = {};
@@ -311,6 +347,16 @@ class BackupService {
         if (file is File && (file.path.endsWith('.enc') || file.path.endsWith('.png') || file.path.endsWith('.jpg'))) {
           await file.delete();
         }
+      }
+    }
+
+    // Clear settings
+    final prefs = await SharedPreferences.getInstance();
+    // Only clear non-encryption settings to avoid bricking the current install's encryption state
+    final keys = prefs.getKeys();
+    for (final key in keys) {
+      if (!key.startsWith('wallet_aes_256_master_key') && key != 'wallet_encryption_migrated') {
+        await prefs.remove(key);
       }
     }
   }

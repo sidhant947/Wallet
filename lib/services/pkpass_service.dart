@@ -114,8 +114,7 @@ class PkpassService {
       archive.addFile(ArchiveFile('manifest.json', manifestContent.length, manifestContent));
       
       final zipData = ZipEncoder().encode(archive);
-      if (zipData == null) return null;
-      return zipData is Uint8List ? zipData : Uint8List.fromList(zipData);
+      return Uint8List.fromList(zipData);
     } catch (e) {
       debugPrint('PkpassService: Error generating .pkpass: $e');
       return null;

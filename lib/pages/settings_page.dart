@@ -9,8 +9,6 @@ import 'package:wallet/models/startup_settings_provider.dart';
 import 'package:wallet/services/backup_service.dart';
 import 'package:wallet/models/provider_helper.dart';
 import 'package:wallet/models/db_helper.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -147,21 +145,28 @@ class _SettingsPageState extends State<SettingsPage> {
                 icon: Icons.backup_outlined,
                 title: 'Create Backup',
                 subtitle: 'Save an encrypted copy of your data',
-                onTap: () => _showBackupDialog(context, themeProvider),
+                onTap: () => _showBackupDialog(themeProvider),
               ),
               Divider(color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8), height: 1),
               _LiquidGlassTile(
                 icon: Icons.restore_outlined,
                 title: 'Restore from Backup',
                 subtitle: 'Replace current data from a backup file',
-                onTap: () => _showRestoreDialog(context, themeProvider),
+                onTap: () => _showRestoreDialog(themeProvider),
               ),
               Divider(color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8), height: 1),
               _LiquidGlassTile(
                 icon: Icons.delete_forever_outlined,
                 title: 'Delete All Data',
                 subtitle: 'Permanently erase all data from this device',
-                onTap: () => _showDeleteAllDataDialog(context, themeProvider),
+                onTap: () => _showDeleteAllDataDialog(themeProvider),
+              ),
+              Divider(color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8), height: 1),
+              _LiquidGlassTile(
+                icon: Icons.info_outline_rounded,
+                title: 'Trademark Notice',
+                subtitle: 'Card network logos are trademarks of their respective owners.',
+                onTap: () => _showTrademarkNotice(isDark),
               ),
             ],
           ),
@@ -170,13 +175,6 @@ class _SettingsPageState extends State<SettingsPage> {
             title: 'About',
             icon: Icons.info_outline_rounded,
             children: [
-              _LiquidGlassTile(
-                icon: Icons.gavel_outlined,
-                title: 'Trademark Notice',
-                subtitle: 'Card network logos are trademarks of their respective owners.',
-                onTap: () => _showTrademarkNotice(context, isDark),
-              ),
-              Divider(color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8), height: 1),
               _LiquidGlassTile(
                 icon: Icons.favorite_outline_rounded,
                 title: 'Made with ❤️ by Sidhant',
@@ -188,7 +186,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showTrademarkNotice(BuildContext context, bool isDark) {
+  void _showTrademarkNotice(bool isDark) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -285,7 +283,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showBackupDialog(BuildContext context, ThemeProvider themeProvider) {
+  void _showBackupDialog(ThemeProvider themeProvider) {
     final isDark = themeProvider.isDarkMode;
     showDialog(
       context: context,
@@ -297,18 +295,20 @@ class _SettingsPageState extends State<SettingsPage> {
         onConfirm: (password) async {
           try {
             final path = await BackupService.createBackup(password);
+            if (!mounted) return;
             if (dialogContext.mounted) {
               Navigator.pop(dialogContext);
               if (path != null) {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Backup saved successfully!'), backgroundColor: Colors.green)
                 );
               }
             }
           } catch (e) {
+             if (!mounted) return;
              if (dialogContext.mounted) {
                final errorMsg = e.toString().replaceFirst('Exception: ', '');
-               ScaffoldMessenger.of(dialogContext).showSnackBar(
+               ScaffoldMessenger.of(context).showSnackBar(
                  SnackBar(content: Text('Backup failed: $errorMsg'), backgroundColor: Colors.red)
                );
              }
@@ -318,7 +318,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showRestoreDialog(BuildContext context, ThemeProvider themeProvider) {
+  void _showRestoreDialog(ThemeProvider themeProvider) {
     final isDark = themeProvider.isDarkMode;
     showDialog(
       context: context,
@@ -330,29 +330,45 @@ class _SettingsPageState extends State<SettingsPage> {
         isDark: isDark,
         onConfirm: (password) async {
           try {
+            final walletProvider = context.read<WalletProvider>();
+            final passProvider = context.read<PassProvider>();
+            final tProvider = context.read<ThemeProvider>();
+            final sProvider = context.read<StartupSettingsProvider>();
+
             await BackupService.restoreBackup(password);
+            
             if (dialogContext.mounted) {
-              context.read<WalletProvider>().fetchWallets();
-              context.read<PassProvider>().fetchPasses();
               Navigator.pop(dialogContext);
-              ScaffoldMessenger.of(dialogContext).showSnackBar(
-                const SnackBar(content: Text('Restored successfully!'), backgroundColor: Colors.green)
-              );
             }
+
+            if (!mounted) return;
+
+            // Reload all providers to reflect restored data and settings
+            walletProvider.fetchWallets();
+            passProvider.fetchPasses();
+            await tProvider.init();
+            await sProvider.loadStartupSettings();
+            
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Restored successfully!'), backgroundColor: Colors.green)
+            );
           } catch (e) {
              if (dialogContext.mounted) {
-               final errorMsg = e.toString().replaceFirst('Exception: ', '');
-               ScaffoldMessenger.of(dialogContext).showSnackBar(
-                 SnackBar(content: Text('Restore failed: $errorMsg'), backgroundColor: Colors.red)
-               );
+               Navigator.pop(dialogContext);
              }
+             if (!mounted) return;
+             final errorMsg = e.toString().replaceFirst('Exception: ', '');
+             ScaffoldMessenger.of(context).showSnackBar(
+               SnackBar(content: Text('Restore failed: $errorMsg'), backgroundColor: Colors.red)
+             );
           }
         },
       ),
     );
   }
 
-  void _showDeleteAllDataDialog(BuildContext context, ThemeProvider themeProvider) {
+  void _showDeleteAllDataDialog(ThemeProvider themeProvider) {
     final isDark = themeProvider.isDarkMode;
     showDialog(
       context: context,
@@ -364,7 +380,7 @@ class _SettingsPageState extends State<SettingsPage> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           FilledButton(
             onPressed: () async {
-              await _performDeleteAllData(context);
+              await _performDeleteAllData();
               if (ctx.mounted) Navigator.pop(ctx);
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
@@ -375,7 +391,10 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Future<void> _performDeleteAllData(BuildContext context) async {
+  Future<void> _performDeleteAllData() async {
+    final walletProvider = context.read<WalletProvider>();
+    final passProvider = context.read<PassProvider>();
+    
     try {
       final wallets = await DatabaseHelper.instance.getWallets();
       for (var w in wallets) {
@@ -401,16 +420,14 @@ class _SettingsPageState extends State<SettingsPage> {
         }
       }
       
-      await const FlutterSecureStorage().deleteAll();
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('wallet_aes_256_master_key_fallback');
-      if (context.mounted) {
-        context.read<WalletProvider>().fetchWallets();
-        context.read<PassProvider>().fetchPasses();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('All data deleted.')));
-      }
+      if (!mounted) return;
+      
+      walletProvider.fetchWallets();
+      passProvider.fetchPasses();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('All cards and passes deleted.')));
     } catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
     }
   }
 }

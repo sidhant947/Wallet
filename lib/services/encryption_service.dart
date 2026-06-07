@@ -62,8 +62,8 @@ class EncryptionService {
   bool get isInitialized => _isInitialized;
 
   /// Initialize the encryption service.
-  Future<void> init() async {
-    if (_isInitialized) return;
+  Future<void> init({bool force = false}) async {
+    if (_isInitialized && !force) return;
 
     try {
       final prefs = await SharedPreferences.getInstance();
