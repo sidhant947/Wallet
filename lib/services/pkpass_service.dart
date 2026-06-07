@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:wallet/models/db_helper.dart';
 
@@ -95,5 +96,91 @@ class PkpassService {
       debugPrint('PkpassService: Error parsing .pkpass: $e');
       return null;
     }
+  }
+
+  Future<Uint8List?> generatePkpass(Pass pass) async {
+    try {
+      final passJson = _generatePassJson(pass);
+      final passJsonContent = utf8.encode(jsonEncode(passJson));
+      
+      final manifest = {
+        'pass.json': sha1.convert(passJsonContent).toString(),
+      };
+      
+      final archive = Archive();
+      archive.addFile(ArchiveFile('pass.json', passJsonContent.length, passJsonContent));
+      
+      final manifestContent = utf8.encode(jsonEncode(manifest));
+      archive.addFile(ArchiveFile('manifest.json', manifestContent.length, manifestContent));
+      
+      final zipData = ZipEncoder().encode(archive);
+      if (zipData == null) return null;
+      return zipData is Uint8List ? zipData : Uint8List.fromList(zipData);
+    } catch (e) {
+      debugPrint('PkpassService: Error generating .pkpass: $e');
+      return null;
+    }
+  }
+
+  Map<String, dynamic> _generatePassJson(Pass pass) {
+    final Map<String, dynamic> passJson = {
+      'formatVersion': 1,
+      'passTypeIdentifier': 'pass.com.sidhant.wallet',
+      'teamIdentifier': 'WALLETBOX',
+      'serialNumber': pass.id?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      'organizationName': pass.organizationName,
+      'description': pass.description ?? pass.organizationName,
+      'logoText': pass.logoText ?? pass.organizationName,
+      'sharingProhibited': false,
+    };
+
+    if (pass.backgroundColor != null) passJson['backgroundColor'] = _hexToRgb(pass.backgroundColor!);
+    if (pass.foregroundColor != null) passJson['foregroundColor'] = _hexToRgb(pass.foregroundColor!);
+    if (pass.labelColor != null) passJson['labelColor'] = _hexToRgb(pass.labelColor!);
+
+    if (pass.barcodeValue.isNotEmpty) {
+      passJson['barcodes'] = [{
+        'format': pass.barcodeFormat ?? 'PKBarcodeFormatQR',
+        'message': pass.barcodeValue,
+        'messageEncoding': 'iso-8859-1',
+        'altText': pass.barcodeAltText ?? pass.barcodeValue,
+      }];
+      passJson['barcode'] = passJson['barcodes'][0];
+    }
+
+    final typeData = <String, dynamic>{};
+    if (pass.fields != null) {
+      pass.fields!.forEach((key, value) {
+        if (value is List) {
+          typeData[key] = value.map((f) => {
+            'key': f['key'] ?? '${f['label']?.toString().toLowerCase().replaceAll(' ', '_') ?? 'field'}_${value.indexOf(f)}',
+            'label': f['label'] ?? '',
+            'value': f['value'] ?? '',
+          }).toList();
+        }
+      });
+    }
+
+    if (pass.type == 'boardingPass' && pass.transitType != null) {
+      typeData['transitType'] = pass.transitType;
+    }
+
+    passJson[pass.type] = typeData;
+
+    return passJson;
+  }
+
+  String _hexToRgb(String hex) {
+    if (!hex.startsWith('#')) return hex; // Already in rgb or other format
+    hex = hex.replaceAll('#', '');
+    try {
+      if (hex.length == 6) {
+        final r = int.parse(hex.substring(0, 2), radix: 16);
+        final g = int.parse(hex.substring(2, 4), radix: 16);
+        final b = int.parse(hex.substring(4, 6), radix: 16);
+        return 'rgb($r, $g, $b)';
+      }
+    } catch (_) {}
+    return 'rgb(0, 0, 0)';
   }
 }

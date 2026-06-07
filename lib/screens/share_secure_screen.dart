@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:barcode_widget/barcode_widget.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/services/encryption_service.dart';
+import 'package:wallet/services/pkpass_service.dart';
 
 class ShareSecureScreen extends StatelessWidget {
   final Pass? pass;
@@ -116,6 +118,32 @@ class ShareSecureScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 40),
+              if (pass != null) ...[
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final bytes = await PkpassService.instance.generatePkpass(pass!);
+                    if (bytes != null) {
+                      final fileName = '${pass!.organizationName.replaceAll(RegExp(r'[^\w\s-]'), '').replaceAll(' ', '_')}.pkpass';
+                      await FilePicker.platform.saveFile(
+                        dialogTitle: 'Export Pass',
+                        fileName: fileName,
+                        bytes: bytes,
+                        type: FileType.custom,
+                        allowedExtensions: ['pkpass'],
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.file_download_rounded),
+                  label: const Text('Export as .pkpass'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: textColor,
+                    side: BorderSide(color: textColor.withValues(alpha: 0.2)),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
               Icon(Icons.security_rounded, color: Colors.green.shade400, size: 32),
               const SizedBox(height: 16),
               Text(
