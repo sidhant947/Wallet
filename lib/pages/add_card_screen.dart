@@ -116,15 +116,16 @@ class _AddCardScreenState extends State<AddCardScreen> {
               const SizedBox(width: 6),
               Flexible(
                 child: Text(
-                  text,
+                  text.toUpperCase(),
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                    fontSize: 12,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    fontSize: 11,
+                    letterSpacing: 0.8,
                     color: isSelected
                         ? (isDark ? Colors.black : Colors.white)
                         : (isDark ? Colors.white54 : Colors.black54),
-                    ),
+                  ),
                 ),
               ),
             ],

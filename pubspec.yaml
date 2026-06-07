@@ -45,9 +45,6 @@ flutter:
     - assets/network/
 
   fonts:
-    - family: Bebas
-      fonts:
-        - asset: assets/fonts/BebasNeue-Regular.ttf
     - family: ZSpace
       fonts:
         - asset: assets/fonts/SpaceGrotesk-VariableFont_wght.ttf

@@ -135,10 +135,10 @@ class _GlassCreditCardState extends State<GlassCreditCard> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
                             color: Colors.white,
-                            letterSpacing: 0.5,
+                            letterSpacing: 1.5,
                           ),
                         ),
                       ),
@@ -149,10 +149,10 @@ class _GlassCreditCardState extends State<GlassCreditCard> {
                               ? "••/••"
                               : _formatExpiry(widget.wallet.expiry),
                           style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
                             color: Colors.white,
-                            letterSpacing: 0.5,
+                            letterSpacing: 1.5,
                           ),
                         ),
                       ),

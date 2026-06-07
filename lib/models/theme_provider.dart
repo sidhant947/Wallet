@@ -143,13 +143,98 @@ class ThemeProvider with ChangeNotifier {
   Color get glassElevatedSurface =>
       _isDarkMode ? const Color(0xFF121212) : Colors.white;
 
+  // --- TYPOGRAPHY BEST PRACTICES ---
+  TextTheme _buildTextTheme(bool isDark) {
+    final Color color = isDark ? Colors.white : Colors.black;
+    final Color secondaryColor = isDark ? Colors.white70 : Colors.black87;
+
+    return TextTheme(
+      displayLarge: TextStyle(
+        fontSize: 32,
+        fontWeight: FontWeight.bold,
+        color: color,
+        letterSpacing: -1.0,
+        height: 1.2,
+      ),
+      displayMedium: TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.bold,
+        color: color,
+        letterSpacing: -0.8,
+        height: 1.2,
+      ),
+      displaySmall: TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+        color: color,
+        letterSpacing: -0.5,
+        height: 1.2,
+      ),
+      headlineMedium: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: color,
+        height: 1.3,
+      ),
+      headlineSmall: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: color,
+        height: 1.3,
+      ),
+      titleLarge: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: color,
+        height: 1.4,
+      ),
+      bodyLarge: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.normal,
+        color: color,
+        height: 1.5,
+      ),
+      bodyMedium: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.normal,
+        color: color,
+        height: 1.5,
+      ),
+      bodySmall: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.normal,
+        color: secondaryColor,
+        height: 1.4,
+      ),
+      labelLarge: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: color,
+        letterSpacing: 0.5,
+      ),
+      labelMedium: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        color: secondaryColor,
+        letterSpacing: 0.5,
+      ),
+      labelSmall: TextStyle(
+        fontSize: 10,
+        fontWeight: FontWeight.w500,
+        color: secondaryColor,
+        letterSpacing: 0.5,
+      ),
+    );
+  }
+
   // --- PURE BLACK DARK THEME ---
   ThemeData get darkTheme => ThemeData(
     brightness: Brightness.dark,
     scaffoldBackgroundColor: Colors.black,
     canvasColor: Colors.black,
     cardColor: const Color(0xFF0A0A0A),
-    fontFamily: _useSystemFont ? null : 'Bebas',
+    fontFamily: _useSystemFont ? null : 'ZSpace',
+    textTheme: _buildTextTheme(true),
     primaryColor: Colors.white,
     appBarTheme: const AppBarTheme(
       backgroundColor: Colors.black,
@@ -158,7 +243,7 @@ class ThemeProvider with ChangeNotifier {
       centerTitle: true,
       surfaceTintColor: Colors.transparent,
       titleTextStyle: TextStyle(
-        fontFamily: 'Bebas',
+        fontFamily: 'ZSpace',
         fontSize: 22,
         fontWeight: FontWeight.bold,
         color: Colors.white,
@@ -331,7 +416,8 @@ class ThemeProvider with ChangeNotifier {
     scaffoldBackgroundColor: Colors.white,
     canvasColor: Colors.white,
     cardColor: const Color(0xFFF5F5F5),
-    fontFamily: _useSystemFont ? null : 'Bebas',
+    fontFamily: _useSystemFont ? null : 'ZSpace',
+    textTheme: _buildTextTheme(false),
     primaryColor: Colors.black,
     appBarTheme: const AppBarTheme(
       backgroundColor: Colors.white,
@@ -340,7 +426,7 @@ class ThemeProvider with ChangeNotifier {
       centerTitle: true,
       surfaceTintColor: Colors.transparent,
       titleTextStyle: TextStyle(
-        fontFamily: 'Bebas',
+        fontFamily: 'ZSpace',
         fontSize: 22,
         fontWeight: FontWeight.bold,
         color: Colors.black,

@@ -146,11 +146,11 @@ class ColorPicker extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(left: 4.0, bottom: 16.0),
           child: Text(
-            'Card Style',
-            style: TextStyle(
+            'CARD STYLE',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: textColor.withValues(alpha: 0.5),
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
             ),
           ),
         ),
@@ -297,10 +297,11 @@ class ImagePickerWidget extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(left: 4.0, bottom: 12.0, top: 12.0),
           child: Text(
-            title,
-            style: TextStyle(
+            title.toUpperCase(),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: Theme.of(context).textTheme.bodySmall?.color,
-              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
             ),
           ),
         ),
@@ -685,10 +686,10 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "Custom Fields",
-                      style: themeProvider.getTextStyle(
-                        fontSize: 18,
+                      "CUSTOM FIELDS",
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
                       ),
                     ),
                     IconButton(
@@ -1068,7 +1069,13 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        Text(
+          title.toUpperCase(),
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
         const SizedBox(height: 12),
         ...List.generate(fields.length, (index) {
           return Padding(

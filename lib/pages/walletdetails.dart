@@ -189,9 +189,8 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
           const SizedBox(height: 8),
           Text(
             label,
-            style: TextStyle(
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: isDark ? Colors.white60 : Colors.black54,
-              fontSize: 12,
             ),
           ),
         ],
@@ -203,13 +202,17 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final startupProvider = Provider.of<StartupSettingsProvider>(context);
+    final textTheme = Theme.of(context).textTheme;
     final isDark = themeProvider.isDarkMode;
     final symbol = startupProvider.selectedCurrencySymbol;
     bool isPathValid(String? path) => path != null && path.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(currentWallet.name),
+        title: Text(
+          currentWallet.name,
+          style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+        ),
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -1070,6 +1073,7 @@ class _LiquidGlassDetailSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final textTheme = Theme.of(context).textTheme;
     final isDark = themeProvider.isDarkMode;
     final textColor = isDark ? Colors.white38 : Colors.black38;
 
@@ -1086,11 +1090,10 @@ class _LiquidGlassDetailSection extends StatelessWidget {
               ],
               Text(
                 title.toUpperCase(),
-                style: TextStyle(
+                style: textTheme.labelSmall?.copyWith(
                   color: textColor,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
-                  fontSize: 12,
                 ),
               ),
             ],
@@ -1134,6 +1137,7 @@ class _LiquidGlassDetailTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final textTheme = Theme.of(context).textTheme;
     final isDark = themeProvider.isDarkMode;
     final textColor = isDark ? Colors.white : Colors.black;
 
@@ -1159,12 +1163,14 @@ class _LiquidGlassDetailTile extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: TextStyle(color: textColor.withValues(alpha: 0.7)),
+              style: textTheme.bodyMedium?.copyWith(
+                color: textColor.withValues(alpha: 0.7),
+              ),
             ),
           ),
           Text(
             value,
-            style: TextStyle(
+            style: textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: valueColor ?? textColor,
             ),

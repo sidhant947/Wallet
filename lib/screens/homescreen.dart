@@ -185,14 +185,15 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
           title: Text(
             'Delete Pass?',
-            style: TextStyle(
-              color: isDark ? Colors.white : Colors.black,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
           content: Text(
             'Are you sure you want to delete "$name"? This action cannot be undone.',
-            style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
           ),
           actions: [
             TextButton(
@@ -389,9 +390,8 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: isDark ? Colors.white54 : Colors.black45,
-                fontSize: 16,
               ),
             ),
           ),
@@ -467,10 +467,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       hintStyle: TextStyle(
                         color: isDark ? Colors.white38 : Colors.black38,
                       ),
-                      prefixIcon: Icon(
-                        Icons.search_rounded,
-                        color: isDark ? Colors.white54 : Colors.black45,
-                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
                               icon: Icon(
@@ -668,7 +665,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       focusedBorder: InputBorder.none,
                       hintText: 'Search passes...',
                       hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
-                      prefixIcon: Icon(Icons.search_rounded, color: isDark ? Colors.white54 : Colors.black45),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
                               icon: Icon(Icons.clear_rounded, color: isDark ? Colors.white54 : Colors.black45),
