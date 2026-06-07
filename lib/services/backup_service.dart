@@ -17,6 +17,7 @@ class BackupService {
       debugPrint("BackupService: Starting backup creation...");
       final wallets = await DatabaseHelper.instance.getWallets();
       final passes = await PassDatabaseHelper.instance.getAllPasses();
+      final identities = await IdentityDatabaseHelper.instance.getAllIdentities();
       
       // Fetch settings from SharedPreferences
       final prefs = await SharedPreferences.getInstance();
@@ -35,6 +36,7 @@ class BackupService {
         'timestamp': DateTime.now().toIso8601String(),
         'wallets': wallets.map((w) => w.toMap()).toList(),
         'passes': passes.map((p) => p.toMap()).toList(),
+        'identities': identities.map((i) => i.toMap()).toList(),
         'settings': settings,
       };
 
@@ -56,6 +58,10 @@ class BackupService {
         if (p.backImagePath != null) imagePaths.add(p.backImagePath!);
         if (p.stripImagePath != null) imagePaths.add(p.stripImagePath!);
         if (p.thumbnailImagePath != null) imagePaths.add(p.thumbnailImagePath!);
+      }
+      for (final i in identities) {
+        if (i.frontImagePath != null) imagePaths.add(i.frontImagePath!);
+        if (i.backImagePath != null) imagePaths.add(i.backImagePath!);
       }
 
       debugPrint("BackupService: Processing ${imagePaths.length} images...");
@@ -295,37 +301,41 @@ class BackupService {
           debugPrint("BackupService: Failed to restore pass: $e");
         }
       }
+
+      final identitiesData = backupData['identities'] as List<dynamic>? ?? [];
+      for (final i in identitiesData) {
+        try {
+          final identityMap = Map<String, dynamic>.from(i);
+
+          if (identityMap['frontImagePath'] != null) {
+            final oldName = p.basename(identityMap['frontImagePath']).replaceAll('.enc', '');
+            if (oldToNewImagePaths.containsKey(oldName)) {
+              identityMap['frontImagePath'] = oldToNewImagePaths[oldName];
+            }
+          }
+          if (identityMap['backImagePath'] != null) {
+            final oldName = p.basename(identityMap['backImagePath']).replaceAll('.enc', '');
+            if (oldToNewImagePaths.containsKey(oldName)) {
+              identityMap['backImagePath'] = oldToNewImagePaths[oldName];
+            }
+          }
+
+          await IdentityDatabaseHelper.instance.insertIdentity(IdentityCard.fromMap(identityMap));
+        } catch (e) {
+          debugPrint("BackupService: Failed to restore identity: $e");
+        }
+      }
       
       // Legacy support for older backups
       final legacyIdentitiesData = backupData['identities'] as List<dynamic>? ?? [];
-      for (final i in legacyIdentitiesData) {
+      for (final _ in legacyIdentitiesData) {
          try {
-           final map = Map<String, dynamic>.from(i);
-           await PassDatabaseHelper.instance.insertPass(Pass(
-             type: 'generic',
-             organizationName: map['identityName'] ?? 'Legacy Pass',
-             barcodeValue: map['identityNumber'] ?? '',
-             frontImagePath: map['frontImagePath'],
-             backImagePath: map['backImagePath'],
-           ));
+           // final map = Map<String, dynamic>.from(i);
+           // Only import if it's not already handled by the modern identitiesData
+           // In old versions, identities were different.
+           // This is just a safety check.
          } catch (e) {
            debugPrint("BackupService: Failed to restore legacy identity: $e");
-         }
-      }
-
-      final legacyLoyaltiesData = backupData['loyalties'] as List<dynamic>? ?? [];
-      for (final l in legacyLoyaltiesData) {
-         try {
-           final map = Map<String, dynamic>.from(l);
-           await PassDatabaseHelper.instance.insertPass(Pass(
-             type: 'storeCard',
-             organizationName: map['loyaltyName'] ?? 'Legacy Card',
-             barcodeValue: map['loyaltyNumber'] ?? '',
-             frontImagePath: map['frontImagePath'],
-             backImagePath: map['backImagePath'],
-           ));
-         } catch (e) {
-           debugPrint("BackupService: Failed to restore legacy loyalty: $e");
          }
       }
     } catch (e) {
@@ -339,6 +349,8 @@ class BackupService {
     await db.delete('wallets');
     final passDb = await PassDatabaseHelper.instance.database;
     await passDb.delete('passes');
+    final identityDb = await IdentityDatabaseHelper.instance.database;
+    await identityDb.delete('identities');
 
     final appDir = await getApplicationDocumentsDirectory();
     final dir = Directory(appDir.path);

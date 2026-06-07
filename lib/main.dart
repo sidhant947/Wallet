@@ -27,6 +27,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (context) => WalletProvider()),
         ChangeNotifierProvider(create: (context) => PassProvider()),
+        ChangeNotifierProvider(create: (context) => IdentityProvider()),
         ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider.value(value: startupProvider),
       ],

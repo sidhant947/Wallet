@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/services/barcode_utils.dart';
+import 'package:wallet/services/encryption_service.dart';
+import 'package:flutter/foundation.dart';
 
 class BarcodeCard extends StatelessWidget {
   final Pass pass;
@@ -129,21 +131,26 @@ class _BasePassLayout extends StatelessWidget {
             borderRadius: BorderRadius.circular(24),
             child: Stack(
               children: [
-                // Mesh Glow
-                Positioned(
-                  top: -50,
-                  right: -50,
-                  child: Container(
-                    width: 200,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [fgColor.withValues(alpha: 0.08), Colors.transparent],
+                // Background Image (if any)
+                if (pass.frontImagePath != null && pass.frontImagePath!.isNotEmpty)
+                  _buildBackgroundImage(pass.frontImagePath!),
+
+                // Mesh Glow (Only if no image, to avoid clutter)
+                if (pass.frontImagePath == null || pass.frontImagePath!.isEmpty)
+                  Positioned(
+                    top: -50,
+                    right: -50,
+                    child: Container(
+                      width: 200,
+                      height: 200,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [fgColor.withValues(alpha: 0.08), Colors.transparent],
+                        ),
                       ),
                     ),
                   ),
-                ),
                 Padding(
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
@@ -176,6 +183,40 @@ class _BasePassLayout extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildBackgroundImage(String path) {
+    return FutureBuilder<Uint8List?>(
+      future: EncryptionService.instance.decryptImageToBytes(path),
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.data != null) {
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.memory(
+                snapshot.data!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+              ),
+              // Subtle darkening overlay to ensure text legibility
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.3),
+                      Colors.black.withValues(alpha: 0.6),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+        return const SizedBox.shrink();
+      },
     );
   }
 }

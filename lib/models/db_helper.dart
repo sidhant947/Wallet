@@ -1,7 +1,9 @@
 export 'wallet.dart';
 export 'pass.dart';
+export 'identity_card.dart';
 import 'wallet.dart';
 import 'pass.dart';
+import 'identity_card.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -300,4 +302,116 @@ class PassDatabaseHelper {
     debugPrint('PassDatabaseHelper: Pass migration to encrypted format complete.');
   }
 }
+
+class IdentityDatabaseHelper {
+  static final IdentityDatabaseHelper instance = IdentityDatabaseHelper._init();
+  static Database? _database;
+  IdentityDatabaseHelper._init();
+
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDatabase();
+    return _database!;
+  }
+
+  Future<Database> _initDatabase() async {
+    final directory = await getApplicationDocumentsDirectory();
+    final path = join(directory.path, 'identities.db');
+    return openDatabase(
+      path,
+      version: 2,
+      onCreate: (db, version) async {
+        await db.execute('''
+          CREATE TABLE identities(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            value TEXT,
+            cardType TEXT,
+            frontImagePath TEXT,
+            backImagePath TEXT,
+            orderIndex INTEGER DEFAULT 0
+          )
+        ''');
+        await db.execute(
+          'CREATE INDEX idx_identities_order ON identities(orderIndex);',
+        );
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE identities ADD COLUMN cardType TEXT;');
+        }
+      },
+    );
+  }
+
+  Future<int> insertIdentity(IdentityCard card) async {
+    final db = await database;
+    return await db.insert('identities', card.toEncryptedMap());
+  }
+
+  Future<List<IdentityCard>> getAllIdentities() async {
+    final db = await database;
+    final result = await db.query('identities', orderBy: 'orderIndex ASC');
+    return result.map((e) => IdentityCard.fromEncryptedMap(e)).toList();
+  }
+
+  Future<void> deleteIdentity(int id) async {
+    final db = await database;
+    final result = await db.query(
+      'identities',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (result.isEmpty) return;
+
+    final card = IdentityCard.fromEncryptedMap(result[0]);
+    await DatabaseHelper._deleteImageFile(card.frontImagePath);
+    await DatabaseHelper._deleteImageFile(card.backImagePath);
+
+    await db.delete('identities', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> updateIdentity(IdentityCard card) async {
+    final db = await database;
+    return await db.update(
+      'identities',
+      card.toEncryptedMap(),
+      where: 'id = ?',
+      whereArgs: [card.id],
+    );
+  }
+
+  Future<void> updateIdentitiesOrder(List<IdentityCard> cards) async {
+    final db = await database;
+    Batch batch = db.batch();
+    for (int i = 0; i < cards.length; i++) {
+      batch.update(
+        'identities',
+        {'orderIndex': i},
+        where: 'id = ?',
+        whereArgs: [cards[i].id],
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
+  Future<void> migrateToEncrypted() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('identities');
+
+    for (final map in maps) {
+      final card = IdentityCard.fromEncryptedMap(map);
+      await db.update(
+        'identities',
+        card.toEncryptedMap(),
+        where: 'id = ?',
+        whereArgs: [card.id],
+      );
+    }
+    debugPrint(
+      'IdentityDatabaseHelper: Identity migration to encrypted format complete.',
+    );
+  }
+}
+
 

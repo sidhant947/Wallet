@@ -9,9 +9,10 @@ import 'package:wallet/services/pkpass_service.dart';
 class ShareSecureScreen extends StatelessWidget {
   final Pass? pass;
   final Wallet? wallet;
+  final IdentityCard? identity;
 
-  const ShareSecureScreen({super.key, this.pass, this.wallet})
-      : assert(pass != null || wallet != null);
+  const ShareSecureScreen({super.key, this.pass, this.wallet, this.identity})
+      : assert(pass != null || wallet != null || identity != null);
 
   @override
   Widget build(BuildContext context) {
@@ -28,10 +29,14 @@ class ShareSecureScreen extends StatelessWidget {
       dataMap = pass!.toMap();
       shareType = 'pass';
       displayName = pass!.organizationName;
-    } else {
+    } else if (wallet != null) {
       dataMap = wallet!.toMap();
       shareType = 'wallet';
       displayName = wallet!.name;
+    } else {
+      dataMap = identity!.toMap();
+      shareType = 'identity';
+      displayName = identity!.name;
     }
 
     // Remove local image paths and IDs

@@ -1,5 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -68,6 +70,8 @@ class _SettingsPageState extends State<SettingsPage> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          _buildSponsorshipBanner(context, isDark),
+          const SizedBox(height: 16),
           _LiquidGlassSection(
             title: 'Startup & Layout',
             icon: Icons.rocket_launch_outlined,
@@ -176,8 +180,16 @@ class _SettingsPageState extends State<SettingsPage> {
             icon: Icons.info_outline_rounded,
             children: [
               _LiquidGlassTile(
-                icon: Icons.favorite_outline_rounded,
-                title: 'Made with ❤️ by Sidhant',
+                icon: Icons.bug_report_outlined,
+                title: 'Report Error',
+                subtitle: 'Found a bug? Let us know on GitHub.',
+                onTap: () async {
+                  HapticFeedback.mediumImpact();
+                  const url = 'https://github.com/sidhant947/Wallet/issues';
+                  if (await canLaunchUrl(Uri.parse(url))) {
+                    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                  }
+                },
               ),
             ],
           ),
@@ -332,6 +344,7 @@ class _SettingsPageState extends State<SettingsPage> {
           try {
             final walletProvider = context.read<WalletProvider>();
             final passProvider = context.read<PassProvider>();
+            final identityProvider = context.read<IdentityProvider>();
             final tProvider = context.read<ThemeProvider>();
             final sProvider = context.read<StartupSettingsProvider>();
 
@@ -346,6 +359,7 @@ class _SettingsPageState extends State<SettingsPage> {
             // Reload all providers to reflect restored data and settings
             walletProvider.fetchWallets();
             passProvider.fetchPasses();
+            identityProvider.fetchIdentities();
             await tProvider.init();
             await sProvider.loadStartupSettings();
             
@@ -394,6 +408,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _performDeleteAllData() async {
     final walletProvider = context.read<WalletProvider>();
     final passProvider = context.read<PassProvider>();
+    final identityProvider = context.read<IdentityProvider>();
     
     try {
       final wallets = await DatabaseHelper.instance.getWallets();
@@ -407,6 +422,13 @@ class _SettingsPageState extends State<SettingsPage> {
       for (var p in passes) {
         if (p.id != null) {
           await PassDatabaseHelper.instance.deletePass(p.id!);
+        }
+      }
+
+      final identities = await IdentityDatabaseHelper.instance.getAllIdentities();
+      for (var i in identities) {
+        if (i.id != null) {
+          await IdentityDatabaseHelper.instance.deleteIdentity(i.id!);
         }
       }
 
@@ -424,11 +446,86 @@ class _SettingsPageState extends State<SettingsPage> {
       
       walletProvider.fetchWallets();
       passProvider.fetchPasses();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('All cards and passes deleted.')));
+      identityProvider.fetchIdentities();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('All data deleted.')));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
     }
+  }
+
+  Widget _buildSponsorshipBanner(BuildContext context, bool isDark) {
+    return GestureDetector(
+      onTap: () async {
+        HapticFeedback.mediumImpact();
+        const url = 'https://github.com/sponsors/sidhant947';
+        if (await canLaunchUrl(Uri.parse(url))) {
+          await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: LinearGradient(
+            colors: isDark 
+              ? [const Color(0xFF1A1A1A), const Color(0xFF0A0A0A)]
+              : [const Color(0xFFF0F4FF), const Color(0xFFE6EEFF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(
+            color: isDark ? Colors.blue.withValues(alpha: 0.2) : Colors.blue.withValues(alpha: 0.1),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.apple_rounded,
+                color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Support iOS Release',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Help us bring Wallet to iOS. Tap to support us on GitHub Sponsors.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.white54 : Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: isDark ? Colors.white24 : Colors.black26,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

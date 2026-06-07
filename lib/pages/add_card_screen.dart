@@ -4,38 +4,46 @@ import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/models/startup_settings_provider.dart';
 import 'package:wallet/widgets/credit_card_entry_form.dart';
 import 'package:wallet/widgets/barcode_card_entry_form.dart';
+import 'package:wallet/widgets/identity_card_entry_form.dart';
 
-class AddCardScreen extends StatefulWidget {
+class AddCardScreen extends StatelessWidget {
   final int initialTabIndex;
 
   const AddCardScreen({super.key, this.initialTabIndex = 0});
 
   @override
-  State<AddCardScreen> createState() => _AddCardScreenState();
-}
-
-class _AddCardScreenState extends State<AddCardScreen> {
-  int _currentIndex = 0;
-  bool _paymentsOnlyMode = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _paymentsOnlyMode = context
-        .read<StartupSettingsProvider>()
-        .paymentsOnlyMode;
-    _currentIndex = widget.initialTabIndex;
-  }
-
-  @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final startupProvider = Provider.of<StartupSettingsProvider>(context, listen: false);
     final isDark = themeProvider.isDarkMode;
     final textColor = isDark ? Colors.white : Colors.black;
 
+    // Decide which form to show based on the index passed from HomeScreen
+    // Index 0: Payments, Index 1: Passes, Index 2: Identity
+    final int effectiveIndex = startupProvider.paymentsOnlyMode ? 0 : initialTabIndex;
+
+    String title;
+    Widget form;
+
+    switch (effectiveIndex) {
+      case 1:
+        title = 'Add New Pass';
+        form = BarcodeCardEntryForm();
+        break;
+      case 2:
+        title = 'Add Identity Card';
+        form = IdentityCardEntryForm();
+        break;
+      case 0:
+      default:
+        title = 'Add Payment Card';
+        form = CreditCardEntryForm();
+        break;
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add a New Card'),
+        title: Text(title),
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -51,88 +59,8 @@ class _AddCardScreenState extends State<AddCardScreen> {
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        actions: [
-          // Removed redundant import button as it's now in the form
-        ],
-        bottom: _paymentsOnlyMode
-            ? null
-            : PreferredSize(
-                preferredSize: const Size.fromHeight(60),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: isDark
-                        ? const Color(0xFF1A1A1A)
-                        : const Color(0xFFF5F5F5),
-                  ),
-                  child: Row(
-                    children: [
-                      _buildTabItem(0, Icons.credit_card_rounded, 'Payments', isDark),
-                      _buildTabItem(1, Icons.confirmation_number_rounded, 'Passes', isDark),
-                    ],
-                  ),
-                ),
-              ),
       ),
-      body: _paymentsOnlyMode
-          ? const CreditCardEntryForm()
-          : IndexedStack(
-              index: _currentIndex,
-              children: const [
-                CreditCardEntryForm(),
-                BarcodeCardEntryForm(),
-              ],
-            ),
-    );
-  }
-
-  Widget _buildTabItem(int index, IconData icon, String text, bool isDark) {
-    final isSelected = _currentIndex == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _currentIndex = index),
-        child: Container(
-          margin: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: isSelected
-                ? (isDark ? Colors.white : Colors.black)
-                : Colors.transparent,
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 18,
-                color: isSelected
-                    ? (isDark ? Colors.black : Colors.white)
-                    : (isDark ? Colors.white54 : Colors.black54),
-              ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  text.toUpperCase(),
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                    fontSize: 11,
-                    letterSpacing: 0.8,
-                    color: isSelected
-                        ? (isDark ? Colors.black : Colors.white)
-                        : (isDark ? Colors.white54 : Colors.black54),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      body: form,
     );
   }
 }

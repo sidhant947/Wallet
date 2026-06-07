@@ -1,10 +1,13 @@
+import 'dart:io';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/provider_helper.dart';
 import 'package:wallet/services/barcode_utils.dart';
+import 'package:wallet/services/image_service.dart';
 import 'package:wallet/services/pkpass_service.dart';
 import 'package:wallet/widgets/barcode_card.dart';
 import 'package:wallet/models/card_color_data.dart';
@@ -32,6 +35,8 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
   String _selectedColor = 'obsidian';
   String _selectedBarcodeFormat = 'QR Code';
   String? _transitType;
+  String? _frontImagePath;
+  String? _backImagePath;
 
   final Map<String, List<Map<String, dynamic>>> _dynamicFields = {
     'primaryFields': [],
@@ -63,6 +68,8 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
       _selectedType = p.type;
       _transitType = p.transitType;
       _selectedBarcodeFormat = BarcodeUtils.getLabelFromFormat(p.barcodeFormat);
+      _frontImagePath = p.frontImagePath;
+      _backImagePath = p.backImagePath;
 
       // Deep copy fields if they exist
       if (p.fields != null) {
@@ -83,7 +90,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
               (entry) {
                 if (entry == null) return false;
                 final hex =
-                    '#${(entry.value.primary.value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+                    '#${(entry.value.primary.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
                 return p.backgroundColor!.toLowerCase() == hex.toLowerCase();
               },
               orElse: () => null,
@@ -132,13 +139,13 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           _selectedBarcodeFormat,
         ),
         transitType: _transitType,
-        frontImagePath: null,
-        backImagePath: null,
-        stripImagePath: null,
-        thumbnailImagePath: null,
+        frontImagePath: _frontImagePath,
+        backImagePath: _backImagePath,
+        stripImagePath: widget.existingPass?.stripImagePath,
+        thumbnailImagePath: widget.existingPass?.thumbnailImagePath,
         fields: _dynamicFields,
         backgroundColor:
-            '#${((cardColorPalette[_selectedColor]?.primary ?? Colors.black).value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}',
+            '#${((cardColorPalette[_selectedColor]?.primary ?? Colors.black).toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}',
       );
 
       if (widget.existingPass != null) {
@@ -164,6 +171,60 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     } catch (e) {
       debugPrint('Scan error: $e');
     }
+  }
+
+  Future<void> _pickImage(bool isFront) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      final encryptedPath = await saveImageToAppDirectory(File(pickedFile.path));
+      setState(() {
+        if (isFront) {
+          _frontImagePath = encryptedPath;
+        } else {
+          _backImagePath = encryptedPath;
+        }
+      });
+    }
+  }
+
+  Widget _buildImagePickerTile(String label, String? path, VoidCallback onTap, bool isDark) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            height: 80,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: path != null 
+                  ? Colors.green.withValues(alpha: 0.5) 
+                  : (isDark ? Colors.white12 : Colors.black12),
+              ),
+            ),
+            child: path != null
+              ? const Icon(Icons.check_circle_rounded, color: Colors.green, size: 28)
+              : Icon(
+                  Icons.add_a_photo_outlined,
+                  size: 24,
+                  color: isDark ? Colors.white38 : Colors.black38,
+                ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
+            color: isDark ? Colors.white54 : Colors.black54,
+          ),
+        ),
+      ],
+    );
   }
 
   Future<void> _importPkpass() async {
@@ -367,9 +428,23 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
   }
 
   Widget _buildManualEntryView() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
+        SizedBox(
+          width: double.infinity,
+          child: TextButton.icon(
+            onPressed: _importPkpass,
+            icon: const Icon(Icons.file_download_outlined),
+            label: const Text('Import .pkpass file'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.purple,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+        const Divider(height: 32),
         BarcodeCard(
           pass: Pass(
             type: _selectedType,
@@ -394,12 +469,12 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
             ),
             transitType: _transitType,
             fields: _dynamicFields,
-            frontImagePath: null,
-            backImagePath: null,
-            stripImagePath: null,
-            thumbnailImagePath: null,
+            frontImagePath: _frontImagePath,
+            backImagePath: _backImagePath,
+            stripImagePath: widget.existingPass?.stripImagePath,
+            thumbnailImagePath: widget.existingPass?.thumbnailImagePath,
             backgroundColor:
-                '#${((cardColorPalette[_selectedColor]?.primary ?? Colors.black).value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}',
+                '#${((cardColorPalette[_selectedColor]?.primary ?? Colors.black).toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}',
             foregroundColor: widget.existingPass?.foregroundColor,
             labelColor: widget.existingPass?.labelColor,
           ),
@@ -424,7 +499,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
-          value: _selectedBarcodeFormat,
+          initialValue: _selectedBarcodeFormat,
           decoration: const InputDecoration(labelText: 'Barcode Format'),
           items:
               BarcodeUtils.supportedFormats.keys
@@ -434,7 +509,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
-          value: _selectedType,
+          initialValue: _selectedType,
           decoration: const InputDecoration(labelText: 'Pass Category'),
           items:
               _passTypes
@@ -457,7 +532,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         if (_selectedType == 'boardingPass') ...[
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: _transitType,
+            initialValue: _transitType,
             decoration: const InputDecoration(labelText: 'Transit Type'),
             items: [
               'PKTransitTypeAir',
@@ -475,6 +550,39 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
             onChanged: (v) => setState(() => _transitType = v!),
           ),
         ],
+        const SizedBox(height: 24),
+
+        Text(
+          'ATTACHMENTS (OPTIONAL)',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white54 : Colors.black54,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildImagePickerTile(
+                'Front Side',
+                _frontImagePath,
+                () => _pickImage(true),
+                isDark,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildImagePickerTile(
+                'Back Side',
+                _backImagePath,
+                () => _pickImage(false),
+                isDark,
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 24),
 
         if (!_showAdditionalDetails)
@@ -525,16 +633,6 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           ),
           onPressed: _addData,
           child: const Text('Save Pass'),
-        ),
-        const SizedBox(height: 16),
-        TextButton.icon(
-          onPressed: _importPkpass,
-          icon: const Icon(Icons.file_download_outlined),
-          label: const Text('Import .pkpass file'),
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.purple,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-          ),
         ),
         const SizedBox(height: 24),
       ],

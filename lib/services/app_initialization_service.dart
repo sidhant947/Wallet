@@ -18,6 +18,7 @@ class AppInitializationService {
     await Future.wait([
       DatabaseHelper.instance.database,
       PassDatabaseHelper.instance.database,
+      IdentityDatabaseHelper.instance.database,
     ]);
 
     // One-time migration: encrypt any existing plaintext data in the databases.
@@ -26,6 +27,7 @@ class AppInitializationService {
       await Future.wait([
         DatabaseHelper.instance.migrateToEncrypted(),
         PassDatabaseHelper.instance.migrateToEncrypted(),
+        IdentityDatabaseHelper.instance.migrateToEncrypted(),
       ]);
       await EncryptionService.instance.markMigrated();
       debugPrint('Encryption migration complete.');

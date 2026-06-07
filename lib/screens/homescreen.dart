@@ -18,6 +18,8 @@ import '../models/provider_helper.dart';
 import '../models/theme_provider.dart';
 import '../pages/walletdetails.dart';
 import 'package:wallet/widgets/barcode_card_entry_form.dart';
+import 'package:wallet/widgets/identity_card_widget.dart';
+import 'package:wallet/widgets/identity_card_entry_form.dart';
 
 /// Smooth route builder — used across the app for premium transitions
 class SmoothPageRoute<T> extends PageRouteBuilder<T> {
@@ -58,6 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<WalletProvider>().fetchWallets();
       context.read<PassProvider>().fetchPasses();
+      context.read<IdentityProvider>().fetchIdentities();
 
       // Initialize selected index from startup settings
       final startupProvider = context.read<StartupSettingsProvider>();
@@ -136,6 +139,18 @@ class _HomeScreenState extends State<HomeScreen> {
             if (mounted) {
               context.read<WalletProvider>().fetchWallets();
               _showSuccessSnackBar('Payment card imported successfully!');
+            }
+          }
+        }
+      } else if (type == 'identity') {
+        final newIdentity = IdentityCard.fromMap(data);
+        if (mounted) {
+          final confirm = await _showImportConfirmation(newIdentity.name, 'Identity Card');
+          if (confirm == true) {
+            await IdentityDatabaseHelper.instance.insertIdentity(newIdentity);
+            if (mounted) {
+              context.read<IdentityProvider>().fetchIdentities();
+              _showSuccessSnackBar('Identity card imported successfully!');
             }
           }
         }
@@ -320,6 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
             HapticFeedback.mediumImpact();
             final walletProvider = context.read<WalletProvider>();
             final passProvider = context.read<PassProvider>();
+            final identityProvider = context.read<IdentityProvider>();
             final result = await Navigator.push(
               context,
               SmoothPageRoute(
@@ -329,6 +345,7 @@ class _HomeScreenState extends State<HomeScreen> {
             if (result == true && mounted) {
               await walletProvider.fetchWallets();
               await passProvider.fetchPasses();
+              await identityProvider.fetchIdentities();
             }
           },
           child: const Icon(Icons.add_rounded),
@@ -340,6 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           _buildPaymentsTab(context),
           _buildPassesTab(context),
+          _buildIdentitiesTab(context),
         ],
       ),
       bottomNavigationBar: isHiddenMode
@@ -370,6 +388,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Icon(Icons.confirmation_number_outlined),
                     selectedIcon: Icon(Icons.confirmation_number),
                     label: 'Passes',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.badge_outlined),
+                    selectedIcon: Icon(Icons.badge),
+                    label: 'Identity',
                   ),
                 ],
               ),
@@ -842,6 +865,234 @@ class _HomeScreenState extends State<HomeScreen> {
                           if (result == true && mounted) {
                             await passProvider.fetchPasses();
                           }
+                        },
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          ],
+        );
+      },
+    );
+  }
+  void _showIdentityDeleteConfirmationDialog({
+    required int id,
+    required String name,
+  }) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDark = themeProvider.isDarkMode;
+
+    showDialog(
+      context: context,
+      barrierColor: isDark ? Colors.black54 : Colors.black26,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+          title: Text(
+            'Delete Identity Card?',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to delete "$name"? This action cannot be undone.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: isDark ? Colors.white60 : Colors.black54,
+                ),
+              ),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                context.read<IdentityProvider>().deleteIdentity(id);
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Identity Card Deleted!')));
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildIdentitiesTab(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDark = themeProvider.isDarkMode;
+
+    return Consumer<IdentityProvider>(
+      builder: (context, provider, child) {
+        final identities = provider.identities;
+        if (identities.isEmpty) {
+          return _buildEmptyState(
+            context,
+            "No identity cards yet.\nTap the '+' to add one.",
+          );
+        }
+
+        final filteredIdentities = provider.searchIdentities(_searchQuery);
+
+        return CustomScrollView(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          slivers: [
+            // Search field
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: isDark ? Colors.white.withValues(alpha: 0.059) : Colors.black.withValues(alpha: 0.031),
+                    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.102) : Colors.black.withValues(alpha: 0.059)),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                    decoration: InputDecoration(
+                      filled: false,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      hintText: 'Search identities...',
+                      hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(Icons.clear_rounded, color: isDark ? Colors.white54 : Colors.black45),
+                              onPressed: () {
+                                _searchController.clear();
+                              },
+                            )
+                          : null,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            
+            const SliverToBoxAdapter(child: SizedBox(height: 8)),
+            
+            if (filteredIdentities.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(48.0),
+                  child: Center(
+                    child: Text(
+                      'No identity cards found.',
+                      style: TextStyle(color: isDark ? Colors.white54 : Colors.black45),
+                    ),
+                  ),
+                ),
+              )
+            else
+              SliverReorderableList(
+              itemCount: filteredIdentities.length,
+              // ignore: deprecated_member_use
+              onReorder: (oldIndex, newIndex) {
+                HapticFeedback.lightImpact();
+                context.read<IdentityProvider>().reorderIdentities(oldIndex, newIndex);
+              },
+              itemBuilder: (context, index) {
+                final card = filteredIdentities[index];
+                return ReorderableDelayedDragStartListener(
+                  key: ValueKey(card.id),
+                  index: index,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Slidable(
+                      key: ValueKey(card.id),
+                      startActionPane: ActionPane(
+                        motion: const BehindMotion(),
+                        extentRatio: 0.25,
+                        children: [
+                          SlidableAction(
+                            onPressed: (ctx) async {
+                              HapticFeedback.lightImpact();
+                              final result = await Navigator.push(
+                                ctx,
+                                SmoothPageRoute(
+                                  page: Scaffold(
+                                    appBar: AppBar(title: const Text('Edit Identity Card')),
+                                    body: IdentityCardEntryForm(existingCard: card),
+                                  ),
+                                ),
+                              );
+                              if (result == true && ctx.mounted) {
+                                ctx.read<IdentityProvider>().fetchIdentities();
+                              }
+                            },
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.blue,
+                            icon: Icons.edit_outlined,
+                            label: 'Edit',
+                          ),
+                        ],
+                      ),
+                      endActionPane: ActionPane(
+                        motion: const BehindMotion(),
+                        extentRatio: 0.45,
+                        children: [
+                          SlidableAction(
+                            onPressed: (ctx) {
+                              HapticFeedback.mediumImpact();
+                              Clipboard.setData(
+                                ClipboardData(text: card.value),
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text('ID value copied!'),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  duration: const Duration(seconds: 1),
+                                ),
+                              );
+                            },
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.blue,
+                            icon: Icons.copy_rounded,
+                            label: 'Copy',
+                          ),
+                          SlidableAction(
+                            onPressed: (context) => _showIdentityDeleteConfirmationDialog(
+                              id: card.id!,
+                              name: card.name,
+                            ),
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.red,
+                            icon: Icons.delete_outline_rounded,
+                            label: 'Delete',
+                          ),
+                        ],
+                      ),
+                      child: IdentityCardWidget(
+                        card: card,
+                        onTap: () {
+                           HapticFeedback.selectionClick();
+                           Clipboard.setData(ClipboardData(text: card.value));
+                           ScaffoldMessenger.of(context).showSnackBar(
+                             SnackBar(content: Text('ID number copied: ${card.value}')),
+                           );
                         },
                       ),
                     ),

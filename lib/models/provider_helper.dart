@@ -119,3 +119,58 @@ class PassProvider with ChangeNotifier {
     }).toList();
   }
 }
+
+class IdentityProvider with ChangeNotifier {
+  List<IdentityCard> identities = [];
+
+  Future<void> fetchIdentities() async {
+    identities = await IdentityDatabaseHelper.instance.getAllIdentities();
+    notifyListeners();
+  }
+
+  Future<void> deleteIdentity(int id) async {
+    await IdentityDatabaseHelper.instance.deleteIdentity(id);
+    identities.removeWhere((i) => i.id == id);
+    notifyListeners();
+  }
+
+  Future<void> addIdentity(IdentityCard card) async {
+    identities.add(card);
+    notifyListeners();
+  }
+
+  Future<void> updateIdentity(IdentityCard updatedCard) async {
+    await IdentityDatabaseHelper.instance.updateIdentity(updatedCard);
+    final index = identities.indexWhere((i) => i.id == updatedCard.id);
+    if (index != -1) {
+      identities[index] = updatedCard;
+      notifyListeners();
+    }
+  }
+
+  Future<void> reorderIdentities(int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+    final card = identities.removeAt(oldIndex);
+    identities.insert(newIndex, card);
+
+    for (int i = 0; i < identities.length; i++) {
+      identities[i].orderIndex = i;
+    }
+
+    await IdentityDatabaseHelper.instance.updateIdentitiesOrder(identities);
+    notifyListeners();
+  }
+
+  List<IdentityCard> searchIdentities(String query) {
+    if (query.isEmpty) return identities;
+    final lowercaseQuery = query.toLowerCase();
+
+    return identities.where((card) {
+      return card.name.toLowerCase().contains(lowercaseQuery) ||
+          card.value.toLowerCase().contains(lowercaseQuery);
+    }).toList();
+  }
+}
+
