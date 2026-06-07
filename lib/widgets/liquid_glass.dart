@@ -24,13 +24,10 @@ class LiquidGlassContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    final isDark = themeProvider.isDarkMode;
 
     // Solid colors - no opacity calculations
-    final bgColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5);
-    final borderColor = isDark
-        ? const Color(0xFF2A2A2A)
-        : const Color(0xFFE8E8E8);
+    final bgColor = themeProvider.glassElevatedSurface;
+    final borderColor = themeProvider.glassBorder;
 
     Widget container = Container(
       margin: margin,
@@ -232,7 +229,7 @@ class LiquidGlassNavigationBar extends StatelessWidget {
         color: isDark ? Colors.black : Colors.white,
         border: Border(
           top: BorderSide(
-            color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8),
+            color: themeProvider.glassBorder,
             width: 0.5,
           ),
         ),

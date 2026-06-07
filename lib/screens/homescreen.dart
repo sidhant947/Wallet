@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,7 +17,7 @@ import '../models/db_helper.dart';
 import '../models/provider_helper.dart';
 import '../models/theme_provider.dart';
 import '../pages/walletdetails.dart';
-import 'package:wallet/models/dataentry.dart';
+import 'package:wallet/widgets/barcode_card_entry_form.dart';
 
 /// Smooth route builder — used across the app for premium transitions
 class SmoothPageRoute<T> extends PageRouteBuilder<T> {
@@ -47,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   late final TextEditingController _searchController;
   String _searchQuery = "";
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -67,16 +69,20 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     _searchController.addListener(() {
-      if (mounted) {
-        setState(() {
-          _searchQuery = _searchController.text;
-        });
-      }
+      if (_debounce?.isActive ?? false) _debounce!.cancel();
+      _debounce = Timer(const Duration(milliseconds: 300), () {
+        if (mounted && _searchQuery != _searchController.text) {
+          setState(() {
+            _searchQuery = _searchController.text;
+          });
+        }
+      });
     });
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }

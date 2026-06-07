@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:wallet/models/dataentry.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/models/startup_settings_provider.dart';
+import 'package:wallet/widgets/credit_card_entry_form.dart';
+import 'package:wallet/widgets/barcode_card_entry_form.dart';
 
 class AddCardScreen extends StatefulWidget {
   final int initialTabIndex;

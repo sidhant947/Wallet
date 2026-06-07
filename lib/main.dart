@@ -2,11 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/models/startup_settings_provider.dart';
-import 'package:wallet/services/encryption_service.dart';
+import 'package:wallet/services/app_initialization_service.dart';
 import 'models/provider_helper.dart';
 import 'screens/homescreen.dart';
 import 'package:provider/provider.dart';
@@ -15,37 +13,14 @@ import 'dart:io' show Platform;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // This is for desktop/testing Only
-  if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
-    databaseFactory = databaseFactoryFfi;
-  }
-
-  // Initialize AES-256 encryption service BEFORE any database operations.
-  await EncryptionService.instance.init();
-
   final themeProvider = ThemeProvider();
   final startupProvider = StartupSettingsProvider();
 
   await Future.wait([
     themeProvider.init(),
     startupProvider.loadStartupSettings(),
+    AppInitializationService.initializeApp(),
   ]);
-
-  await Future.wait([
-    DatabaseHelper.instance.database,
-    PassDatabaseHelper.instance.database,
-  ]);
-
-  // One-time migration: encrypt any existing plaintext data in the databases.
-  if (!await EncryptionService.instance.isMigrated()) {
-    debugPrint('Running one-time encryption migration...');
-    await Future.wait([
-      DatabaseHelper.instance.migrateToEncrypted(),
-      PassDatabaseHelper.instance.migrateToEncrypted(),
-    ]);
-    await EncryptionService.instance.markMigrated();
-    debugPrint('Encryption migration complete.');
-  }
 
   runApp(
     MultiProvider(

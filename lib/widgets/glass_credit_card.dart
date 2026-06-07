@@ -1,7 +1,7 @@
 // lib/widgets/glass_credit_card.dart - ULTRA PREMIUM DESIGN
 
 import 'package:flutter/material.dart';
-import 'package:wallet/models/dataentry.dart';
+import 'package:wallet/models/card_color_data.dart';
 import '../models/db_helper.dart';
 
 class GlassCreditCard extends StatefulWidget {

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:wallet/models/dataentry.dart';
+import 'package:wallet/services/image_service.dart';
+import 'package:wallet/widgets/color_picker.dart';
 import 'package:wallet/screens/homescreen.dart';
 import 'package:wallet/services/encryption_service.dart';
 import 'package:wallet/models/db_helper.dart';
@@ -84,7 +85,7 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
                     panEnabled: true,
                     minScale: 1.0,
                     maxScale: 4.0,
-                    child: Image.memory(_bytes!, cacheWidth: 2000),
+                    child: Image.memory(_bytes!, cacheWidth: 1000),
                   ),
       ),
     );

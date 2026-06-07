@@ -4,7 +4,7 @@ import 'package:barcode_widget/barcode_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/theme_provider.dart';
-import 'package:wallet/models/dataentry.dart';
+import 'package:wallet/widgets/barcode_card_entry_form.dart';
 import 'package:wallet/screens/homescreen.dart';
 import 'package:wallet/services/barcode_utils.dart';
 import 'package:wallet/widgets/display_barcode_screen.dart';
