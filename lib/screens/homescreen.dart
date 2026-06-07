@@ -580,8 +580,32 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           endActionPane: ActionPane(
                             motion: const BehindMotion(),
-                            extentRatio: 0.25,
+                            extentRatio: 0.45,
                             children: [
+                              SlidableAction(
+                                onPressed: (ctx) {
+                                  HapticFeedback.mediumImpact();
+                                  Clipboard.setData(
+                                    ClipboardData(text: wallet.number),
+                                  );
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text(
+                                        'Card number copied!',
+                                      ),
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      duration: const Duration(seconds: 1),
+                                    ),
+                                  );
+                                },
+                                backgroundColor: Colors.transparent,
+                                foregroundColor: Colors.blue,
+                                icon: Icons.copy_rounded,
+                                label: 'Copy',
+                              ),
                               SlidableAction(
                                 onPressed: (ctx) async {
                                   HapticFeedback.mediumImpact();
@@ -764,8 +788,30 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       endActionPane: ActionPane(
                         motion: const BehindMotion(),
-                        extentRatio: 0.25,
+                        extentRatio: 0.45,
                         children: [
+                          SlidableAction(
+                            onPressed: (ctx) {
+                              HapticFeedback.mediumImpact();
+                              Clipboard.setData(
+                                ClipboardData(text: pass.barcodeValue),
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text('Pass data copied!'),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  duration: const Duration(seconds: 1),
+                                ),
+                              );
+                            },
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.blue,
+                            icon: Icons.copy_rounded,
+                            label: 'Copy',
+                          ),
                           SlidableAction(
                             onPressed: (context) => _showPassDeleteConfirmationDialog(
                               id: pass.id!,
