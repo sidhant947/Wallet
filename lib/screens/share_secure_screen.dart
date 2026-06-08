@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:wallet/models/db_helper.dart';
@@ -128,14 +130,36 @@ class ShareSecureScreen extends StatelessWidget {
                   onPressed: () async {
                     final bytes = await PkpassService.instance.generatePkpass(pass!);
                     if (bytes != null) {
-                      final fileName = '${pass!.organizationName.replaceAll(RegExp(r'[^\w\s-]'), '').replaceAll(' ', '_')}.pkpass';
-                      await FilePicker.platform.saveFile(
-                        dialogTitle: 'Export Pass',
-                        fileName: fileName,
-                        bytes: bytes,
-                        type: FileType.custom,
-                        allowedExtensions: ['pkpass'],
-                      );
+                      String safeName = pass!.organizationName
+                          .replaceAll(RegExp(r'[^\w\s-]'), '')
+                          .trim()
+                          .replaceAll(' ', '_');
+                      if (safeName.isEmpty) safeName = 'pass';
+                      final fileName = '$safeName.pkpass';
+
+                      if (Platform.isAndroid) {
+                        try {
+                          const channel = MethodChannel('com.sidhant.wallet/save_file');
+                          await channel.invokeMethod('savePkpass', {
+                            'bytes': bytes,
+                            'name': fileName,
+                          });
+                        } catch (e) {
+                          debugPrint('Native save failed: $e');
+                          // Fallback to file_picker
+                          await FilePicker.platform.saveFile(
+                            dialogTitle: 'Export Pass',
+                            fileName: fileName,
+                            bytes: bytes,
+                          );
+                        }
+                      } else {
+                        await FilePicker.platform.saveFile(
+                          dialogTitle: 'Export Pass',
+                          fileName: fileName,
+                          bytes: bytes,
+                        );
+                      }
                     }
                   },
                   icon: const Icon(Icons.file_download_rounded),
