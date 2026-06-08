@@ -170,6 +170,7 @@ class _SplashScreenState extends State<SplashScreen>
     if (isBiometricSupported && canCheckBiometrics) {
       bool authenticated = await auth.authenticate(
         localizedReason: 'Authenticate to access your wallet',
+        options: const AuthenticationOptions(stickyAuth: true),
       );
       if (authenticated) {
         _navigateToHomeScreen();

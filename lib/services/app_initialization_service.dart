@@ -1,5 +1,4 @@
 import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/services/encryption_service.dart';
@@ -23,14 +22,12 @@ class AppInitializationService {
 
     // One-time migration: encrypt any existing plaintext data in the databases.
     if (!await EncryptionService.instance.isMigrated()) {
-      debugPrint('Running one-time encryption migration...');
       await Future.wait([
         DatabaseHelper.instance.migrateToEncrypted(),
         PassDatabaseHelper.instance.migrateToEncrypted(),
         IdentityDatabaseHelper.instance.migrateToEncrypted(),
       ]);
       await EncryptionService.instance.markMigrated();
-      debugPrint('Encryption migration complete.');
     }
   }
 }

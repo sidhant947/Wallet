@@ -156,9 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         }
       }
-    } catch (e) {
-      debugPrint('QR Scan error: $e');
-    }
+    } catch (_) {}
   }
 
   Future<bool?> _showImportConfirmation(String name, String typeLabel) {

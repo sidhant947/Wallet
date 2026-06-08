@@ -14,7 +14,6 @@ class BackupService {
 
   static Future<String?> createBackup(String password) async {
     try {
-      debugPrint("BackupService: Starting backup creation...");
       final wallets = await DatabaseHelper.instance.getWallets();
       final passes = await PassDatabaseHelper.instance.getAllPasses();
       final identities = await IdentityDatabaseHelper.instance.getAllIdentities();
@@ -40,7 +39,6 @@ class BackupService {
         'settings': settings,
       };
 
-      debugPrint("BackupService: Encoding JSON data...");
       final String jsonString = jsonEncode(backupData);
       final jsonBytes = utf8.encode(jsonString);
 
@@ -64,7 +62,6 @@ class BackupService {
         if (i.backImagePath != null) imagePaths.add(i.backImagePath!);
       }
 
-      debugPrint("BackupService: Processing ${imagePaths.length} images...");
       for (final path in imagePaths) {
         try {
           final decryptedBytes =
@@ -79,21 +76,16 @@ class BackupService {
               ),
             );
           }
-        } catch (e) {
-          debugPrint("BackupService: Failed to add image $path to backup: $e");
-        }
+        } catch (_) {}
       }
 
-      debugPrint("BackupService: Compressing archive...");
       final zipData = ZipEncoder().encode(archive);
 
-      debugPrint("BackupService: Encrypting backup (background)...");
       final encryptedData = await EncryptionService.instance.encryptForBackup(
         Uint8List.fromList(zipData),
         password,
       );
 
-      debugPrint("BackupService: Requesting file save...");
       final result = await FilePicker.platform.saveFile(
         dialogTitle: 'Save Backup File',
         fileName: 'wallet_backup_${DateTime.now().millisecondsSinceEpoch}.wbk',
@@ -102,11 +94,8 @@ class BackupService {
         allowedExtensions: ['wbk'],
       );
 
-      debugPrint("BackupService: Backup creation complete. Result: $result");
       return result;
-    } catch (e, stack) {
-      debugPrint("BackupService: Create failed with error: $e");
-      debugPrint("Stack Trace: $stack");
+    } catch (_) {
       rethrow;
     }
   }
@@ -184,8 +173,7 @@ class BackupService {
           backupData = jsonDecode(utf8.decode(dataFile.content as List<int>));
           imageFiles =
               archive.where((f) => f.name.startsWith('images/')).toList();
-        } catch (e) {
-          debugPrint("BackupService: ZIP/JSON decode failed: $e");
+        } catch (_) {
           throw Exception(
             'Failed to process backup archive. It might be corrupted.',
           );
@@ -214,7 +202,6 @@ class BackupService {
             await prefs.setStringList(key, List<String>.from(value));
           }
         }
-        debugPrint("BackupService: Restored ${settings.length} settings.");
       }
 
       final appDir = await getApplicationDocumentsDirectory();
@@ -237,11 +224,7 @@ class BackupService {
             oldToNewImagePaths[fileName] = encryptedPath;
             // The original .enc was removed by encryptImageFile, so we are good.
           }
-        } catch (e) {
-          debugPrint(
-            "BackupService: Failed to restore/encrypt image ${imgFile.name}: $e",
-          );
-        }
+        } catch (_) {}
       }
 
       final walletsData = backupData['wallets'] as List<dynamic>? ?? [];
@@ -270,9 +253,7 @@ class BackupService {
           }
 
           await DatabaseHelper.instance.insertWallet(Wallet.fromMap(walletMap));
-        } catch (e) {
-          debugPrint("BackupService: Failed to restore wallet: $e");
-        }
+        } catch (_) {}
       }
 
       final passesData = backupData['passes'] as List<dynamic>? ?? [];
@@ -297,9 +278,7 @@ class BackupService {
           }
 
           await PassDatabaseHelper.instance.insertPass(Pass.fromMap(passMap));
-        } catch (e) {
-          debugPrint("BackupService: Failed to restore pass: $e");
-        }
+        } catch (_) {}
       }
 
       final identitiesData = backupData['identities'] as List<dynamic>? ?? [];
@@ -321,9 +300,7 @@ class BackupService {
           }
 
           await IdentityDatabaseHelper.instance.insertIdentity(IdentityCard.fromMap(identityMap));
-        } catch (e) {
-          debugPrint("BackupService: Failed to restore identity: $e");
-        }
+        } catch (_) {}
       }
       
       // Legacy support for older backups
@@ -334,12 +311,9 @@ class BackupService {
            // Only import if it's not already handled by the modern identitiesData
            // In old versions, identities were different.
            // This is just a safety check.
-         } catch (e) {
-           debugPrint("BackupService: Failed to restore legacy identity: $e");
-         }
+         } catch (_) {}
       }
-    } catch (e) {
-      debugPrint('BackupService: Restore failed: $e');
+    } catch (_) {
       rethrow;
     }
   }

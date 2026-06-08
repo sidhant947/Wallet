@@ -144,8 +144,7 @@ class ShareSecureScreen extends StatelessWidget {
                             'bytes': bytes,
                             'name': fileName,
                           });
-                        } catch (e) {
-                          debugPrint('Native save failed: $e');
+                        } catch (_) {
                           // Fallback to file_picker
                           await FilePicker.platform.saveFile(
                             dialogTitle: 'Export Pass',

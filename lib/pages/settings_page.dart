@@ -426,13 +426,12 @@ class _SettingsPageState extends State<SettingsPage> {
                 );
               }
             }
-          } catch (e) {
+          } catch (_) {
             if (!mounted) return;
             if (dialogContext.mounted) {
-              final errorMsg = e.toString().replaceFirst('Exception: ', '');
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Backup failed: $errorMsg'),
+                const SnackBar(
+                  content: Text('Backup failed. Please try again.'),
                   backgroundColor: Colors.red,
                 ),
               );
@@ -484,15 +483,14 @@ class _SettingsPageState extends State<SettingsPage> {
                 backgroundColor: Colors.green,
               ),
             );
-          } catch (e) {
+          } catch (_) {
             if (dialogContext.mounted) {
               Navigator.pop(dialogContext);
             }
             if (!mounted) return;
-            final errorMsg = e.toString().replaceFirst('Exception: ', '');
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Restore failed: $errorMsg'),
+              const SnackBar(
+                content: Text('Restore failed. Please check your password and try again.'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -579,11 +577,11 @@ class _SettingsPageState extends State<SettingsPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('All data deleted.')));
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+      ).showSnackBar(const SnackBar(content: Text('Delete failed. Please try again.')));
     }
   }
 

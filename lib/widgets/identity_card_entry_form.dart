@@ -102,9 +102,7 @@ class _IdentityCardEntryFormState extends State<IdentityCardEntryForm> {
         context.read<IdentityProvider>().fetchIdentities();
         Navigator.pop(context, true);
       }
-    } catch (e) {
-      debugPrint('Error saving identity card: $e');
-    } finally {
+    } catch (_) {} finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }

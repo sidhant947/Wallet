@@ -156,9 +156,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
       }
 
       if (mounted) Navigator.pop(context, true);
-    } catch (e) {
-      debugPrint('Error saving pass: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> _scan() async {
@@ -169,9 +167,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           _barcodeValueController.text = result.rawContent;
         });
       }
-    } catch (e) {
-      debugPrint('Scan error: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> _pickImage(bool isFront) async {
@@ -281,10 +277,10 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           }
         }
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          const SnackBar(content: Text('Failed to import pass. Please try again.')),
         );
       }
     }

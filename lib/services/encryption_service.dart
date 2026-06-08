@@ -6,7 +6,6 @@ import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 /// Data class for passing parameters to encryption isolates
 class _EncryptionParams {
@@ -42,6 +41,7 @@ class EncryptionService {
   EncryptionService._();
 
   static const String _keyStorageKey = 'wallet_aes_256_master_key';
+  static const String _transferKeyStorageKey = 'wallet_transfer_key';
   static const String _migrationFlagKey = 'wallet_encryption_migrated';
 
   // AES-GCM standard nonce (IV) length is 12 bytes (96 bits)
@@ -52,6 +52,7 @@ class EncryptionService {
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   encrypt.Key? _encryptionKey;
+  encrypt.Key? _transferKey;
   bool _isInitialized = false;
 
   // Simple memory cache for decrypted images to avoid redundant computation
@@ -66,54 +67,37 @@ class EncryptionService {
     if (_isInitialized && !force) return;
 
     try {
-      final prefs = await SharedPreferences.getInstance();
       String? storedKey;
 
       try {
         storedKey = await _secureStorage.read(key: _keyStorageKey);
-      } catch (se) {
-        debugPrint('EncryptionService: Secure storage read failed: $se');
-      }
+      } catch (_) {}
 
       if (storedKey == null || storedKey.isEmpty) {
-        // Fallback to SharedPreferences
-        final fallbackKey = prefs.getString('${_keyStorageKey}_fallback');
-        if (fallbackKey != null && fallbackKey.isNotEmpty) {
-          storedKey = fallbackKey;
-          debugPrint('EncryptionService: Restored master key from fallback storage.');
-          // Try to heal secure storage
-          try {
-            await _secureStorage.write(key: _keyStorageKey, value: storedKey);
-          } catch (se) {
-            debugPrint('EncryptionService: Failed to heal secure storage: $se');
-          }
-        } else {
-          // First launch — generate a new 256-bit key
-          final keyBytes = _generateSecureRandomBytes(32); // 256 bits
-          storedKey = base64Encode(keyBytes);
-          try {
-            await _secureStorage.write(key: _keyStorageKey, value: storedKey);
-          } catch (se) {
-            debugPrint('EncryptionService: Failed to write new key to secure storage: $se');
-          }
-          await prefs.setString('${_keyStorageKey}_fallback', storedKey);
-          debugPrint('EncryptionService: New AES-256 key generated and stored in secure and fallback storage.');
-        }
-      } else {
-        // Secure storage has the key. Ensure SharedPreferences has a backup of it.
-        final fallbackKey = prefs.getString('${_keyStorageKey}_fallback');
-        if (fallbackKey != storedKey) {
-          await prefs.setString('${_keyStorageKey}_fallback', storedKey);
-          debugPrint('EncryptionService: Synchronized fallback key backup.');
-        }
+        // First launch — generate a new 256-bit key
+        final keyBytes = _generateSecureRandomBytes(32); // 256 bits
+        storedKey = base64Encode(keyBytes);
+        await _secureStorage.write(key: _keyStorageKey, value: storedKey);
       }
 
       _encryptionKey = encrypt.Key.fromBase64(storedKey);
       _isInitialized = true;
-      debugPrint('EncryptionService: Initialized successfully.');
+
+      // Initialize per-device transfer key (used for QR share encryption)
+      String? transferKeyBase64;
+      try {
+        transferKeyBase64 = await _secureStorage.read(key: _transferKeyStorageKey);
+      } catch (_) {}
+      if (transferKeyBase64 == null || transferKeyBase64.isEmpty) {
+        final keyBytes = _generateSecureRandomBytes(32);
+        transferKeyBase64 = base64Encode(keyBytes);
+        try {
+          await _secureStorage.write(key: _transferKeyStorageKey, value: transferKeyBase64);
+        } catch (_) {}
+      }
+      _transferKey = encrypt.Key.fromBase64(transferKeyBase64);
     } catch (e) {
       _isInitialized = false;
-      debugPrint('EncryptionService: Initialization failed: $e');
       rethrow;
     }
   }
@@ -148,7 +132,6 @@ class EncryptionService {
       // Format: iv:ciphertext (both base64)
       return '${iv.base64}:${encrypted.base64}';
     } catch (e) {
-      debugPrint('EncryptionService: Encryption failed: $e');
       throw Exception('Failed to encrypt sensitive data: $e');
     }
   }
@@ -173,7 +156,7 @@ class EncryptionService {
       final iv = encrypt.IV.fromBase64(parts[0]);
       final encryptedData = encrypt.Encrypted.fromBase64(parts[1]);
 
-      // Detect mode based on IV length: 12 bytes = GCM, 16 bytes = CBC
+      // Detect mode based on IV length: 12 bytes = GCM, 16 bytes = CBC (deprecated)
       final mode = iv.bytes.length == _gcmIvLength
           ? encrypt.AESMode.gcm
           : encrypt.AESMode.cbc;
@@ -183,7 +166,6 @@ class EncryptionService {
       );
       return encrypter.decrypt(encryptedData, iv: iv);
     } catch (e) {
-      debugPrint('EncryptionService: Decryption failed: $e');
       throw Exception('Failed to decrypt sensitive data: $e');
     }
   }
@@ -224,8 +206,7 @@ class EncryptionService {
 
     try {
       return Map<String, String>.from(jsonDecode(decrypted));
-    } catch (e) {
-      debugPrint('EncryptionService: JSON parse failed: $e');
+    } catch (_) {
       return null;
     }
   }
@@ -239,25 +220,19 @@ class EncryptionService {
 
     try {
       return Map<String, dynamic>.from(jsonDecode(decrypted));
-    } catch (e) {
-      debugPrint('EncryptionService: JSON parse to dynamic map failed: $e');
+    } catch (_) {
       return null;
     }
   }
 
   /// Encrypt data for secure local transfer (QR share).
-  /// Uses a deterministic derived key for cross-device compatibility of this specific feature.
+  /// Uses a per-device key stored in secure storage.
   String? encryptForTransfer(String data) {
-    if (!_isInitialized) return null;
+    if (!_isInitialized || _transferKey == null) return null;
 
-    // This key is specifically for local transfers between app instances.
-    // In a real production app, this would be derived from a shared out-of-band secret.
-    final transferKey = encrypt.Key.fromUtf8(
-      'wallet_local_transfer_v1_secure_key'.substring(0, 32),
-    );
     final iv = encrypt.IV(_generateSecureRandomBytes(_gcmIvLength));
     final encrypter = encrypt.Encrypter(
-      encrypt.AES(transferKey, mode: encrypt.AESMode.gcm),
+      encrypt.AES(_transferKey!, mode: encrypt.AESMode.gcm),
     );
 
     final encrypted = encrypter.encrypt(data, iv: iv);
@@ -266,23 +241,19 @@ class EncryptionService {
 
   /// Decrypt data from a local transfer (QR share).
   String? decryptFromTransfer(String encryptedData) {
-    if (!_isInitialized) return null;
+    if (!_isInitialized || _transferKey == null) return null;
 
     try {
       final parts = encryptedData.split(':');
       if (parts.length != 3 || parts[0] != 'v1') return null;
 
-      final transferKey = encrypt.Key.fromUtf8(
-        'wallet_local_transfer_v1_secure_key'.substring(0, 32),
-      );
       final iv = encrypt.IV.fromBase64(parts[1]);
       final encrypter = encrypt.Encrypter(
-        encrypt.AES(transferKey, mode: encrypt.AESMode.gcm),
+        encrypt.AES(_transferKey!, mode: encrypt.AESMode.gcm),
       );
 
       return encrypter.decrypt64(parts[2], iv: iv);
-    } catch (e) {
-      debugPrint('EncryptionService: Transfer decryption failed: $e');
+    } catch (_) {
       return null;
     }
   }
@@ -308,8 +279,8 @@ class EncryptionService {
     );
   }
 
-  /// Derive a 256-bit key using PBKDF2-HMAC-SHA256 with 100,000 iterations.
-  /// Follows the PKCS #5 v2.0 standard for a single 32-byte block.
+  /// Derive a 256-bit key using PBKDF2-HMAC-SHA256 with 600,000 iterations.
+  /// Follows OWASP 2024 recommendation for PBKDF2-HMAC-SHA256.
   List<int> _deriveKeyPBKDF2(String password, List<int> salt) {
     final passwordBytes = utf8.encode(password);
 
@@ -323,7 +294,7 @@ class EncryptionService {
     );
     var result = Uint8List.fromList(u);
 
-    for (int i = 1; i < 100000; i++) {
+    for (int i = 1; i < 600000; i++) {
       u = Uint8List.fromList(Hmac(sha256, passwordBytes).convert(u).bytes);
       for (int j = 0; j < result.length; j++) {
         result[j] ^= u[j];
@@ -334,6 +305,7 @@ class EncryptionService {
   }
 
   /// Derive a 256-bit key from a password using multiple rounds of SHA-256.
+  /// DEPRECATED: Used only for reading legacy backups. New backups use PBKDF2.
   List<int> _deriveKeyFromPassword(String password) {
     const salt = 'wallet_app_aes256_salt_v1';
     var bytes = utf8.encode('$password:$salt');
@@ -355,7 +327,6 @@ class EncryptionService {
 
       final sourceFile = File(sourceFilePath);
       if (!await sourceFile.exists()) {
-        debugPrint('EncryptionService: Source image file not found.');
         return null;
       }
 
@@ -382,12 +353,8 @@ class EncryptionService {
 
       await sourceFile.delete();
 
-      debugPrint(
-        'EncryptionService: Image encrypted successfully: $encryptedPath',
-      );
       return encryptedPath;
     } catch (e) {
-      debugPrint('EncryptionService: Image encryption failed: $e');
       throw Exception('Failed to encrypt image: $e');
     }
   }
@@ -407,7 +374,6 @@ class EncryptionService {
 
       final encryptedFile = File(encryptedFilePath);
       if (!await encryptedFile.exists()) {
-        debugPrint('EncryptionService: Encrypted image file not found.');
         return null;
       }
 
@@ -445,7 +411,6 @@ class EncryptionService {
 
       return result;
     } catch (e) {
-      debugPrint('EncryptionService: Image decryption failed: $e');
       throw Exception('Failed to decrypt image: $e');
     }
   }
@@ -468,26 +433,15 @@ class EncryptionService {
     try {
       final flag = await _secureStorage.read(key: _migrationFlagKey);
       if (flag != null) return flag == 'true';
-    } catch (e) {
-      debugPrint('EncryptionService: Failed to read migration flag from secure storage: $e');
-    }
-
-    // Fallback to SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_migrationFlagKey) ?? false;
+    } catch (_) {}
+    return false;
   }
 
   /// Mark the database as having been migrated to encrypted format.
   Future<void> markMigrated() async {
     try {
       await _secureStorage.write(key: _migrationFlagKey, value: 'true');
-    } catch (e) {
-      debugPrint('EncryptionService: Failed to write migration flag to secure storage: $e');
-    }
-
-    // Always update SharedPreferences as a fallback
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_migrationFlagKey, true);
+    } catch (_) {}
   }
 }
 
@@ -550,6 +504,8 @@ Uint8List _backupIsolate(_BackupParams params) {
           throw Exception('Invalid password or corrupted backup file.');
         }
       } else if (parts.length == 2) {
+        // DEPRECATED: Legacy CBC format — kept for reading old backups only.
+        // New backups always use 3-part format with PBKDF2 + AES-GCM.
         try {
           final iv = encrypt.IV.fromBase64(parts[0]);
           final ciphertext = encrypt.Encrypted.fromBase64(parts[1]);
@@ -563,7 +519,7 @@ Uint8List _backupIsolate(_BackupParams params) {
       }
     }
 
-    // Raw legacy fallback
+    // DEPRECATED: Raw legacy fallback — kept for reading very old backups only.
     try {
       if (params.data.length < 17) throw Exception('Data too short');
       final keyBytes = service._deriveKeyFromPassword(params.password);

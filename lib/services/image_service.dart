@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:wallet/services/encryption_service.dart';
@@ -27,12 +26,10 @@ Future<String?> saveImageToAppDirectory(File imageFile) async {
     // to ensure no plaintext traces are left on disk.
     if (await imageFile.exists()) {
       await imageFile.delete();
-      debugPrint("EncryptionService: Original source image deleted.");
     }
 
     return encryptedPath;
-  } catch (e) {
-    debugPrint("Error saving/encrypting image: $e");
+  } catch (_) {
     return null;
   }
 }

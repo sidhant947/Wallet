@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/services/barcode_utils.dart';
-import 'package:wallet/services/encryption_service.dart';
-import 'package:flutter/foundation.dart';
 import 'package:wallet/models/card_color_data.dart';
 
 class BarcodeCard extends StatelessWidget {
@@ -55,9 +53,7 @@ Color _parseColor(String? colorString, Color fallback) {
     } else if (colorString.startsWith('#')) {
       return Color(int.parse(colorString.substring(1), radix: 16) + 0xFF000000);
     }
-  } catch (e) {
-    debugPrint('Error parsing color: $e');
-  }
+  } catch (_) {}
   return fallback;
 }
 

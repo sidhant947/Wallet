@@ -17,7 +17,6 @@ class PkpassService {
       // Find pass.json
       final passFile = archive.findFile('pass.json');
       if (passFile == null) {
-        debugPrint('PkpassService: pass.json not found in archive');
         return null;
       }
 
@@ -92,8 +91,7 @@ class PkpassService {
         thumbnailImagePath: null,
         fields: fields,
       );
-    } catch (e) {
-      debugPrint('PkpassService: Error parsing .pkpass: $e');
+    } catch (_) {
       return null;
     }
   }
@@ -127,8 +125,7 @@ class PkpassService {
       
       final zipData = ZipEncoder().encode(archive);
       return Uint8List.fromList(zipData);
-    } catch (e) {
-      debugPrint('PkpassService: Error generating .pkpass: $e');
+    } catch (_) {
       return null;
     }
   }

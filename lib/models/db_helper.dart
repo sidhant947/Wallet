@@ -6,7 +6,6 @@ import 'pass.dart';
 import 'identity_card.dart';
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -150,9 +149,7 @@ class DatabaseHelper {
         if (await file.exists()) {
           await file.delete();
         }
-      } catch (e) {
-        debugPrint('DatabaseHelper: Failed to delete image file: $e');
-      }
+      } catch (_) {}
     }
   }
 
@@ -179,7 +176,6 @@ class DatabaseHelper {
         whereArgs: [wallet.id],
       );
     }
-    debugPrint('DatabaseHelper: Wallet migration to encrypted format complete.');
   }
 }
 
@@ -299,7 +295,6 @@ class PassDatabaseHelper {
         whereArgs: [pass.id],
       );
     }
-    debugPrint('PassDatabaseHelper: Pass migration to encrypted format complete.');
   }
 }
 
@@ -412,9 +407,6 @@ class IdentityDatabaseHelper {
         whereArgs: [card.id],
       );
     }
-    debugPrint(
-      'IdentityDatabaseHelper: Identity migration to encrypted format complete.',
-    );
   }
 }
 

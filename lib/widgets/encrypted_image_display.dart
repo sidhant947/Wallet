@@ -71,8 +71,7 @@ class _EncryptedImageDisplayState extends State<EncryptedImageDisplay> {
           _isLoading = false;
         });
       }
-    } catch (e) {
-      debugPrint('EncryptedImageDisplay: Decryption failed: $e');
+    } catch (_) {
       if (mounted) {
         setState(() {
           _hasError = true;
@@ -114,7 +113,6 @@ class _EncryptedImageDisplayState extends State<EncryptedImageDisplay> {
       cacheHeight: widget.cacheHeight,
       cacheWidth: widget.cacheWidth,
       errorBuilder: (c, e, s) {
-        debugPrint('EncryptedImageDisplay: Image load error: $e');
         return widget.errorWidget ??
             Container(
               height: widget.height,

@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:wallet/services/image_service.dart';
 import 'package:wallet/widgets/color_picker.dart';
 import 'package:wallet/screens/homescreen.dart';
-import 'package:wallet/services/encryption_service.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/provider_helper.dart';
 import 'package:wallet/models/theme_provider.dart';
