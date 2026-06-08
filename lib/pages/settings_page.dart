@@ -20,7 +20,6 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-
   @override
   void initState() {
     super.initState();
@@ -28,17 +27,25 @@ class _SettingsPageState extends State<SettingsPage> {
 
   String _getThemeDisplayName(ThemePreference preference) {
     switch (preference) {
-      case ThemePreference.light: return 'Light';
-      case ThemePreference.dark: return 'Dark';
-      case ThemePreference.system: return 'Follow System';
+      case ThemePreference.light:
+        return 'Light';
+      case ThemePreference.dark:
+        return 'Dark';
+      case ThemePreference.system:
+        return 'Follow System';
     }
   }
 
   String _getDefaultScreenName(int index) {
     switch (index) {
-      case 0: return 'Payments';
-      case 1: return 'Passes';
-      default: return 'Payments';
+      case 0:
+        return 'Payments';
+      case 1:
+        return 'Passes';
+      case 2:
+        return 'Identity';
+      default:
+        return 'Payments';
     }
   }
 
@@ -87,22 +94,41 @@ class _SettingsPageState extends State<SettingsPage> {
                   },
                 ),
               ),
-              Divider(color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8), height: 1),
+              Divider(
+                color: isDark
+                    ? const Color(0xFF2A2A2A)
+                    : const Color(0xFFE8E8E8),
+                height: 1,
+              ),
               _LiquidGlassTile(
                 icon: Icons.payments_outlined,
                 title: 'Currency',
-                subtitle: '${startupProvider.selectedCurrencyCode} (${startupProvider.selectedCurrencySymbol})',
+                subtitle:
+                    '${startupProvider.selectedCurrencyCode} (${startupProvider.selectedCurrencySymbol})',
                 onTap: () => _showCurrencyDialog(context, startupProvider),
               ),
-              Divider(color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8), height: 1),
+              Divider(
+                color: isDark
+                    ? const Color(0xFF2A2A2A)
+                    : const Color(0xFFE8E8E8),
+                height: 1,
+              ),
               if (!startupProvider.paymentsOnlyMode) ...[
                 _LiquidGlassTile(
                   icon: Icons.home_filled,
                   title: 'Default Screen',
-                  subtitle: _getDefaultScreenName(startupProvider.defaultScreenIndex),
-                  onTap: () => _showDefaultScreenDialog(context, startupProvider),
+                  subtitle: _getDefaultScreenName(
+                    startupProvider.defaultScreenIndex,
+                  ),
+                  onTap: () =>
+                      _showDefaultScreenDialog(context, startupProvider),
                 ),
-                Divider(color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8), height: 1),
+                Divider(
+                  color: isDark
+                      ? const Color(0xFF2A2A2A)
+                      : const Color(0xFFE8E8E8),
+                  height: 1,
+                ),
               ],
               _LiquidGlassTile(
                 icon: Icons.credit_card_rounded,
@@ -128,7 +154,12 @@ class _SettingsPageState extends State<SettingsPage> {
                 subtitle: _getThemeDisplayName(themeProvider.themePreference),
                 onTap: () => _showThemeDialog(context, themeProvider),
               ),
-              Divider(color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8), height: 1),
+              Divider(
+                color: isDark
+                    ? const Color(0xFF2A2A2A)
+                    : const Color(0xFFE8E8E8),
+                height: 1,
+              ),
               _LiquidGlassTile(
                 icon: Icons.font_download_outlined,
                 title: 'Use System Font',
@@ -151,25 +182,41 @@ class _SettingsPageState extends State<SettingsPage> {
                 subtitle: 'Save an encrypted copy of your data',
                 onTap: () => _showBackupDialog(themeProvider),
               ),
-              Divider(color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8), height: 1),
+              Divider(
+                color: isDark
+                    ? const Color(0xFF2A2A2A)
+                    : const Color(0xFFE8E8E8),
+                height: 1,
+              ),
               _LiquidGlassTile(
                 icon: Icons.restore_outlined,
                 title: 'Restore from Backup',
                 subtitle: 'Replace current data from a backup file',
                 onTap: () => _showRestoreDialog(themeProvider),
               ),
-              Divider(color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8), height: 1),
+              Divider(
+                color: isDark
+                    ? const Color(0xFF2A2A2A)
+                    : const Color(0xFFE8E8E8),
+                height: 1,
+              ),
               _LiquidGlassTile(
                 icon: Icons.delete_forever_outlined,
                 title: 'Delete All Data',
                 subtitle: 'Permanently erase all data from this device',
                 onTap: () => _showDeleteAllDataDialog(themeProvider),
               ),
-              Divider(color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8), height: 1),
+              Divider(
+                color: isDark
+                    ? const Color(0xFF2A2A2A)
+                    : const Color(0xFFE8E8E8),
+                height: 1,
+              ),
               _LiquidGlassTile(
                 icon: Icons.info_outline_rounded,
                 title: 'Trademark Notice',
-                subtitle: 'Card network logos are trademarks of their respective owners.',
+                subtitle:
+                    'Card network logos are trademarks of their respective owners.',
                 onTap: () => _showTrademarkNotice(isDark),
               ),
             ],
@@ -187,12 +234,16 @@ class _SettingsPageState extends State<SettingsPage> {
                   HapticFeedback.mediumImpact();
                   const url = 'https://github.com/sidhant947/Wallet/issues';
                   if (await canLaunchUrl(Uri.parse(url))) {
-                    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                    await launchUrl(
+                      Uri.parse(url),
+                      mode: LaunchMode.externalApplication,
+                    );
                   }
                 },
               ),
             ],
           ),
+          SizedBox(height: 30),
         ],
       ),
     );
@@ -203,7 +254,10 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
-        title: const Text('Trademark Fair Use Notice', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Trademark Fair Use Notice',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: const SingleChildScrollView(
           child: Text(
             'The Visa, Mastercard, RuPay, American Express, and Discover logos displayed in this application are registered trademarks of their respective owners.\n\n'
@@ -211,18 +265,32 @@ class _SettingsPageState extends State<SettingsPage> {
             'This application is not affiliated with, endorsed by, or sponsored by any of these companies.',
           ),
         ),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close'))],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
       ),
     );
   }
 
-  void _showCurrencyDialog(BuildContext context, StartupSettingsProvider provider) {
-    final isDark = Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+  void _showCurrencyDialog(
+    BuildContext context,
+    StartupSettingsProvider provider,
+  ) {
+    final isDark = Provider.of<ThemeProvider>(
+      context,
+      listen: false,
+    ).isDarkMode;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
-        title: const Text('Choose Currency', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Choose Currency',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -248,30 +316,57 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showDefaultScreenDialog(BuildContext context, StartupSettingsProvider provider) {
-    final isDark = Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+  void _showDefaultScreenDialog(
+    BuildContext context,
+    StartupSettingsProvider provider,
+  ) {
+    final isDark = Provider.of<ThemeProvider>(
+      context,
+      listen: false,
+    ).isDarkMode;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
-        title: const Text('Default Screen', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Default Screen',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildRadioOption('Payments', 0, provider.defaultScreenIndex, (v) { provider.setDefaultScreen(v); Navigator.pop(context); }, isDark),
-            _buildRadioOption('Passes', 1, provider.defaultScreenIndex, (v) { provider.setDefaultScreen(v); Navigator.pop(context); }, isDark),
+            _buildRadioOption('Payments', 0, provider.defaultScreenIndex, (v) {
+              provider.setDefaultScreen(v);
+              Navigator.pop(context);
+            }, isDark),
+            _buildRadioOption('Passes', 1, provider.defaultScreenIndex, (v) {
+              provider.setDefaultScreen(v);
+              Navigator.pop(context);
+            }, isDark),
+            _buildRadioOption('Identity', 2, provider.defaultScreenIndex, (v) {
+              provider.setDefaultScreen(v);
+              Navigator.pop(context);
+            }, isDark),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRadioOption(String label, int value, int groupValue, Function(int) onChanged, bool isDark) {
+  Widget _buildRadioOption(
+    String label,
+    int value,
+    int groupValue,
+    Function(int) onChanged,
+    bool isDark,
+  ) {
     return RadioListTile<int>(
       title: Text(label),
       value: value,
       groupValue: groupValue,
-      onChanged: (val) { if (val != null) onChanged(val); },
+      onChanged: (val) {
+        if (val != null) onChanged(val);
+      },
     );
   }
 
@@ -281,15 +376,27 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
-        title: const Text('Choose Theme', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Choose Theme',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: ThemePreference.values.map((p) => RadioListTile<ThemePreference>(
-            title: Text(_getThemeDisplayName(p)),
-            value: p,
-            groupValue: themeProvider.themePreference,
-            onChanged: (v) { if (v != null) { themeProvider.setThemePreference(v); Navigator.pop(context); } },
-          )).toList(),
+          children: ThemePreference.values
+              .map(
+                (p) => RadioListTile<ThemePreference>(
+                  title: Text(_getThemeDisplayName(p)),
+                  value: p,
+                  groupValue: themeProvider.themePreference,
+                  onChanged: (v) {
+                    if (v != null) {
+                      themeProvider.setThemePreference(v);
+                      Navigator.pop(context);
+                    }
+                  },
+                ),
+              )
+              .toList(),
         ),
       ),
     );
@@ -312,18 +419,24 @@ class _SettingsPageState extends State<SettingsPage> {
               Navigator.pop(dialogContext);
               if (path != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Backup saved successfully!'), backgroundColor: Colors.green)
+                  const SnackBar(
+                    content: Text('Backup saved successfully!'),
+                    backgroundColor: Colors.green,
+                  ),
                 );
               }
             }
           } catch (e) {
-             if (!mounted) return;
-             if (dialogContext.mounted) {
-               final errorMsg = e.toString().replaceFirst('Exception: ', '');
-               ScaffoldMessenger.of(context).showSnackBar(
-                 SnackBar(content: Text('Backup failed: $errorMsg'), backgroundColor: Colors.red)
-               );
-             }
+            if (!mounted) return;
+            if (dialogContext.mounted) {
+              final errorMsg = e.toString().replaceFirst('Exception: ', '');
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Backup failed: $errorMsg'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
           }
         },
       ),
@@ -336,7 +449,8 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (dialogContext) => _LiquidGlassPasswordDialog(
         title: 'Restore Backup',
-        content: 'Enter the password for the backup file. This will replace all current data.',
+        content:
+            'Enter the password for the backup file. This will replace all current data.',
         buttonText: 'Restore',
         isDestructive: true,
         isDark: isDark,
@@ -349,7 +463,7 @@ class _SettingsPageState extends State<SettingsPage> {
             final sProvider = context.read<StartupSettingsProvider>();
 
             await BackupService.restoreBackup(password);
-            
+
             if (dialogContext.mounted) {
               Navigator.pop(dialogContext);
             }
@@ -362,20 +476,26 @@ class _SettingsPageState extends State<SettingsPage> {
             identityProvider.fetchIdentities();
             await tProvider.init();
             await sProvider.loadStartupSettings();
-            
+
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Restored successfully!'), backgroundColor: Colors.green)
+              const SnackBar(
+                content: Text('Restored successfully!'),
+                backgroundColor: Colors.green,
+              ),
             );
           } catch (e) {
-             if (dialogContext.mounted) {
-               Navigator.pop(dialogContext);
-             }
-             if (!mounted) return;
-             final errorMsg = e.toString().replaceFirst('Exception: ', '');
-             ScaffoldMessenger.of(context).showSnackBar(
-               SnackBar(content: Text('Restore failed: $errorMsg'), backgroundColor: Colors.red)
-             );
+            if (dialogContext.mounted) {
+              Navigator.pop(dialogContext);
+            }
+            if (!mounted) return;
+            final errorMsg = e.toString().replaceFirst('Exception: ', '');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Restore failed: $errorMsg'),
+                backgroundColor: Colors.red,
+              ),
+            );
           }
         },
       ),
@@ -389,9 +509,14 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
         title: const Text('Delete All Data?'),
-        content: const Text('This will permanently delete all wallets, passes, and images.'),
+        content: const Text(
+          'This will permanently delete all wallets, passes, and images.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () async {
               await _performDeleteAllData();
@@ -409,7 +534,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final walletProvider = context.read<WalletProvider>();
     final passProvider = context.read<PassProvider>();
     final identityProvider = context.read<IdentityProvider>();
-    
+
     try {
       final wallets = await DatabaseHelper.instance.getWallets();
       for (var w in wallets) {
@@ -417,7 +542,7 @@ class _SettingsPageState extends State<SettingsPage> {
           await DatabaseHelper.instance.deleteWallet(w.id!);
         }
       }
-      
+
       final passes = await PassDatabaseHelper.instance.getAllPasses();
       for (var p in passes) {
         if (p.id != null) {
@@ -425,7 +550,8 @@ class _SettingsPageState extends State<SettingsPage> {
         }
       }
 
-      final identities = await IdentityDatabaseHelper.instance.getAllIdentities();
+      final identities = await IdentityDatabaseHelper.instance
+          .getAllIdentities();
       for (var i in identities) {
         if (i.id != null) {
           await IdentityDatabaseHelper.instance.deleteIdentity(i.id!);
@@ -436,21 +562,28 @@ class _SettingsPageState extends State<SettingsPage> {
       final dir = Directory(directory.path);
       if (await dir.exists()) {
         for (var f in dir.listSync()) {
-          if (f is File && (f.path.endsWith('.enc') || f.path.endsWith('.png') || f.path.endsWith('.jpg'))) {
+          if (f is File &&
+              (f.path.endsWith('.enc') ||
+                  f.path.endsWith('.png') ||
+                  f.path.endsWith('.jpg'))) {
             await f.delete();
           }
         }
       }
-      
+
       if (!mounted) return;
-      
+
       walletProvider.fetchWallets();
       passProvider.fetchPasses();
       identityProvider.fetchIdentities();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('All data deleted.')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('All data deleted.')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
     }
   }
 
@@ -468,14 +601,16 @@ class _SettingsPageState extends State<SettingsPage> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           gradient: LinearGradient(
-            colors: isDark 
-              ? [const Color(0xFF1A1A1A), const Color(0xFF0A0A0A)]
-              : [const Color(0xFFF0F4FF), const Color(0xFFE6EEFF)],
+            colors: isDark
+                ? [const Color(0xFF1A1A1A), const Color(0xFF0A0A0A)]
+                : [const Color(0xFFF0F4FF), const Color(0xFFE6EEFF)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           border: Border.all(
-            color: isDark ? Colors.blue.withValues(alpha: 0.2) : Colors.blue.withValues(alpha: 0.1),
+            color: isDark
+                ? Colors.blue.withValues(alpha: 0.2)
+                : Colors.blue.withValues(alpha: 0.1),
             width: 1,
           ),
         ),
@@ -533,7 +668,11 @@ class _LiquidGlassSection extends StatelessWidget {
   final String title;
   final IconData? icon;
   final List<Widget> children;
-  const _LiquidGlassSection({required this.title, this.icon, required this.children});
+  const _LiquidGlassSection({
+    required this.title,
+    this.icon,
+    required this.children,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -544,9 +683,33 @@ class _LiquidGlassSection extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8, top: 12),
-          child: Row(children: [if (icon != null) Icon(icon, size: 14, color: color), const SizedBox(width: 8), Text(title.toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.2))]),
+          child: Row(
+            children: [
+              if (icon != null) Icon(icon, size: 14, color: color),
+              const SizedBox(width: 8),
+              Text(
+                title.toUpperCase(),
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
         ),
-        Container(decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5), border: Border.all(color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8), width: 0.5)), child: Column(children: children)),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
+            border: Border.all(
+              color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8),
+              width: 0.5,
+            ),
+          ),
+          child: Column(children: children),
+        ),
         const SizedBox(height: 16),
       ],
     );
@@ -559,7 +722,13 @@ class _LiquidGlassTile extends StatelessWidget {
   final String? subtitle;
   final Widget? trailing;
   final VoidCallback? onTap;
-  const _LiquidGlassTile({required this.icon, required this.title, this.subtitle, this.trailing, this.onTap});
+  const _LiquidGlassTile({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -567,10 +736,40 @@ class _LiquidGlassTile extends StatelessWidget {
     final textColor = isDark ? Colors.white : Colors.black;
     return ListTile(
       onTap: onTap,
-      leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: textColor, size: 20)),
-      title: Text(title, style: TextStyle(color: textColor, fontWeight: FontWeight.w500, fontSize: 14)),
-      subtitle: subtitle != null ? Text(subtitle!, style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 12)) : null,
-      trailing: trailing ?? (onTap != null ? Icon(Icons.arrow_forward_ios_rounded, size: 14, color: isDark ? Colors.white30 : Colors.black26) : null),
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: textColor, size: 20),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
+        ),
+      ),
+      subtitle: subtitle != null
+          ? Text(
+              subtitle!,
+              style: TextStyle(
+                color: isDark ? Colors.white54 : Colors.black54,
+                fontSize: 12,
+              ),
+            )
+          : null,
+      trailing:
+          trailing ??
+          (onTap != null
+              ? Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: isDark ? Colors.white30 : Colors.black26,
+                )
+              : null),
     );
   }
 }
@@ -582,13 +781,22 @@ class _LiquidGlassPasswordDialog extends StatefulWidget {
   final bool isDestructive;
   final bool isDark;
   final Future<void> Function(String) onConfirm;
-  const _LiquidGlassPasswordDialog({required this.title, required this.content, required this.buttonText, this.isDestructive = false, required this.isDark, required this.onConfirm});
+  const _LiquidGlassPasswordDialog({
+    required this.title,
+    required this.content,
+    required this.buttonText,
+    this.isDestructive = false,
+    required this.isDark,
+    required this.onConfirm,
+  });
 
   @override
-  State<_LiquidGlassPasswordDialog> createState() => _LiquidGlassPasswordDialogState();
+  State<_LiquidGlassPasswordDialog> createState() =>
+      _LiquidGlassPasswordDialogState();
 }
 
-class _LiquidGlassPasswordDialogState extends State<_LiquidGlassPasswordDialog> {
+class _LiquidGlassPasswordDialogState
+    extends State<_LiquidGlassPasswordDialog> {
   late final TextEditingController _passwordController;
   bool _isLoading = false;
   bool _obscure = true;
@@ -609,34 +817,63 @@ class _LiquidGlassPasswordDialogState extends State<_LiquidGlassPasswordDialog> 
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: widget.isDark ? const Color(0xFF0A0A0A) : Colors.white,
-      title: Text(widget.title, style: TextStyle(color: widget.isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold)),
+      title: Text(
+        widget.title,
+        style: TextStyle(
+          color: widget.isDark ? Colors.white : Colors.black,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(widget.content, style: TextStyle(color: widget.isDark ? Colors.white70 : Colors.black87)),
+          Text(
+            widget.content,
+            style: TextStyle(
+              color: widget.isDark ? Colors.white70 : Colors.black87,
+            ),
+          ),
           const SizedBox(height: 16),
           TextField(
             controller: _passwordController,
             obscureText: _obscure,
-            style: TextStyle(color: widget.isDark ? Colors.white : Colors.black),
+            style: TextStyle(
+              color: widget.isDark ? Colors.white : Colors.black,
+            ),
             decoration: InputDecoration(
               labelText: 'Password',
-              suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off), onPressed: () => setState(() => _obscure = !_obscure)),
+              suffixIcon: IconButton(
+                icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                onPressed: () => setState(() => _obscure = !_obscure),
+              ),
             ),
           ),
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
         FilledButton(
-          onPressed: () async { 
+          onPressed: () async {
             if (_passwordController.text.isEmpty) return;
-            setState(() => _isLoading = true); 
-            await widget.onConfirm(_passwordController.text); 
-            if (mounted) setState(() => _isLoading = false); 
+            setState(() => _isLoading = true);
+            await widget.onConfirm(_passwordController.text);
+            if (mounted) setState(() => _isLoading = false);
           },
-          style: FilledButton.styleFrom(backgroundColor: widget.isDestructive ? Colors.red : (widget.isDark ? Colors.white : Colors.black)),
-          child: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(widget.buttonText),
+          style: FilledButton.styleFrom(
+            backgroundColor: widget.isDestructive
+                ? Colors.red
+                : (widget.isDark ? Colors.white : Colors.black),
+          ),
+          child: _isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(widget.buttonText),
         ),
       ],
     );
