@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:wallet/services/clipboard_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/services/image_service.dart';
@@ -216,7 +217,7 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
             isMasked: false,
             wallet: currentWallet,
             onCardTap: () {
-              Clipboard.setData(ClipboardData(text: currentWallet.number));
+              ClipboardService.instance.copy(currentWallet.number);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Card Number Copied!')),
               );

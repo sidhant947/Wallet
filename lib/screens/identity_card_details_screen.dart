@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:wallet/services/clipboard_service.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/identity_card.dart';
 import 'package:wallet/models/theme_provider.dart';
@@ -191,7 +192,7 @@ class _IdentityCardDetailScreenState extends State<IdentityCardDetailScreen> {
           IdentityCardWidget(
             card: currentCard,
             onTap: () {
-              Clipboard.setData(ClipboardData(text: currentCard.value));
+              ClipboardService.instance.copy(currentCard.value);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('ID Number Copied!')),
               );

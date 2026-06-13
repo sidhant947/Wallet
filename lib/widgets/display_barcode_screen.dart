@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:wallet/services/clipboard_service.dart';
 import 'package:provider/provider.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import '../models/theme_provider.dart';
@@ -130,7 +131,7 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
           // Copy button
           GestureDetector(
             onTap: () {
-              Clipboard.setData(ClipboardData(text: widget.barcodeData));
+              ClipboardService.instance.copy(widget.barcodeData);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   behavior: SnackBarBehavior.floating,

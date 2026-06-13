@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:wallet/services/clipboard_service.dart';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:provider/provider.dart';
@@ -613,9 +614,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               SlidableAction(
                                 onPressed: (ctx) {
                                   HapticFeedback.mediumImpact();
-                                  Clipboard.setData(
-                                    ClipboardData(text: wallet.number),
-                                  );
+                                  ClipboardService.instance.copy(wallet.number);
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: const Text(
@@ -821,9 +820,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           SlidableAction(
                             onPressed: (ctx) {
                               HapticFeedback.mediumImpact();
-                              Clipboard.setData(
-                                ClipboardData(text: pass.barcodeValue),
-                              );
+                              ClipboardService.instance.copy(pass.barcodeValue);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: const Text('Pass data copied!'),
@@ -1053,9 +1050,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           SlidableAction(
                             onPressed: (ctx) {
                               HapticFeedback.mediumImpact();
-                              Clipboard.setData(
-                                ClipboardData(text: card.value),
-                              );
+                              ClipboardService.instance.copy(card.value);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: const Text('ID value copied!'),
