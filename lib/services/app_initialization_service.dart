@@ -29,5 +29,11 @@ class AppInitializationService {
       ]);
       await EncryptionService.instance.markMigrated();
     }
+
+    // V2 migration: re-encrypt wallets to encrypt network/color fields
+    if (!await EncryptionService.instance.isMigratedV2()) {
+      await DatabaseHelper.instance.migrateToEncrypted();
+      await EncryptionService.instance.markMigratedV2();
+    }
   }
 }

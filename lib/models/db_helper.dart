@@ -125,24 +125,47 @@ class DatabaseHelper {
     return List.generate(maps.length, (i) => Wallet.fromEncryptedMap(maps[i]));
   }
 
-  Future<int> deleteWallet(int id) async {
+  /// Lightweight query for list display — only decrypts fields needed for cards and search.
+  Future<List<Wallet>> getWalletsSummary() async {
+    Database db = await instance.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'wallets',
+      columns: ['id', 'name', 'number', 'expiry', 'network', 'issuer', 'cardtype', 'color', 'frontImagePath', 'backImagePath', 'orderIndex'],
+      orderBy: 'orderIndex ASC',
+    );
+    return List.generate(maps.length, (i) => Wallet.fromEncryptedMapSummary(maps[i]));
+  }
+
+  /// Fetch a single wallet by ID with all fields decrypted.
+  Future<Wallet?> getWalletById(int id) async {
     Database db = await instance.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'wallets',
       where: 'id = ?',
       whereArgs: [id],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return Wallet.fromEncryptedMap(maps[0]);
+  }
+
+  Future<int> deleteWallet(int id) async {
+    Database db = await instance.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'wallets',
+      columns: ['frontImagePath', 'backImagePath'],
+      where: 'id = ?',
+      whereArgs: [id],
     );
     if (maps.isEmpty) return 0;
 
-    final wallet = Wallet.fromEncryptedMap(maps[0]);
-
-    await _deleteImageFile(wallet.frontImagePath);
-    await _deleteImageFile(wallet.backImagePath);
+    await deleteImageFile(maps[0]['frontImagePath'] as String?);
+    await deleteImageFile(maps[0]['backImagePath'] as String?);
 
     return await db.delete('wallets', where: 'id = ?', whereArgs: [id]);
   }
 
-  static Future<void> _deleteImageFile(String? imagePath) async {
+  static Future<void> deleteImageFile(String? imagePath) async {
     if (imagePath != null && imagePath.isNotEmpty) {
       try {
         final file = File(imagePath);
@@ -167,14 +190,23 @@ class DatabaseHelper {
     final db = await instance.database;
     final List<Map<String, dynamic>> maps = await db.query('wallets');
 
-    for (final map in maps) {
-      final wallet = Wallet.fromEncryptedMap(map);
-      await db.update(
-        'wallets',
-        wallet.toEncryptedMap(),
-        where: 'id = ?',
-        whereArgs: [wallet.id],
-      );
+    // Process in batches to avoid blocking UI for long periods
+    const batchSize = 50;
+    for (var i = 0; i < maps.length; i += batchSize) {
+      final batch = db.batch();
+      final end = (i + batchSize).clamp(0, maps.length);
+      for (var j = i; j < end; j++) {
+        final wallet = Wallet.fromEncryptedMap(maps[j]);
+        batch.update(
+          'wallets',
+          wallet.toEncryptedMap(),
+          where: 'id = ?',
+          whereArgs: [wallet.id],
+        );
+      }
+      await batch.commit(noResult: true);
+      // Yield to event loop between batches to keep UI responsive
+      await Future<void>.delayed(Duration.zero);
     }
   }
 }
@@ -245,15 +277,18 @@ class PassDatabaseHelper {
 
   Future<void> deletePass(int id) async {
     final db = await database;
-    final result = await db.query('passes', where: 'id = ?', whereArgs: [id]);
+    final result = await db.query(
+      'passes',
+      columns: ['frontImagePath', 'backImagePath', 'stripImagePath', 'thumbnailImagePath'],
+      where: 'id = ?',
+      whereArgs: [id],
+    );
     if (result.isEmpty) return;
 
-    final pass = Pass.fromEncryptedMap(result[0]);
-
-    await DatabaseHelper._deleteImageFile(pass.frontImagePath);
-    await DatabaseHelper._deleteImageFile(pass.backImagePath);
-    await DatabaseHelper._deleteImageFile(pass.stripImagePath);
-    await DatabaseHelper._deleteImageFile(pass.thumbnailImagePath);
+    await DatabaseHelper.deleteImageFile(result[0]['frontImagePath'] as String?);
+    await DatabaseHelper.deleteImageFile(result[0]['backImagePath'] as String?);
+    await DatabaseHelper.deleteImageFile(result[0]['stripImagePath'] as String?);
+    await DatabaseHelper.deleteImageFile(result[0]['thumbnailImagePath'] as String?);
 
     await db.delete('passes', where: 'id = ?', whereArgs: [id]);
   }
@@ -286,14 +321,21 @@ class PassDatabaseHelper {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query('passes');
 
-    for (final map in maps) {
-      final pass = Pass.fromEncryptedMap(map);
-      await db.update(
-        'passes',
-        pass.toEncryptedMap(),
-        where: 'id = ?',
-        whereArgs: [pass.id],
-      );
+    const batchSize = 50;
+    for (var i = 0; i < maps.length; i += batchSize) {
+      final batch = db.batch();
+      final end = (i + batchSize).clamp(0, maps.length);
+      for (var j = i; j < end; j++) {
+        final pass = Pass.fromEncryptedMap(maps[j]);
+        batch.update(
+          'passes',
+          pass.toEncryptedMap(),
+          where: 'id = ?',
+          whereArgs: [pass.id],
+        );
+      }
+      await batch.commit(noResult: true);
+      await Future<void>.delayed(Duration.zero);
     }
   }
 }
@@ -358,14 +400,14 @@ class IdentityDatabaseHelper {
     final db = await database;
     final result = await db.query(
       'identities',
+      columns: ['frontImagePath', 'backImagePath'],
       where: 'id = ?',
       whereArgs: [id],
     );
     if (result.isEmpty) return;
 
-    final card = IdentityCard.fromEncryptedMap(result[0]);
-    await DatabaseHelper._deleteImageFile(card.frontImagePath);
-    await DatabaseHelper._deleteImageFile(card.backImagePath);
+    await DatabaseHelper.deleteImageFile(result[0]['frontImagePath'] as String?);
+    await DatabaseHelper.deleteImageFile(result[0]['backImagePath'] as String?);
 
     await db.delete('identities', where: 'id = ?', whereArgs: [id]);
   }
@@ -398,14 +440,21 @@ class IdentityDatabaseHelper {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query('identities');
 
-    for (final map in maps) {
-      final card = IdentityCard.fromEncryptedMap(map);
-      await db.update(
-        'identities',
-        card.toEncryptedMap(),
-        where: 'id = ?',
-        whereArgs: [card.id],
-      );
+    const batchSize = 50;
+    for (var i = 0; i < maps.length; i += batchSize) {
+      final batch = db.batch();
+      final end = (i + batchSize).clamp(0, maps.length);
+      for (var j = i; j < end; j++) {
+        final card = IdentityCard.fromEncryptedMap(maps[j]);
+        batch.update(
+          'identities',
+          card.toEncryptedMap(),
+          where: 'id = ?',
+          whereArgs: [card.id],
+        );
+      }
+      await batch.commit(noResult: true);
+      await Future<void>.delayed(Duration.zero);
     }
   }
 }

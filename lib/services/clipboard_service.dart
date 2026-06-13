@@ -10,7 +10,7 @@ class ClipboardService {
   Timer? _clearTimer;
   String? _currentContent;
 
-  static const Duration _defaultClearDuration = Duration(seconds: 30);
+  static const Duration _defaultClearDuration = Duration(seconds: 15);
 
   String? get currentContent => _currentContent;
 

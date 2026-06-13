@@ -6,8 +6,13 @@ class WalletProvider with ChangeNotifier {
   List<Wallet> wallets = [];
 
   Future<void> fetchWallets() async {
-    wallets = await DatabaseHelper.instance.getWallets();
+    wallets = await DatabaseHelper.instance.getWalletsSummary();
     notifyListeners();
+  }
+
+  /// Fetch full wallet details (all decrypted fields) — use for detail/edit screens.
+  Future<Wallet?> getWalletDetails(int id) async {
+    return await DatabaseHelper.instance.getWalletById(id);
   }
 
   Future<void> deleteWallet(int id) async {
@@ -94,10 +99,10 @@ class PassProvider with ChangeNotifier {
     return passes.where((pass) {
       // Basic fields
       if (pass.organizationName.toLowerCase().contains(lowercaseQuery)) return true;
-      if (pass.description?.toLowerCase().contains(lowercaseQuery) ?? false) return true;
-      if (pass.logoText?.toLowerCase().contains(lowercaseQuery) ?? false) return true;
+      if (pass.description != null && pass.description!.toLowerCase().contains(lowercaseQuery)) return true;
+      if (pass.logoText != null && pass.logoText!.toLowerCase().contains(lowercaseQuery)) return true;
       if (pass.barcodeValue.toLowerCase().contains(lowercaseQuery)) return true;
-      if (pass.barcodeAltText?.toLowerCase().contains(lowercaseQuery) ?? false) return true;
+      if (pass.barcodeAltText != null && pass.barcodeAltText!.toLowerCase().contains(lowercaseQuery)) return true;
 
       // Search through dynamic fields
       if (pass.fields != null) {
@@ -105,9 +110,10 @@ class PassProvider with ChangeNotifier {
           if (section is List) {
             for (final field in section) {
               if (field is Map) {
-                final label = field['label']?.toString().toLowerCase() ?? '';
-                final value = field['value']?.toString().toLowerCase() ?? '';
-                if (label.contains(lowercaseQuery) || value.contains(lowercaseQuery)) {
+                final label = field['label']?.toString() ?? '';
+                final value = field['value']?.toString() ?? '';
+                if ((label.isNotEmpty && label.toLowerCase().contains(lowercaseQuery)) ||
+                    (value.isNotEmpty && value.toLowerCase().contains(lowercaseQuery))) {
                   return true;
                 }
               }

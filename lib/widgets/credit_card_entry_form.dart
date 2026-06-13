@@ -38,17 +38,22 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
   @override
   void initState() {
     super.initState();
-    _nameController.addListener(() => setState(() {}));
-    _numberController.addListener(() {
-      // Auto-detect and select card network
-      final detected = CardUtils.detectCardNetwork(_numberController.text);
-      if (detected != null && detected != _network) {
-        setState(() => _network = detected);
-      } else {
-        setState(() {});
-      }
-    });
-    _expiryController.addListener(() => setState(() {}));
+    _nameController.addListener(_onFieldChanged);
+    _numberController.addListener(_onNumberChanged);
+    _expiryController.addListener(_onFieldChanged);
+  }
+
+  void _onFieldChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _onNumberChanged() {
+    final detected = CardUtils.detectCardNetwork(_numberController.text);
+    if (detected != null && detected != _network) {
+      setState(() => _network = detected);
+    } else if (mounted) {
+      setState(() {});
+    }
   }
 
   /// Get maximum card number length based on selected network
@@ -59,6 +64,9 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
 
   @override
   void dispose() {
+    _nameController.removeListener(_onFieldChanged);
+    _numberController.removeListener(_onNumberChanged);
+    _expiryController.removeListener(_onFieldChanged);
     _nameController.dispose();
     _numberController.dispose();
     _expiryController.dispose();
@@ -226,6 +234,9 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
                   }
                   if (!CardUtils.isValidLengthForNetwork(v, detectedNetwork)) {
                     return CardUtils.getLengthErrorMessage(detectedNetwork);
+                  }
+                  if (!CardUtils.isValidCardNumber(v)) {
+                    return 'Invalid card number';
                   }
                   return null;
                 },

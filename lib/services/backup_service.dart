@@ -11,6 +11,22 @@ import 'package:wallet/services/encryption_service.dart';
 
 class BackupService {
   static const String _backupVersion = '4.0'; // Incremented for settings support
+  static const int _maxDecompressedSize = 100 * 1024 * 1024; // 100MB zip bomb limit
+
+  static const Set<String> _allowedSettingsKeys = {
+    'themePreference',
+    'useSystemFont',
+    'showAuthenticationScreen',
+    'defaultScreenIndex',
+    'paymentsOnlyMode',
+    'hideIdentityAndLoyalty',
+    'selectedCurrencyCode',
+    'selectedCurrencySymbol',
+  };
+
+  static bool _isAllowedSettingsKey(String key) {
+    return _allowedSettingsKeys.contains(key);
+  }
 
   static Future<String?> createBackup(String password) async {
     try {
@@ -24,7 +40,10 @@ class BackupService {
       final keys = prefs.getKeys();
       for (final key in keys) {
         // DO NOT backup encryption keys or migration flags
-        if (key.startsWith('wallet_aes_256_master_key') || key == 'wallet_encryption_migrated') {
+        if (key.startsWith('wallet_aes_256_master_key') ||
+            key == 'wallet_encryption_migrated' ||
+            key == 'wallet_encryption_migrated_v2' ||
+            key == 'wallet_transfer_key') {
           continue;
         }
         settings[key] = prefs.get(key);
@@ -45,7 +64,7 @@ class BackupService {
       final archive = Archive();
       archive.addFile(ArchiveFile('data.json', jsonBytes.length, jsonBytes));
 
-      // Add images to backup
+      // Add images to backup — decrypt all in parallel
       final imagePaths = <String>{};
       for (final w in wallets) {
         if (w.frontImagePath != null) imagePaths.add(w.frontImagePath!);
@@ -62,21 +81,25 @@ class BackupService {
         if (i.backImagePath != null) imagePaths.add(i.backImagePath!);
       }
 
-      for (final path in imagePaths) {
+      final imageFutures = imagePaths.map((path) async {
         try {
           final decryptedBytes =
               await EncryptionService.instance.decryptImageToBytes(path);
           if (decryptedBytes != null) {
             final fileName = p.basename(path).replaceAll('.enc', '');
-            archive.addFile(
-              ArchiveFile(
-                'images/$fileName',
-                decryptedBytes.length,
-                decryptedBytes,
-              ),
+            return ArchiveFile(
+              'images/$fileName',
+              decryptedBytes.length,
+              decryptedBytes,
             );
           }
         } catch (_) {}
+        return null;
+      }).toList();
+
+      final imageResults = await Future.wait(imageFutures);
+      for (final file in imageResults) {
+        if (file != null) archive.addFile(file);
       }
 
       final zipData = ZipEncoder().encode(archive);
@@ -151,6 +174,11 @@ class BackupService {
       } else {
         // Modern ZIP-based backup (or older ZIP-in-base64 format)
         try {
+          // Reject obviously oversized encrypted data before attempting decompression
+          if (decryptedData.length > _maxDecompressedSize) {
+            throw Exception('Backup file is too large.');
+          }
+
           Archive? archive;
           try {
             // First try direct ZIP decode
@@ -164,6 +192,15 @@ class BackupService {
           }
 
           if (archive == null) throw Exception("Could not decode backup archive.");
+
+          // Zip bomb protection: check decompressed size
+          int totalSize = 0;
+          for (final file in archive) {
+            totalSize += file.size;
+            if (totalSize > _maxDecompressedSize) {
+              throw Exception('Backup archive exceeds maximum allowed size.');
+            }
+          }
 
           final dataFile = archive.findFile('data.json');
           if (dataFile == null) {
@@ -180,6 +217,11 @@ class BackupService {
         }
       }
 
+      // Validate backup data schema
+      if (!_isValidBackupSchema(backupData)) {
+        throw Exception('Backup file has an invalid or unsupported format.');
+      }
+
       // If we got here, we have valid data. Proceed with restoration.
       await _clearAllData();
 
@@ -190,16 +232,18 @@ class BackupService {
         for (final entry in settings.entries) {
           final key = entry.key;
           final value = entry.value;
-          if (value is bool) {
-            await prefs.setBool(key, value);
-          } else if (value is int) {
-            await prefs.setInt(key, value);
-          } else if (value is double) {
-            await prefs.setDouble(key, value);
-          } else if (value is String) {
-            await prefs.setString(key, value);
-          } else if (value is List) {
-            await prefs.setStringList(key, List<String>.from(value));
+          if (_isAllowedSettingsKey(key)) {
+            if (value is bool) {
+              await prefs.setBool(key, value);
+            } else if (value is int) {
+              await prefs.setInt(key, value);
+            } else if (value is double) {
+              await prefs.setDouble(key, value);
+            } else if (value is String) {
+              await prefs.setString(key, value);
+            } else if (value is List) {
+              await prefs.setStringList(key, List<String>.from(value));
+            }
           }
         }
       }
@@ -302,17 +346,6 @@ class BackupService {
           await IdentityDatabaseHelper.instance.insertIdentity(IdentityCard.fromMap(identityMap));
         } catch (_) {}
       }
-      
-      // Legacy support for older backups
-      final legacyIdentitiesData = backupData['identities'] as List<dynamic>? ?? [];
-      for (final _ in legacyIdentitiesData) {
-         try {
-           // final map = Map<String, dynamic>.from(i);
-           // Only import if it's not already handled by the modern identitiesData
-           // In old versions, identities were different.
-           // This is just a safety check.
-         } catch (_) {}
-      }
     } catch (_) {
       rethrow;
     }
@@ -329,10 +362,14 @@ class BackupService {
     final appDir = await getApplicationDocumentsDirectory();
     final dir = Directory(appDir.path);
     if (await dir.exists()) {
+      final deleteFutures = <Future>[];
       for (var file in dir.listSync()) {
-        if (file is File && (file.path.endsWith('.enc') || file.path.endsWith('.png') || file.path.endsWith('.jpg'))) {
-          await file.delete();
+        if (file is File && _isAppSpecificFile(file.path)) {
+          deleteFutures.add(file.delete());
         }
+      }
+      if (deleteFutures.isNotEmpty) {
+        await Future.wait(deleteFutures);
       }
     }
 
@@ -341,9 +378,53 @@ class BackupService {
     // Only clear non-encryption settings to avoid bricking the current install's encryption state
     final keys = prefs.getKeys();
     for (final key in keys) {
-      if (!key.startsWith('wallet_aes_256_master_key') && key != 'wallet_encryption_migrated') {
+      if (!key.startsWith('wallet_aes_256_master_key') &&
+          key != 'wallet_encryption_migrated' &&
+          key != 'wallet_encryption_migrated_v2' &&
+          key != 'wallet_transfer_key') {
         await prefs.remove(key);
       }
     }
+  }
+
+  static bool _isAppSpecificFile(String path) {
+    final basename = path.split(Platform.pathSeparator).last;
+    if (basename.endsWith('.enc')) return true;
+    if (basename.endsWith('.png') || basename.endsWith('.jpg')) {
+      // Only delete files with timestamp-based names from image_service
+      return RegExp(r'^\d{16,}\.(png|jpg)$').hasMatch(basename);
+    }
+    return false;
+  }
+
+  static bool _isValidBackupSchema(Map<String, dynamic> data) {
+    if (data.isEmpty) return false;
+    // Must have at least one data array
+    final hasWallets = data.containsKey('wallets') && data['wallets'] is List;
+    final hasPasses = data.containsKey('passes') && data['passes'] is List;
+    final hasIdentities = data.containsKey('identities') && data['identities'] is List;
+    if (!hasWallets && !hasPasses && !hasIdentities) return false;
+    // Validate wallet entries have required fields
+    if (hasWallets) {
+      for (final w in data['wallets'] as List) {
+        if (w is! Map<String, dynamic>) return false;
+        if (!w.containsKey('name') || !w.containsKey('number') || !w.containsKey('expiry')) return false;
+      }
+    }
+    // Validate pass entries
+    if (hasPasses) {
+      for (final p in data['passes'] as List) {
+        if (p is! Map<String, dynamic>) return false;
+        if (!p.containsKey('type') || !p.containsKey('organizationName') || !p.containsKey('barcodeValue')) return false;
+      }
+    }
+    // Validate identity entries
+    if (hasIdentities) {
+      for (final i in data['identities'] as List) {
+        if (i is! Map<String, dynamic>) return false;
+        if (!i.containsKey('name') || !i.containsKey('value')) return false;
+      }
+    }
+    return true;
   }
 }

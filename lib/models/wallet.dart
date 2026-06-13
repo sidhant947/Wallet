@@ -72,7 +72,7 @@ class Wallet {
       'name': enc.encryptText(name),
       'number': enc.encryptText(number),
       'expiry': enc.encryptText(expiry),
-      'network': network,
+      'network': enc.encryptText(network),
       'issuer': enc.encryptText(issuer),
       'customFields': customFields != null
           ? enc.encryptJson(customFields!.cast<String, dynamic>())
@@ -84,7 +84,7 @@ class Wallet {
       'cardtype': enc.encryptText(cardtype),
       'billdate': enc.encryptText(billdate),
       'category': enc.encryptText(category),
-      'color': color,
+      'color': enc.encryptText(color),
       'frontImagePath': frontImagePath,
       'backImagePath': backImagePath,
       'orderIndex': orderIndex,
@@ -123,7 +123,7 @@ class Wallet {
       name: enc.decryptText(map['name']) ?? '',
       number: enc.decryptText(map['number']) ?? '',
       expiry: enc.decryptText(map['expiry']) ?? '',
-      network: map['network'],
+      network: enc.decryptText(map['network']),
       issuer: enc.decryptText(map['issuer']),
       customFields: map['customFields'] != null
           ? enc.decryptJsonToStringMap(map['customFields'])
@@ -135,7 +135,26 @@ class Wallet {
       cardtype: enc.decryptText(map['cardtype']),
       billdate: enc.decryptText(map['billdate']),
       category: enc.decryptText(map['category']),
-      color: map['color'],
+      color: enc.decryptText(map['color']),
+      frontImagePath: map['frontImagePath'],
+      backImagePath: map['backImagePath'],
+      orderIndex: map['orderIndex'] ?? 0,
+    );
+  }
+
+  /// Lightweight factory for list display — only decrypts fields shown on cards and needed for search.
+  /// Other fields (spends, rewards, etc.) are left null.
+  factory Wallet.fromEncryptedMapSummary(Map<String, dynamic> map) {
+    final enc = EncryptionService.instance;
+    return Wallet(
+      id: map['id'],
+      name: enc.decryptText(map['name']) ?? '',
+      number: enc.decryptText(map['number']) ?? '',
+      expiry: enc.decryptText(map['expiry']) ?? '',
+      network: enc.decryptText(map['network']),
+      issuer: enc.decryptText(map['issuer']),
+      cardtype: enc.decryptText(map['cardtype']),
+      color: enc.decryptText(map['color']),
       frontImagePath: map['frontImagePath'],
       backImagePath: map['backImagePath'],
       orderIndex: map['orderIndex'] ?? 0,

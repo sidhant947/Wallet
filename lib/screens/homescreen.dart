@@ -54,6 +54,10 @@ class _HomeScreenState extends State<HomeScreen> {
   String _searchQuery = "";
   Timer? _debounce;
 
+  // Chunked transfer import state
+  final List<String> _transferChunks = [];
+  int _expectedTotalChunks = 0;
+
   @override
   void initState() {
     super.initState();
@@ -104,8 +108,16 @@ class _HomeScreenState extends State<HomeScreen> {
       final scanResult = await BarcodeScanner.scan();
       if (scanResult.type != ResultType.Barcode) return;
 
-      final encryptedData = scanResult.rawContent;
-      final decryptedJson = EncryptionService.instance.decryptFromTransfer(encryptedData);
+      final rawData = scanResult.rawContent;
+
+      // V2: Chunked password-based transfer
+      if (rawData.startsWith('v2:')) {
+        _handleChunkScan(rawData);
+        return;
+      }
+
+      // Legacy v1 single-QR transfer
+      final decryptedJson = EncryptionService.instance.decryptFromTransfer(rawData);
 
       if (decryptedJson == null) {
         if (mounted) {
@@ -117,10 +129,23 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       final payload = jsonDecode(decryptedJson) as Map<String, dynamic>;
-      final type = payload['type'];
-      final data = payload['data'] as Map<String, dynamic>;
+      final type = payload['type'] as String?;
+      final data = payload['data'] as Map<String, dynamic>?;
+
+      if (type == null || data == null || !_isValidImportType(type)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Invalid sharing code format.')),
+          );
+        }
+        return;
+      }
 
       if (type == 'pass') {
+        if (!_isValidPassData(data)) {
+          _showImportError('Invalid pass data.');
+          return;
+        }
         final newPass = Pass.fromMap(data);
         if (mounted) {
           final confirm = await _showImportConfirmation(newPass.organizationName, 'Pass');
@@ -133,6 +158,10 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         }
       } else if (type == 'wallet') {
+        if (!_isValidWalletData(data)) {
+          _showImportError('Invalid card data.');
+          return;
+        }
         final newWallet = Wallet.fromMap(data);
         if (mounted) {
           final confirm = await _showImportConfirmation(newWallet.name, 'Payment Card');
@@ -145,6 +174,10 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         }
       } else if (type == 'identity') {
+        if (!_isValidIdentityData(data)) {
+          _showImportError('Invalid identity data.');
+          return;
+        }
         final newIdentity = IdentityCard.fromMap(data);
         if (mounted) {
           final confirm = await _showImportConfirmation(newIdentity.name, 'Identity Card');
@@ -157,7 +190,237 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to import. The sharing code may be corrupted.')),
+        );
+      }
+    }
+  }
+
+  void _handleChunkScan(String rawData) {
+    try {
+      final parts = rawData.split(':');
+      if (parts.length != 6) {
+        _showImportError('Invalid chunk format.');
+        return;
+      }
+
+      final chunkIndex = int.parse(parts[1]);
+      final totalChunks = int.parse(parts[2]);
+
+      if (chunkIndex < 0 || chunkIndex >= totalChunks) {
+        _showImportError('Invalid chunk index.');
+        return;
+      }
+
+      if (_transferChunks.isEmpty) {
+        _expectedTotalChunks = totalChunks;
+      } else if (_expectedTotalChunks != totalChunks) {
+        _showImportError('Chunk mismatch. Please restart scanning.');
+        _transferChunks.clear();
+        _expectedTotalChunks = 0;
+        return;
+      }
+
+      if (!_transferChunks.asMap().containsKey(chunkIndex)) {
+        _transferChunks.add(rawData);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Scanned chunk ${_transferChunks.length} of $totalChunks'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+
+      if (_transferChunks.length == totalChunks) {
+        _promptTransferPassword();
+      }
+    } catch (_) {
+      _showImportError('Failed to parse chunk.');
+    }
+  }
+
+  void _promptTransferPassword() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        final controller = TextEditingController();
+        bool obscure = true;
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+            title: const Text('Enter Transfer Password', style: TextStyle(fontWeight: FontWeight.bold)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Enter the password that was used to encrypt this transfer.',
+                  style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: controller,
+                  obscureText: obscure,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(obscure ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => setDialogState(() => obscure = !obscure),
+                    ),
+                  ),
+                  onSubmitted: (_) => _decryptAndImportChunks(ctx, controller.text),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  _transferChunks.clear();
+                  _expectedTotalChunks = 0;
+                  Navigator.pop(ctx);
+                },
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => _decryptAndImportChunks(ctx, controller.text),
+                child: const Text('Import'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _decryptAndImportChunks(BuildContext ctx, String password) async {
+    if (password.isEmpty) return;
+    Navigator.pop(ctx);
+
+    try {
+      final joinedData = _transferChunks.join('\n');
+      _transferChunks.clear();
+      _expectedTotalChunks = 0;
+
+      final decryptedJson = EncryptionService.instance.decryptFromTransfer(joinedData, password: password);
+
+      if (decryptedJson == null) {
+        _showImportError('Decryption failed. Wrong password or corrupted data.');
+        return;
+      }
+
+      final payload = jsonDecode(decryptedJson) as Map<String, dynamic>;
+      final type = payload['type'] as String?;
+      final data = payload['data'] as Map<String, dynamic>?;
+
+      if (type == null || data == null || !_isValidImportType(type)) {
+        _showImportError('Invalid sharing code format.');
+        return;
+      }
+
+      if (type == 'pass') {
+        if (!_isValidPassData(data)) {
+          _showImportError('Invalid pass data.');
+          return;
+        }
+        final newPass = Pass.fromMap(data);
+        if (mounted) {
+          final confirm = await _showImportConfirmation(newPass.organizationName, 'Pass');
+          if (confirm == true) {
+            await PassDatabaseHelper.instance.insertPass(newPass);
+            if (mounted) {
+              context.read<PassProvider>().fetchPasses();
+              _showSuccessSnackBar('Pass imported successfully!');
+            }
+          }
+        }
+      } else if (type == 'wallet') {
+        if (!_isValidWalletData(data)) {
+          _showImportError('Invalid card data.');
+          return;
+        }
+        final newWallet = Wallet.fromMap(data);
+        if (mounted) {
+          final confirm = await _showImportConfirmation(newWallet.name, 'Payment Card');
+          if (confirm == true) {
+            await DatabaseHelper.instance.insertWallet(newWallet);
+            if (mounted) {
+              context.read<WalletProvider>().fetchWallets();
+              _showSuccessSnackBar('Payment card imported successfully!');
+            }
+          }
+        }
+      } else if (type == 'identity') {
+        if (!_isValidIdentityData(data)) {
+          _showImportError('Invalid identity data.');
+          return;
+        }
+        final newIdentity = IdentityCard.fromMap(data);
+        if (mounted) {
+          final confirm = await _showImportConfirmation(newIdentity.name, 'Identity Card');
+          if (confirm == true) {
+            await IdentityDatabaseHelper.instance.insertIdentity(newIdentity);
+            if (mounted) {
+              context.read<IdentityProvider>().fetchIdentities();
+              _showSuccessSnackBar('Identity card imported successfully!');
+            }
+          }
+        }
+      }
+    } catch (_) {
+      _showImportError('Failed to import. Wrong password or corrupted data.');
+    }
+  }
+
+  bool _isValidImportType(String type) {
+    return type == 'pass' || type == 'wallet' || type == 'identity';
+  }
+
+  bool _isValidWalletData(Map<String, dynamic> data) {
+    return data.containsKey('name') &&
+        data.containsKey('number') &&
+        data.containsKey('expiry') &&
+        data['name'] is String &&
+        data['number'] is String &&
+        data['expiry'] is String &&
+        (data['name'] as String).isNotEmpty &&
+        (data['number'] as String).isNotEmpty;
+  }
+
+  bool _isValidPassData(Map<String, dynamic> data) {
+    return data.containsKey('type') &&
+        data.containsKey('organizationName') &&
+        data.containsKey('barcodeValue') &&
+        data['type'] is String &&
+        data['organizationName'] is String &&
+        data['barcodeValue'] is String &&
+        (data['organizationName'] as String).isNotEmpty;
+  }
+
+  bool _isValidIdentityData(Map<String, dynamic> data) {
+    return data.containsKey('name') &&
+        data.containsKey('value') &&
+        data['name'] is String &&
+        data['value'] is String &&
+        (data['name'] as String).isNotEmpty &&
+        (data['value'] as String).isNotEmpty;
+  }
+
+  void _showImportError(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
   }
 
   Future<bool?> _showImportConfirmation(String name, String typeLabel) {
@@ -448,11 +711,16 @@ class _HomeScreenState extends State<HomeScreen> {
             ? wallets
             : wallets.where((wallet) {
                 final query = _searchQuery.toLowerCase();
-                return (wallet.name.toLowerCase().contains(query)) ||
-                    (wallet.number.contains(query)) ||
-                    (wallet.network?.toLowerCase().contains(query) ?? false) ||
-                    (wallet.issuer?.toLowerCase().contains(query) ?? false) ||
-                    (wallet.cardtype?.toLowerCase().contains(query) ?? false);
+                final nameMatch = wallet.name.toLowerCase().contains(query);
+                final maskedNumber = wallet.number.length >= 4
+                    ? '••••${wallet.number.substring(wallet.number.length - 4)}'
+                    : wallet.number;
+                final numberMatch = maskedNumber.contains(query) ||
+                    wallet.number.contains(query);
+                final networkMatch = wallet.network?.toLowerCase().contains(query) ?? false;
+                final issuerMatch = wallet.issuer?.toLowerCase().contains(query) ?? false;
+                final typeMatch = wallet.cardtype?.toLowerCase().contains(query) ?? false;
+                return nameMatch || numberMatch || networkMatch || issuerMatch || typeMatch;
               }).toList();
 
         // 2. Then, filter the result by the network button.
@@ -579,9 +847,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   return ReorderableDelayedDragStartListener(
                     key: ValueKey(wallet.id),
                     index: index,
-                    child: _AnimatedListItem(
-                      key: ValueKey('anim_${wallet.id}'),
-                      index: index,
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                         child: Slidable(
@@ -591,14 +856,18 @@ class _HomeScreenState extends State<HomeScreen> {
                             extentRatio: 0.25,
                             children: [
                               SlidableAction(
-                                onPressed: (ctx) {
+                                onPressed: (ctx) async {
                                   HapticFeedback.lightImpact();
-                                  Navigator.push(
-                                    context,
-                                    SmoothPageRoute(
-                                      page: WalletEditScreen(wallet: wallet),
-                                    ),
-                                  );
+                                  final provider = ctx.read<WalletProvider>();
+                                  final fullWallet = await provider.getWalletDetails(wallet.id!);
+                                  if (fullWallet != null && ctx.mounted) {
+                                    Navigator.push(
+                                      ctx,
+                                      SmoothPageRoute(
+                                        page: WalletEditScreen(wallet: fullWallet),
+                                      ),
+                                    );
+                                  }
                                 },
                                 backgroundColor: Colors.transparent,
                                 foregroundColor: Colors.blue,
@@ -650,17 +919,23 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: GlassCreditCard(
                             wallet: wallet,
                             isMasked: true,
-                            onCardTap: () => Navigator.push(
-                              context,
-                              SmoothPageRoute(
-                                page: WalletDetailScreen(wallet: wallet),
-                              ),
-                            ),
+                            onCardTap: () async {
+                              final navCtx = context;
+                              final provider = navCtx.read<WalletProvider>();
+                              final fullWallet = await provider.getWalletDetails(wallet.id!);
+                              if (fullWallet != null && navCtx.mounted) {
+                                Navigator.push(
+                                  navCtx,
+                                  SmoothPageRoute(
+                                    page: WalletDetailScreen(wallet: fullWallet),
+                                  ),
+                                );
+                              }
+                            },
                           ),
                         ),
                       ),
-                    ),
-                  );
+                    );
                 },
               ),
             // Bottom padding
@@ -1103,21 +1378,5 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
-  }
-}
-
-class _AnimatedListItem extends StatelessWidget {
-  final int index;
-  final Widget child;
-
-  const _AnimatedListItem({
-    super.key,
-    required this.index,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return child;
   }
 }

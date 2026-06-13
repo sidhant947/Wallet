@@ -534,38 +534,75 @@ class _SettingsPageState extends State<SettingsPage> {
     final identityProvider = context.read<IdentityProvider>();
 
     try {
+      // Bulk delete wallets
       final wallets = await DatabaseHelper.instance.getWallets();
-      for (var w in wallets) {
-        if (w.id != null) {
-          await DatabaseHelper.instance.deleteWallet(w.id!);
+      if (wallets.isNotEmpty) {
+        final db = await DatabaseHelper.instance.database;
+        final batch = db.batch();
+        for (var w in wallets) {
+          if (w.id != null) {
+            batch.delete('wallets', where: 'id = ?', whereArgs: [w.id]);
+          }
+        }
+        await batch.commit(noResult: true);
+        // Delete image files
+        for (var w in wallets) {
+          await DatabaseHelper.deleteImageFile(w.frontImagePath);
+          await DatabaseHelper.deleteImageFile(w.backImagePath);
         }
       }
 
+      // Bulk delete passes
       final passes = await PassDatabaseHelper.instance.getAllPasses();
-      for (var p in passes) {
-        if (p.id != null) {
-          await PassDatabaseHelper.instance.deletePass(p.id!);
+      if (passes.isNotEmpty) {
+        final db = await PassDatabaseHelper.instance.database;
+        final batch = db.batch();
+        for (var p in passes) {
+          if (p.id != null) {
+            batch.delete('passes', where: 'id = ?', whereArgs: [p.id]);
+          }
+        }
+        await batch.commit(noResult: true);
+        for (var p in passes) {
+          await DatabaseHelper.deleteImageFile(p.frontImagePath);
+          await DatabaseHelper.deleteImageFile(p.backImagePath);
+          await DatabaseHelper.deleteImageFile(p.stripImagePath);
+          await DatabaseHelper.deleteImageFile(p.thumbnailImagePath);
         }
       }
 
-      final identities = await IdentityDatabaseHelper.instance
-          .getAllIdentities();
-      for (var i in identities) {
-        if (i.id != null) {
-          await IdentityDatabaseHelper.instance.deleteIdentity(i.id!);
+      // Bulk delete identities
+      final identities = await IdentityDatabaseHelper.instance.getAllIdentities();
+      if (identities.isNotEmpty) {
+        final db = await IdentityDatabaseHelper.instance.database;
+        final batch = db.batch();
+        for (var i in identities) {
+          if (i.id != null) {
+            batch.delete('identities', where: 'id = ?', whereArgs: [i.id]);
+          }
+        }
+        await batch.commit(noResult: true);
+        for (var i in identities) {
+          await DatabaseHelper.deleteImageFile(i.frontImagePath);
+          await DatabaseHelper.deleteImageFile(i.backImagePath);
         }
       }
 
       final directory = await getApplicationDocumentsDirectory();
       final dir = Directory(directory.path);
       if (await dir.exists()) {
+        final deleteFutures = <Future>[];
         for (var f in dir.listSync()) {
-          if (f is File &&
-              (f.path.endsWith('.enc') ||
-                  f.path.endsWith('.png') ||
-                  f.path.endsWith('.jpg'))) {
-            await f.delete();
+          if (f is File) {
+            final basename = f.path.split(Platform.pathSeparator).last;
+            final isTimestampImage = RegExp(r'^\d{16,}\.(png|jpg)$').hasMatch(basename);
+            if (basename.endsWith('.enc') || isTimestampImage) {
+              deleteFutures.add(f.delete());
+            }
           }
+        }
+        if (deleteFutures.isNotEmpty) {
+          await Future.wait(deleteFutures);
         }
       }
 

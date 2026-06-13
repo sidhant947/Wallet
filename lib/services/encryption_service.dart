@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -15,6 +16,23 @@ class _EncryptionParams {
   final encrypt.AESMode mode;
 
   _EncryptionParams(this.data, this.key, this.iv, this.mode);
+}
+
+/// Data class for transfer QR chunks
+class _TransferChunk {
+  final int index;
+  final int totalChunks;
+  final List<int> salt;
+  final encrypt.IV iv;
+  final String ciphertext;
+
+  _TransferChunk({
+    required this.index,
+    required this.totalChunks,
+    required this.salt,
+    required this.iv,
+    required this.ciphertext,
+  });
 }
 
 /// Data class for passing parameters to backup isolates
@@ -43,6 +61,7 @@ class EncryptionService {
   static const String _keyStorageKey = 'wallet_aes_256_master_key';
   static const String _transferKeyStorageKey = 'wallet_transfer_key';
   static const String _migrationFlagKey = 'wallet_encryption_migrated';
+  static const String _migrationV2FlagKey = 'wallet_encryption_migrated_v2';
 
   // AES-GCM standard nonce (IV) length is 12 bytes (96 bits)
   static const int _gcmIvLength = 12;
@@ -55,8 +74,13 @@ class EncryptionService {
   encrypt.Key? _transferKey;
   bool _isInitialized = false;
 
+  // Cached encrypters to avoid re-instantiation on every call
+  encrypt.Encrypter? _gcmEncrypter;
+  encrypt.Encrypter? _transferEncrypter;
+
   // Simple memory cache for decrypted images to avoid redundant computation
-  final Map<String, Uint8List> _imageCache = {};
+  // Uses access-order for LRU eviction
+  final LinkedHashMap<String, Uint8List> _imageCache = LinkedHashMap();
   static const int _maxCacheSize = 20; // Limit cache to 20 images
 
   /// Whether the service has been initialized and is ready to use.
@@ -81,6 +105,9 @@ class EncryptionService {
       }
 
       _encryptionKey = encrypt.Key.fromBase64(storedKey);
+      _gcmEncrypter = encrypt.Encrypter(
+        encrypt.AES(_encryptionKey!, mode: encrypt.AESMode.gcm),
+      );
       _isInitialized = true;
 
       // Initialize per-device transfer key (used for QR share encryption)
@@ -96,6 +123,9 @@ class EncryptionService {
         } catch (_) {}
       }
       _transferKey = encrypt.Key.fromBase64(transferKeyBase64);
+      _transferEncrypter = encrypt.Encrypter(
+        encrypt.AES(_transferKey!, mode: encrypt.AESMode.gcm),
+      );
     } catch (e) {
       _isInitialized = false;
       rethrow;
@@ -116,7 +146,7 @@ class EncryptionService {
   /// where ciphertext includes the 16-byte authentication tag at the end.
   String? encryptText(String? plaintext) {
     if (plaintext == null || plaintext.isEmpty) return plaintext;
-    if (!_isInitialized || _encryptionKey == null) {
+    if (!_isInitialized || _gcmEncrypter == null) {
       throw StateError(
         'EncryptionService: Not initialized. Call init() first.',
       );
@@ -124,10 +154,7 @@ class EncryptionService {
 
     try {
       final iv = encrypt.IV(_generateSecureRandomBytes(_gcmIvLength));
-      final encrypter = encrypt.Encrypter(
-        encrypt.AES(_encryptionKey!, mode: encrypt.AESMode.gcm),
-      );
-      final encrypted = encrypter.encrypt(plaintext, iv: iv);
+      final encrypted = _gcmEncrypter!.encrypt(plaintext, iv: iv);
 
       // Format: iv:ciphertext (both base64)
       return '${iv.base64}:${encrypted.base64}';
@@ -141,13 +168,16 @@ class EncryptionService {
   /// Automatically detects if the data is legacy CBC or new GCM based on IV length.
   String? decryptText(String? ciphertext) {
     if (ciphertext == null || ciphertext.isEmpty) return ciphertext;
-    if (!_isInitialized || _encryptionKey == null) {
+    if (!_isInitialized || _gcmEncrypter == null) {
       throw StateError(
         'EncryptionService: Not initialized. Call init() first.',
       );
     }
 
     if (!_isEncrypted(ciphertext)) {
+      // Data is not encrypted — likely legacy unencrypted data.
+      // Return as-is for backward compatibility.
+      debugPrint('EncryptionService: returning unencrypted value (data was not encrypted)');
       return ciphertext;
     }
 
@@ -157,13 +187,12 @@ class EncryptionService {
       final encryptedData = encrypt.Encrypted.fromBase64(parts[1]);
 
       // Detect mode based on IV length: 12 bytes = GCM, 16 bytes = CBC (deprecated)
-      final mode = iv.bytes.length == _gcmIvLength
-          ? encrypt.AESMode.gcm
-          : encrypt.AESMode.cbc;
-
-      final encrypter = encrypt.Encrypter(
-        encrypt.AES(_encryptionKey!, mode: mode),
-      );
+      final isGCM = iv.bytes.length == _gcmIvLength;
+      final encrypter = isGCM
+          ? _gcmEncrypter!
+          : encrypt.Encrypter(
+              encrypt.AES(_encryptionKey!, mode: encrypt.AESMode.cbc),
+            );
       return encrypter.decrypt(encryptedData, iv: iv);
     } catch (e) {
       throw Exception('Failed to decrypt sensitive data: $e');
@@ -225,39 +254,6 @@ class EncryptionService {
     }
   }
 
-  /// Encrypt data for secure local transfer (QR share).
-  /// Uses a per-device key stored in secure storage.
-  String? encryptForTransfer(String data) {
-    if (!_isInitialized || _transferKey == null) return null;
-
-    final iv = encrypt.IV(_generateSecureRandomBytes(_gcmIvLength));
-    final encrypter = encrypt.Encrypter(
-      encrypt.AES(_transferKey!, mode: encrypt.AESMode.gcm),
-    );
-
-    final encrypted = encrypter.encrypt(data, iv: iv);
-    return 'v1:${iv.base64}:${encrypted.base64}';
-  }
-
-  /// Decrypt data from a local transfer (QR share).
-  String? decryptFromTransfer(String encryptedData) {
-    if (!_isInitialized || _transferKey == null) return null;
-
-    try {
-      final parts = encryptedData.split(':');
-      if (parts.length != 3 || parts[0] != 'v1') return null;
-
-      final iv = encrypt.IV.fromBase64(parts[1]);
-      final encrypter = encrypt.Encrypter(
-        encrypt.AES(_transferKey!, mode: encrypt.AESMode.gcm),
-      );
-
-      return encrypter.decrypt64(parts[2], iv: iv);
-    } catch (_) {
-      return null;
-    }
-  }
-
   /// Encrypt data for backup using AES-256-GCM with a password-derived key.
   /// Offloads to an isolate to prevent UI blocking.
   Future<Uint8List> encryptForBackup(Uint8List data, String password) async {
@@ -277,6 +273,96 @@ class EncryptionService {
       _backupIsolate,
       _BackupParams(encryptedData, password, isEncryption: false),
     );
+  }
+
+  static const int _transferChunkSize = 1500;
+
+  /// Encrypt data for secure local transfer (QR share) using a password-derived key.
+  /// Returns a list of QR-code-sized chunks in format:
+  /// `v2:<chunkIndex>:<totalChunks>:<base64(salt)>:<base64(iv)>:<base64(ciphertext)>`
+  List<String> encryptForTransfer(String data, String password) {
+    if (!_isInitialized) return [];
+
+    final salt = _generateSecureRandomBytes(16);
+    final keyBytes = _deriveKeyPBKDF2(password, salt);
+    final key = encrypt.Key(Uint8List.fromList(keyBytes));
+    final iv = encrypt.IV(_generateSecureRandomBytes(_gcmIvLength));
+
+    final encrypter = encrypt.Encrypter(
+      encrypt.AES(key, mode: encrypt.AESMode.gcm),
+    );
+    final encrypted = encrypter.encrypt(data, iv: iv);
+    final cipherB64 = encrypted.base64;
+    final saltB64 = base64Encode(salt);
+    final ivB64 = iv.base64;
+
+    // Split into QR-sized chunks
+    final chunks = <String>[];
+    final totalChunks = (cipherB64.length / _transferChunkSize).ceil();
+    for (var i = 0; i < totalChunks; i++) {
+      final start = i * _transferChunkSize;
+      final end = (start + _transferChunkSize).clamp(0, cipherB64.length);
+      final chunkData = cipherB64.substring(start, end);
+      chunks.add('v2:$i:$totalChunks:$saltB64:$ivB64:$chunkData');
+    }
+
+    return chunks;
+  }
+
+  /// Decrypt data from a local transfer (QR share) using a password-derived key.
+  /// Accepts v2 chunked format or legacy v1 single-QR format.
+  String? decryptFromTransfer(String encryptedData, {String? password}) {
+    if (!_isInitialized) return null;
+
+    try {
+      // V2: Password-based chunked transfer — expect single joined string
+      if (encryptedData.startsWith('v2:')) {
+        if (password == null || password.isEmpty) return null;
+
+        final chunkStrs = encryptedData.split('\n');
+        final chunks = <_TransferChunk>[];
+
+        for (final chunkStr in chunkStrs) {
+          if (!chunkStr.startsWith('v2:')) continue;
+          final parts = chunkStr.split(':');
+          if (parts.length != 6) continue;
+          chunks.add(_TransferChunk(
+            index: int.parse(parts[1]),
+            totalChunks: int.parse(parts[2]),
+            salt: base64Decode(parts[3]),
+            iv: encrypt.IV.fromBase64(parts[4]),
+            ciphertext: parts[5],
+          ));
+        }
+
+        if (chunks.isEmpty) return null;
+        chunks.sort((a, b) => a.index.compareTo(b.index));
+
+        if (chunks.length != chunks[0].totalChunks) return null;
+
+        final cipherB64 = chunks.map((c) => c.ciphertext).join();
+        final salt = chunks[0].salt;
+        final iv = chunks[0].iv;
+
+        final keyBytes = _deriveKeyPBKDF2(password, salt);
+        final key = encrypt.Key(Uint8List.fromList(keyBytes));
+        final ciphertext = encrypt.Encrypted.fromBase64(cipherB64);
+        final encrypter = encrypt.Encrypter(
+          encrypt.AES(key, mode: encrypt.AESMode.gcm),
+        );
+        return encrypter.decrypt(ciphertext, iv: iv);
+      }
+
+      // Legacy v1: Per-device key transfer (kept for backward compat)
+      final parts = encryptedData.split(':');
+      if (parts.length != 3 || parts[0] != 'v1') return null;
+      if (_transferEncrypter == null) return null;
+
+      final iv = encrypt.IV.fromBase64(parts[1]);
+      return _transferEncrypter!.decrypt64(parts[2], iv: iv);
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Derive a 256-bit key using PBKDF2-HMAC-SHA256 with 600,000 iterations.
@@ -364,7 +450,10 @@ class EncryptionService {
   Future<Uint8List?> decryptImageToBytes(String encryptedFilePath) async {
     // 1. Check memory cache first
     if (_imageCache.containsKey(encryptedFilePath)) {
-      return _imageCache[encryptedFilePath];
+      // Move to end (most recently used)
+      final bytes = _imageCache.remove(encryptedFilePath)!;
+      _imageCache[encryptedFilePath] = bytes;
+      return bytes;
     }
 
     try {
@@ -416,8 +505,10 @@ class EncryptionService {
   }
 
   void _addToCache(String key, Uint8List bytes) {
-    if (_imageCache.length >= _maxCacheSize) {
-      // Remove first (oldest) entry
+    if (_imageCache.containsKey(key)) {
+      _imageCache.remove(key);
+    } else if (_imageCache.length >= _maxCacheSize) {
+      // Remove least recently used (first entry)
       _imageCache.remove(_imageCache.keys.first);
     }
     _imageCache[key] = bytes;
@@ -441,6 +532,20 @@ class EncryptionService {
   Future<void> markMigrated() async {
     try {
       await _secureStorage.write(key: _migrationFlagKey, value: 'true');
+    } catch (_) {}
+  }
+
+  Future<bool> isMigratedV2() async {
+    try {
+      final flag = await _secureStorage.read(key: _migrationV2FlagKey);
+      if (flag != null) return flag == 'true';
+    } catch (_) {}
+    return false;
+  }
+
+  Future<void> markMigratedV2() async {
+    try {
+      await _secureStorage.write(key: _migrationV2FlagKey, value: 'true');
     } catch (_) {}
   }
 }
