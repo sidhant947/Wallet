@@ -168,17 +168,11 @@ class _IdentityCardDetailScreenState extends State<IdentityCardDetailScreen> {
                 final result = await Navigator.push(
                   context,
                   SmoothPageRoute(
-                    page: Scaffold(
-                      appBar: AppBar(title: const Text('Edit Identity Card')),
-                      body: IdentityCardEntryForm(existingCard: currentCard),
-                    ),
+                    page: IdentityEditScreen(card: currentCard),
                   ),
                 );
 
                 if (result == true && mounted) {
-                  // Since IdentityCardEntryForm doesn't return the object but updates DB/Provider, 
-                  // we might need to refresh or pop with true.
-                  // For simplicity, let's pop back to homescreen which refreshes.
                   Navigator.pop(context, true);
                 }
               },
@@ -315,6 +309,62 @@ class _LiquidGlassDetailSection extends StatelessWidget {
           child: child,
         ),
       ],
+    );
+  }
+}
+
+class IdentityEditScreen extends StatefulWidget {
+  final IdentityCard card;
+  const IdentityEditScreen({super.key, required this.card});
+  @override
+  State<IdentityEditScreen> createState() => IdentityEditScreenState();
+}
+
+class IdentityEditScreenState extends State<IdentityEditScreen> {
+  final _formKey = GlobalKey<IdentityCardEntryFormState>();
+  bool _isDark = false;
+
+  @override
+  Widget build(BuildContext context) {
+    _isDark = Theme.of(context).brightness == Brightness.dark;
+    return Scaffold(
+      appBar: AppBar(
+        title: const SizedBox.shrink(),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: _isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: _isDark ? Colors.white : Colors.black,
+              size: 20,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.all(8),
+            child: FilledButton(
+              onPressed: () => _formKey.currentState?.save(),
+              style: FilledButton.styleFrom(
+                backgroundColor: _isDark ? Colors.white : Colors.black,
+                foregroundColor: _isDark ? Colors.black : Colors.white,
+              ),
+              child: const Text("SAVE"),
+            ),
+          ),
+        ],
+      ),
+      body: IdentityCardEntryForm(
+        key: _formKey,
+        existingCard: widget.card,
+      ),
     );
   }
 }

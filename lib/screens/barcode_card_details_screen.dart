@@ -358,13 +358,66 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(title: const Text('Edit Pass')),
-          body: BarcodeCardEntryForm(existingPass: widget.pass),
-        ),
+        builder: (context) => PassEditScreen(pass: widget.pass),
       ),
     );
     if (result == true && context.mounted) Navigator.pop(context, true);
+  }
+}
+
+class PassEditScreen extends StatefulWidget {
+  final Pass pass;
+  const PassEditScreen({super.key, required this.pass});
+  @override
+  State<PassEditScreen> createState() => PassEditScreenState();
+}
+
+class PassEditScreenState extends State<PassEditScreen> {
+  final _formKey = GlobalKey<BarcodeCardEntryFormState>();
+  bool _isDark = false;
+
+  @override
+  Widget build(BuildContext context) {
+    _isDark = Theme.of(context).brightness == Brightness.dark;
+    return Scaffold(
+      appBar: AppBar(
+        title: const SizedBox.shrink(),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: _isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: _isDark ? Colors.white : Colors.black,
+              size: 20,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.all(8),
+            child: FilledButton(
+              onPressed: () => _formKey.currentState?.save(),
+              style: FilledButton.styleFrom(
+                backgroundColor: _isDark ? Colors.white : Colors.black,
+                foregroundColor: _isDark ? Colors.black : Colors.white,
+              ),
+              child: const Text("SAVE"),
+            ),
+          ),
+        ],
+      ),
+      body: BarcodeCardEntryForm(
+        key: _formKey,
+        existingPass: widget.pass,
+      ),
+    );
   }
 }
 

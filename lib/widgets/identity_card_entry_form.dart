@@ -13,10 +13,10 @@ class IdentityCardEntryForm extends StatefulWidget {
   const IdentityCardEntryForm({super.key, this.existingCard});
 
   @override
-  State<IdentityCardEntryForm> createState() => _IdentityCardEntryFormState();
+  State<IdentityCardEntryForm> createState() => IdentityCardEntryFormState();
 }
 
-class _IdentityCardEntryFormState extends State<IdentityCardEntryForm> {
+class IdentityCardEntryFormState extends State<IdentityCardEntryForm> {
   final _nameController = TextEditingController();
   final _valueController = TextEditingController();
   final _cardTypeController = TextEditingController();
@@ -106,6 +106,8 @@ class _IdentityCardEntryFormState extends State<IdentityCardEntryForm> {
       if (mounted) setState(() => _isSaving = false);
     }
   }
+
+  void save() => _saveData();
 
   @override
   Widget build(BuildContext context) {
@@ -205,34 +207,33 @@ class _IdentityCardEntryFormState extends State<IdentityCardEntryForm> {
 
         const SizedBox(height: 48),
 
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+        if (widget.existingCard == null)
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 0,
               ),
-              elevation: 0,
-            ),
-            onPressed: _isSaving ? null : _saveData,
-            child: _isSaving
-                ? CircularProgressIndicator(
-                    color: Theme.of(context).colorScheme.onPrimary,
-                  )
-                : Text(
-                    widget.existingCard != null
-                        ? 'UPDATE CARD'
-                        : 'SAVE IDENTITY CARD',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
+              onPressed: _isSaving ? null : _saveData,
+              child: _isSaving
+                  ? CircularProgressIndicator(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    )
+                  : const Text(
+                      'SAVE IDENTITY CARD',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
                     ),
-                  ),
+            ),
           ),
-        ),
       ],
     );
   }

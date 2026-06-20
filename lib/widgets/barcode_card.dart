@@ -151,7 +151,7 @@ class _BasePassLayout extends StatelessWidget {
             borderRadius: BorderRadius.circular(24),
             child: Stack(
               children: [
-                // Mesh Glow
+                // Top-right glow
                 Positioned(
                   top: -50,
                   right: -50,
@@ -162,6 +162,34 @@ class _BasePassLayout extends StatelessWidget {
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [fgColor.withValues(alpha: 0.08), Colors.transparent],
+                      ),
+                    ),
+                  ),
+                ),
+                // Bottom-left subtle glow
+                Positioned(
+                  bottom: -60,
+                  left: -40,
+                  child: Container(
+                    width: 180,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [fgColor.withValues(alpha: 0.04), Colors.transparent],
+                      ),
+                    ),
+                  ),
+                ),
+                // Subtle inner border highlight
+                Positioned.fill(
+                  child: Container(
+                    margin: const EdgeInsets.all(0.5),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(23.5),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        width: 1,
                       ),
                     ),
                   ),
@@ -203,7 +231,7 @@ class _BasePassLayout extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// GENERIC (Restored to "perfect" version)
+// GENERIC (Enhanced)
 // -----------------------------------------------------------------------------
 class _GenericPassLayout extends StatelessWidget {
   final Pass pass;
@@ -212,26 +240,136 @@ class _GenericPassLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    CardColorData? matchingColorData;
+    if (pass.backgroundColor != null) {
+      final hex = pass.backgroundColor!.toLowerCase();
+      for (var entry in cardColorPalette.entries) {
+        final paletteHex = '#${(entry.value.primary.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+        if (hex == paletteHex.toLowerCase()) {
+          matchingColorData = entry.value;
+          break;
+        }
+      }
+    }
+
+    final bgColor = _parseColor(pass.backgroundColor, const Color(0xFF1E293B));
     final fgColor = _parseColor(pass.foregroundColor, Colors.white);
-    return _BasePassLayout(
-      pass: pass,
+
+    return GestureDetector(
       onTap: onTap,
-      children: [
-        Expanded(
-          child: Text(
-            pass.organizationName.toUpperCase(),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: fgColor,
-              fontWeight: FontWeight.w900,
-              fontSize: 24,
-              letterSpacing: 1.0,
-              height: 1.2,
+      child: AspectRatio(
+        aspectRatio: 1.586,
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            gradient: matchingColorData != null
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      matchingColorData.accent,
+                      matchingColorData.secondary,
+                      matchingColorData.primary,
+                    ],
+                  )
+                : LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    stops: const [0.0, 0.4, 0.9, 1.0],
+                    colors: [
+                      bgColor,
+                      bgColor.withValues(alpha: 0.95),
+                      Color.alphaBlend(Colors.black38, bgColor),
+                      Color.alphaBlend(Colors.black54, bgColor),
+                    ],
+                  ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.1),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.4),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Stack(
+              children: [
+                // Top-right glow
+                Positioned(
+                  top: -50,
+                  right: -50,
+                  child: Container(
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [fgColor.withValues(alpha: 0.08), Colors.transparent],
+                      ),
+                    ),
+                  ),
+                ),
+                // Bottom-left subtle glow
+                Positioned(
+                  bottom: -60,
+                  left: -40,
+                  child: Container(
+                    width: 180,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [fgColor.withValues(alpha: 0.04), Colors.transparent],
+                      ),
+                    ),
+                  ),
+                ),
+                // QR icon top-right
+                Positioned(
+                  top: 20,
+                  right: 20,
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      BarcodeUtils.getIconForFormat(BarcodeUtils.getLabelFromFormat(pass.barcodeFormat)),
+                      color: Colors.black,
+                      size: 28,
+                    ),
+                  ),
+                ),
+                // Organization name bottom-left
+                Positioned(
+                  bottom: 24,
+                  left: 24,
+                  right: 80,
+                  child: Text(
+                    pass.organizationName.toUpperCase(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: fgColor,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 26,
+                      letterSpacing: 1.5,
+                      height: 1.1,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 }

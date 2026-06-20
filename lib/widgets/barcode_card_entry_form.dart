@@ -21,16 +21,17 @@ class BarcodeCardEntryForm extends StatefulWidget {
   });
 
   @override
-  State<BarcodeCardEntryForm> createState() => _BarcodeCardEntryFormState();
+  State<BarcodeCardEntryForm> createState() => BarcodeCardEntryFormState();
 }
 
-class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
+class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
   final _organizationController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _logoTextController = TextEditingController();
   final _barcodeValueController = TextEditingController();
 
   bool _showAdditionalDetails = false;
+  bool _isSaving = false;
 
   String _selectedType = 'generic';
   String _selectedColor = 'obsidian';
@@ -128,6 +129,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
       return;
     }
 
+    setState(() => _isSaving = true);
     try {
       final pass = Pass(
         id: widget.existingPass?.id,
@@ -156,8 +158,12 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
       }
 
       if (mounted) Navigator.pop(context, true);
-    } catch (_) {}
+    } catch (_) {} finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
+
+  void save() => _addData();
 
   Future<void> _scan() async {
     try {
@@ -429,21 +435,7 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-        if (widget.existingPass == null) ...[
-          SizedBox(
-            width: double.infinity,
-            child: TextButton.icon(
-              onPressed: _importPkpass,
-              icon: const Icon(Icons.file_download_outlined),
-              label: const Text('Import .pkpass file'),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.purple,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
-          ),
-          const Divider(height: 32),
-        ],
+
         BarcodeCard(
           pass: Pass(
             type: _selectedType,
@@ -628,16 +620,33 @@ class _BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         ],
 
         const SizedBox(height: 32),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+        if (widget.existingPass == null)
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 0,
+              ),
+              onPressed: _isSaving ? null : _addData,
+              child: _isSaving
+                  ? CircularProgressIndicator(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    )
+                  : const Text(
+                      'SAVE PASS',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
             ),
           ),
-          onPressed: _addData,
-          child: const Text('Save Pass'),
-        ),
         const SizedBox(height: 24),
       ],
     );

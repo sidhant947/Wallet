@@ -30,6 +30,7 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
   File? _frontImageFile;
   File? _backImageFile;
   bool _showAdditionalDetails = false;
+  bool _isSaving = false;
 
   final _customFieldNameControllers = <TextEditingController>[];
   final _customFieldValueControllers = <TextEditingController>[];
@@ -56,10 +57,9 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
     }
   }
 
-  /// Get maximum card number length based on selected network
+  /// Get maximum card number length
   int _getMaxCardLength(String network) {
-    final validLengths = CardUtils.getValidLengthsForNetwork(network);
-    return validLengths.reduce((a, b) => a > b ? a : b);
+    return 19;
   }
 
   @override
@@ -100,39 +100,44 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
 
   void _addData() async {
     if (_formKey.currentState!.validate()) {
-      String? frontImagePath;
-      if (_frontImageFile != null) {
-        frontImagePath = await saveImageToAppDirectory(_frontImageFile!);
-      }
-      String? backImagePath;
-      if (_backImageFile != null) {
-        backImagePath = await saveImageToAppDirectory(_backImageFile!);
-      }
-
-      Map<String, String> customFields = {};
-      for (int i = 0; i < _customFieldNameControllers.length; i++) {
-        String fieldName = _customFieldNameControllers[i].text;
-        String fieldValue = _customFieldValueControllers[i].text;
-        if (fieldName.isNotEmpty && fieldValue.isNotEmpty) {
-          customFields[fieldName] = fieldValue;
+      setState(() => _isSaving = true);
+      try {
+        String? frontImagePath;
+        if (_frontImageFile != null) {
+          frontImagePath = await saveImageToAppDirectory(_frontImageFile!);
         }
-      }
+        String? backImagePath;
+        if (_backImageFile != null) {
+          backImagePath = await saveImageToAppDirectory(_backImageFile!);
+        }
 
-      Wallet wallet = Wallet(
-        name: _nameController.text,
-        number: _numberController.text,
-        expiry: _expiryController.text,
-        network: _network,
-        issuer: _issuerController.text,
-        customFields: customFields.isNotEmpty ? customFields : null,
-        color: _selectedColor,
-        frontImagePath: frontImagePath,
-        backImagePath: backImagePath,
-      );
-      await DatabaseHelper.instance.insertWallet(wallet);
+        Map<String, String> customFields = {};
+        for (int i = 0; i < _customFieldNameControllers.length; i++) {
+          String fieldName = _customFieldNameControllers[i].text;
+          String fieldValue = _customFieldValueControllers[i].text;
+          if (fieldName.isNotEmpty && fieldValue.isNotEmpty) {
+            customFields[fieldName] = fieldValue;
+          }
+        }
 
-      if (mounted) {
-        Navigator.pop(context, true);
+        Wallet wallet = Wallet(
+          name: _nameController.text,
+          number: _numberController.text,
+          expiry: _expiryController.text,
+          network: _network,
+          issuer: _issuerController.text,
+          customFields: customFields.isNotEmpty ? customFields : null,
+          color: _selectedColor,
+          frontImagePath: frontImagePath,
+          backImagePath: backImagePath,
+        );
+        await DatabaseHelper.instance.insertWallet(wallet);
+
+        if (mounted) {
+          Navigator.pop(context, true);
+        }
+      } finally {
+        if (mounted) setState(() => _isSaving = false);
       }
     }
   }
@@ -228,15 +233,9 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
                   if (v == null || v.isEmpty) {
                     return 'Please enter a card number';
                   }
-                  final detectedNetwork = CardUtils.detectCardNetwork(v);
-                  if (detectedNetwork == null) {
-                    return 'Unable to detect card network';
-                  }
-                  if (!CardUtils.isValidLengthForNetwork(v, detectedNetwork)) {
-                    return CardUtils.getLengthErrorMessage(detectedNetwork);
-                  }
-                  if (!CardUtils.isValidCardNumber(v)) {
-                    return 'Invalid card number';
+                  final cleaned = v.replaceAll(RegExp(r'\D'), '');
+                  if (cleaned.length < 15 || cleaned.length > 19) {
+                    return 'Card number must be 15-19 digits';
                   }
                   return null;
                 },
@@ -377,15 +376,31 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
             ),
           ],
           const SizedBox(height: 16),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 0,
               ),
+              onPressed: _isSaving ? null : _addData,
+              child: _isSaving
+                  ? CircularProgressIndicator(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    )
+                  : const Text(
+                      'SAVE CARD',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
             ),
-            onPressed: _addData,
-            child: const Text('Save Card'),
           ),
           const SizedBox(height: 16),
         ],

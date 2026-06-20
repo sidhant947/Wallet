@@ -18,9 +18,7 @@ import '../models/db_helper.dart';
 import '../models/provider_helper.dart';
 import '../models/theme_provider.dart';
 import '../pages/walletdetails.dart';
-import 'package:wallet/widgets/barcode_card_entry_form.dart';
 import 'package:wallet/widgets/identity_card_widget.dart';
-import 'package:wallet/widgets/identity_card_entry_form.dart';
 import 'package:wallet/screens/identity_card_details_screen.dart';
 
 /// Smooth route builder — used across the app for premium transitions
@@ -1071,10 +1069,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               final result = await Navigator.push(
                                 ctx,
                                 SmoothPageRoute(
-                                  page: Scaffold(
-                                    appBar: AppBar(title: const Text('Edit Pass')),
-                                    body: BarcodeCardEntryForm(existingPass: pass),
-                                  ),
+                                  page: PassEditScreen(pass: pass),
                                 ),
                               );
                               if (result == true && ctx.mounted) {
@@ -1301,10 +1296,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               final result = await Navigator.push(
                                 ctx,
                                 SmoothPageRoute(
-                                  page: Scaffold(
-                                    appBar: AppBar(title: const Text('Edit Identity Card')),
-                                    body: IdentityCardEntryForm(existingCard: card),
-                                  ),
+                                  page: IdentityEditScreen(card: card),
                                 ),
                               );
                               if (result == true && ctx.mounted) {

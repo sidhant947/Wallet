@@ -538,7 +538,7 @@ class WalletEditScreenState extends State<WalletEditScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Edit Card"),
+        title: const SizedBox.shrink(),
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(

@@ -127,22 +127,7 @@ class ColorPicker extends StatelessWidget {
                               ),
                             ),
                           ),
-                        // Color name
-                        Positioned(
-                          bottom: 8,
-                          left: 0,
-                          right: 0,
-                          child: Text(
-                            colorData.name,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                        ),
+
                       ],
                     ),
                   ),

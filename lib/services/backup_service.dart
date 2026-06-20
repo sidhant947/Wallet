@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -123,7 +124,12 @@ class BackupService {
     }
   }
 
-  static Future<void> restoreBackup(String password) async {
+  static Future<void> restoreBackup(String password, {BuildContext? context}) async {
+    // Optional UI hooks for granular progress reporting. Caller may pass null.
+    void toast(String message, {bool isError = false}) {
+      debugPrint('BackupService: $message');
+    }
+
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.any,
@@ -133,6 +139,7 @@ class BackupService {
 
       if (result == null || result.files.isEmpty) return;
 
+      toast('Reading backup file...');
       final platformFile = result.files.first;
       Uint8List? encryptedData = platformFile.bytes;
 
@@ -147,11 +154,19 @@ class BackupService {
         throw Exception('Unable to access backup file data.');
       }
 
+      // Pre-validate the encrypted payload BEFORE attempting decryption.
+      // This catches the common user error of picking the wrong file (a photo,
+      // a zip, etc.) and turns it into an actionable message instead of the
+      // generic "Invalid password or corrupted backup file" coming from the
+      // crypto layer.
+      _validateBackupFileShape(encryptedData);
+
       final decryptedData = await EncryptionService.instance.decryptForBackup(
         encryptedData,
         password,
       );
       if (decryptedData.isEmpty) throw Exception('Decrypted content is empty.');
+      toast('Backup decrypted successfully.');
 
       Map<String, dynamic> backupData;
       List<ArchiveFile> imageFiles = [];
@@ -221,11 +236,14 @@ class BackupService {
       if (!_isValidBackupSchema(backupData)) {
         throw Exception('Backup file has an invalid or unsupported format.');
       }
+      toast('Backup validated. Clearing current data...');
 
       // If we got here, we have valid data. Proceed with restoration.
       await _clearAllData();
+      toast('Current data cleared. Starting restoration...');
 
       // Restore settings
+      toast('Restoring settings...');
       if (backupData.containsKey('settings')) {
         final settings = backupData['settings'] as Map<String, dynamic>;
         final prefs = await SharedPreferences.getInstance();
@@ -248,6 +266,7 @@ class BackupService {
         }
       }
 
+      toast('Extracting images from archive...');
       final appDir = await getApplicationDocumentsDirectory();
       final Map<String, String> oldToNewImagePaths = {};
 
@@ -272,6 +291,7 @@ class BackupService {
       }
 
       final walletsData = backupData['wallets'] as List<dynamic>? ?? [];
+      toast('Restoring wallets (${walletsData.length})...');
       for (final w in walletsData) {
         try {
           final walletMap = Map<String, dynamic>.from(w);
@@ -301,6 +321,7 @@ class BackupService {
       }
 
       final passesData = backupData['passes'] as List<dynamic>? ?? [];
+      toast('Restoring passes (${passesData.length})...');
       for (final pass in passesData) {
         try {
           final passMap = Map<String, dynamic>.from(pass);
@@ -325,7 +346,57 @@ class BackupService {
         } catch (_) {}
       }
 
+      // Legacy support: old backups stored loyalty cards under a 'loyalties' key.
+      // Convert each to a storeCard Pass so users keep their data after upgrading.
+      debugPrint('BackupService: entering legacy loyalty migration');
+      List<dynamic> loyaltiesData;
+      try {
+        loyaltiesData = (backupData['loyalties'] as List<dynamic>?) ?? [];
+      } catch (e) {
+        debugPrint('BackupService: failed to read loyalties array: $e');
+        loyaltiesData = [];
+      }
+      debugPrint('BackupService: found ${loyaltiesData.length} loyalty entries to migrate');
+
+      String? remapImagePath(String? path) {
+        if (path == null || path.isEmpty) return path;
+        final oldName = p.basename(path).replaceAll('.enc', '');
+        return oldToNewImagePaths[oldName] ?? path;
+      }
+
+      for (int i = 0; i < loyaltiesData.length; i++) {
+        final loyalty = loyaltiesData[i];
+        try {
+          // Skip non-Map entries (corrupted backup or unexpected shape).
+          if (loyalty is! Map) {
+            debugPrint('BackupService: loyalty[$i] is ${loyalty.runtimeType}, skipping');
+            continue;
+          }
+          final lm = Map<String, dynamic>.from(loyalty);
+
+          // Defensive: coerce every string field via toString() so non-String JSON
+          // values (numbers, booleans, nested maps) don't trip Pass.fromMap's
+          // required-String checks. Defensive: int.tryParse so a string-encoded
+          // orderIndex from a partial backup doesn't throw.
+          final passMap = <String, dynamic>{
+            'type': 'storeCard',
+            'organizationName': lm['loyaltyName']?.toString() ?? '',
+            'barcodeValue': lm['loyaltyNumber']?.toString() ?? '',
+            'backgroundColor': lm['color']?.toString(),
+            'frontImagePath': remapImagePath(lm['frontImagePath']?.toString()),
+            'backImagePath': remapImagePath(lm['backImagePath']?.toString()),
+            'orderIndex': int.tryParse(lm['orderIndex']?.toString() ?? '') ?? 0,
+          };
+
+          await PassDatabaseHelper.instance.insertPass(Pass.fromMap(passMap));
+        } catch (e, st) {
+          debugPrint('BackupService: failed to migrate loyalty[$i]: $e\n$st');
+        }
+      }
+      debugPrint('BackupService: legacy loyalty migration complete');
+
       final identitiesData = backupData['identities'] as List<dynamic>? ?? [];
+      toast('Restoring identities (${identitiesData.length})...');
       for (final i in identitiesData) {
         try {
           final identityMap = Map<String, dynamic>.from(i);
@@ -346,7 +417,12 @@ class BackupService {
           await IdentityDatabaseHelper.instance.insertIdentity(IdentityCard.fromMap(identityMap));
         } catch (_) {}
       }
-    } catch (_) {
+      toast('Restore complete!');
+    } catch (e, st) {
+      final msg = 'Restore failed: $e';
+      debugPrint('BackupService: $msg');
+      debugPrint('Stack trace: $st');
+      toast(msg, isError: true);
       rethrow;
     }
   }
@@ -403,7 +479,8 @@ class BackupService {
     final hasWallets = data.containsKey('wallets') && data['wallets'] is List;
     final hasPasses = data.containsKey('passes') && data['passes'] is List;
     final hasIdentities = data.containsKey('identities') && data['identities'] is List;
-    if (!hasWallets && !hasPasses && !hasIdentities) return false;
+    final hasLoyalties = data.containsKey('loyalties') && data['loyalties'] is List;
+    if (!hasWallets && !hasPasses && !hasIdentities && !hasLoyalties) return false;
     // Validate wallet entries have required fields
     if (hasWallets) {
       for (final w in data['wallets'] as List) {
@@ -426,5 +503,57 @@ class BackupService {
       }
     }
     return true;
+  }
+
+  /// Reject obviously-wrong files (photos, archives, etc.) before we burn the
+  /// ~1–2 seconds of PBKDF2 work that [decryptForBackup] will do, and so the
+  /// user gets a clear "wrong file" message instead of a misleading
+  /// "invalid password" error from the crypto layer.
+  ///
+  /// NOTE: this is intentionally permissive. A current-format encrypted
+  /// backup is the UTF-8 string `base64(salt):base64(iv):base64(ciphertext+tag)`,
+  /// but the app also supports a legacy raw-binary format (no colons, just
+  /// 16-byte IV + ciphertext). So we only reject signatures that no real
+  /// wallet backup could ever start with.
+  static void _validateBackupFileShape(Uint8List data) {
+    if (data.length < 64) {
+      throw Exception(
+        'Selected file is too small to be a wallet backup '
+        '(${data.length} bytes). Please pick the .wbk file created by this app.',
+      );
+    }
+
+    // Reject common binary headers that the user might have picked by mistake.
+    // Each list is a known magic number for a popular file format. We deliberately
+    // do NOT include the very first byte alone (e.g. raw legacy backups can start
+    // with any byte), only multi-byte signatures that are unambiguous.
+    const binarySignatures = <String, List<int>>{
+      'PNG image': [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
+      'JPEG image': [0xFF, 0xD8, 0xFF],
+      'GIF87a image': [0x47, 0x49, 0x46, 0x38, 0x37, 0x61],
+      'GIF89a image': [0x47, 0x49, 0x46, 0x38, 0x39, 0x61],
+      'ZIP archive (also .jar/.docx/.apk)': [0x50, 0x4B, 0x03, 0x04],
+      'GZIP': [0x1F, 0x8B],
+      'PDF document': [0x25, 0x50, 0x44, 0x46],
+      'MP4/MOV video': [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70],
+    };
+    for (final entry in binarySignatures.entries) {
+      final sig = entry.value;
+      if (data.length >= sig.length) {
+        var match = true;
+        for (var i = 0; i < sig.length; i++) {
+          if (data[i] != sig[i]) {
+            match = false;
+            break;
+          }
+        }
+        if (match) {
+          throw Exception(
+            'Selected file looks like a ${entry.key}, not a wallet backup. '
+            'Please pick the .wbk file created by this app.',
+          );
+        }
+      }
+    }
   }
 }

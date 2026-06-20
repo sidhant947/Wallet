@@ -596,17 +596,60 @@ Uint8List _backupIsolate(_BackupParams params) {
     if (content != null && content.contains(':')) {
       final parts = content.split(':');
       if (parts.length == 3) {
+        // Format: salt(PBKDF2,16B) : iv : ciphertext
+        //
+        // Two sub-formats have been produced over time:
+        //   - Current: 12-byte IV + AES-GCM (ciphertext includes auth tag)
+        //   - Legacy:  16-byte IV + AES-CBC + PKCS7 padding
+        //
+        // The previous implementation silently fell back to CBC for any
+        // non-12-byte IV, which produced a misleading
+        // "Invalid or corrupted pad block" error from the PKCS7 layer when
+        // the file was even slightly corrupted. Now we explicitly support
+        // both IV sizes (12 = GCM, 16 = CBC) and reject anything else as
+        // genuine file corruption.
         try {
           final salt = base64Decode(parts[0]);
           final iv = encrypt.IV.fromBase64(parts[1]);
           final ciphertext = encrypt.Encrypted.fromBase64(parts[2]);
+          if (salt.length < 8) {
+            throw Exception('Backup file is corrupted (salt too short).');
+          }
+          // Both modes use PBKDF2 with the provided salt.
           final keyBytes = service._deriveKeyPBKDF2(params.password, salt);
           final key = encrypt.Key(Uint8List.fromList(keyBytes));
-          final mode = iv.bytes.length == 12 ? encrypt.AESMode.gcm : encrypt.AESMode.cbc;
+          final encrypt.AESMode mode;
+          if (iv.bytes.length == EncryptionService._gcmIvLength) {
+            mode = encrypt.AESMode.gcm;
+          } else if (iv.bytes.length == EncryptionService._cbcIvLength) {
+            mode = encrypt.AESMode.cbc;
+          } else {
+            throw Exception(
+              'Backup file is corrupted '
+              '(invalid IV length: expected 12 or 16 bytes, got ${iv.bytes.length}).',
+            );
+          }
           final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: mode));
           return Uint8List.fromList(encrypter.decryptBytes(ciphertext, iv: iv));
+        } on FormatException catch (_) {
+          throw Exception(
+            'Backup file is corrupted or not a valid encrypted backup '
+            '(invalid base64 encoding).',
+          );
         } catch (e) {
-          throw Exception('Invalid password or corrupted backup file.');
+          // Preserve our own explicit corruption hints unchanged.
+          final msg = e.toString();
+          if (msg.startsWith('Exception: Backup file is corrupted')) rethrow;
+          // Anything else at this layer is a MAC/auth failure or a padding
+          // failure from a wrong-mode attempt → wrong password or
+          // ciphertext corruption. Never leak the raw crypto error (e.g.
+          // "Invalid or corrupted pad block") because it confuses the user
+          // and we can't reliably distinguish password failure from
+          // ciphertext corruption anyway.
+          throw Exception(
+            'Wrong password, or the backup file has been modified or corrupted. '
+            'Please verify the password and try again.',
+          );
         }
       } else if (parts.length == 2) {
         // DEPRECATED: Legacy CBC format — kept for reading old backups only.
@@ -618,15 +661,32 @@ Uint8List _backupIsolate(_BackupParams params) {
           final key = encrypt.Key(Uint8List.fromList(keyBytes));
           final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
           return Uint8List.fromList(encrypter.decryptBytes(ciphertext, iv: iv));
+        } on FormatException catch (_) {
+          throw Exception(
+            'Backup file is corrupted or not a valid encrypted backup '
+            '(invalid base64 encoding).',
+          );
         } catch (e) {
-          throw Exception('Invalid password or corrupted legacy backup.');
+          throw Exception(
+            'Wrong password, or the backup file has been modified or corrupted. '
+            'Please verify the password and try again.',
+          );
         }
       }
     }
 
     // DEPRECATED: Raw legacy fallback — kept for reading very old backups only.
+    // This branch is reached only when the input doesn't contain a colon,
+    // i.e. it's not the modern 3-part or legacy 2-part format. Reject
+    // obviously-wrong file shapes here so we don't waste time decrypting
+    // things like JPEGs or ZIPs picked by mistake.
+    if (params.data.length < 17) {
+      throw Exception(
+        'Selected file is too small to be a valid backup. '
+        'Please pick the .wbk file created by this app.',
+      );
+    }
     try {
-      if (params.data.length < 17) throw Exception('Data too short');
       final keyBytes = service._deriveKeyFromPassword(params.password);
       final key = encrypt.Key(Uint8List.fromList(keyBytes));
       final iv = encrypt.IV(Uint8List.fromList(params.data.sublist(0, 16)));
@@ -634,7 +694,10 @@ Uint8List _backupIsolate(_BackupParams params) {
       final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
       return Uint8List.fromList(encrypter.decryptBytes(ciphertext, iv: iv));
     } catch (e) {
-      throw Exception('Failed to decrypt backup. Ensure the password is correct.');
+      throw Exception(
+        'Selected file does not appear to be a wallet backup, or the password '
+        'is incorrect. Please verify the file and password and try again.',
+      );
     }
   }
 }

@@ -10,6 +10,14 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
+class _DirectoryCache {
+  static Directory? _cached;
+  static Future<Directory> get docs async {
+    _cached ??= await getApplicationDocumentsDirectory();
+    return _cached!;
+  }
+}
+
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
   static Database? _database;
@@ -23,7 +31,7 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await _DirectoryCache.docs;
     final path = join(directory.path, 'walletbox.db');
     return openDatabase(
       path,
@@ -223,7 +231,7 @@ class PassDatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await _DirectoryCache.docs;
     final path = join(directory.path, 'passes.db');
     return openDatabase(
       path,
@@ -352,7 +360,7 @@ class IdentityDatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await _DirectoryCache.docs;
     final path = join(directory.path, 'identities.db');
     return openDatabase(
       path,

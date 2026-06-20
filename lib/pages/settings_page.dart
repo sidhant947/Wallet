@@ -133,7 +133,7 @@ class _SettingsPageState extends State<SettingsPage> {
               _LiquidGlassTile(
                 icon: Icons.credit_card_rounded,
                 title: 'Payments Only Mode',
-                subtitle: 'Hide Passes screen',
+                subtitle: 'Hide Passes and Identity screen',
                 trailing: Switch(
                   value: startupProvider.paymentsOnlyMode,
                   onChanged: (_) {
@@ -413,28 +413,15 @@ class _SettingsPageState extends State<SettingsPage> {
         isDark: isDark,
         onConfirm: (password) async {
           try {
-            final path = await BackupService.createBackup(password);
+            await BackupService.createBackup(password);
             if (!mounted) return;
             if (dialogContext.mounted) {
               Navigator.pop(dialogContext);
-              if (path != null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Backup saved successfully!'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
             }
           } catch (_) {
             if (!mounted) return;
             if (dialogContext.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Backup failed. Please try again.'),
-                  backgroundColor: Colors.red,
-                ),
-              );
+              Navigator.pop(dialogContext);
             }
           }
         },
@@ -461,7 +448,7 @@ class _SettingsPageState extends State<SettingsPage> {
             final tProvider = context.read<ThemeProvider>();
             final sProvider = context.read<StartupSettingsProvider>();
 
-            await BackupService.restoreBackup(password);
+            await BackupService.restoreBackup(password, context: dialogContext);
 
             if (dialogContext.mounted) {
               Navigator.pop(dialogContext);
@@ -477,23 +464,11 @@ class _SettingsPageState extends State<SettingsPage> {
             await sProvider.loadStartupSettings();
 
             if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Restored successfully!'),
-                backgroundColor: Colors.green,
-              ),
-            );
           } catch (_) {
             if (dialogContext.mounted) {
               Navigator.pop(dialogContext);
             }
             if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Restore failed. Please check your password and try again.'),
-                backgroundColor: Colors.red,
-              ),
-            );
           }
         },
       ),
@@ -734,16 +709,20 @@ class _LiquidGlassSection extends StatelessWidget {
             ],
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Material(
             color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
-            border: Border.all(
-              color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8),
-              width: 0.5,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8),
+                  width: 0.5,
+                ),
+              ),
+              child: Column(children: children),
             ),
           ),
-          child: Column(children: children),
         ),
         const SizedBox(height: 16),
       ],

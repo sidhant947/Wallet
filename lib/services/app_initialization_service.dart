@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/services/encryption_service.dart';
+import 'package:wallet/services/loyalty_migration_service.dart';
 
 class AppInitializationService {
   /// Handles all critical app initialization logic including database setup and encryption.
@@ -35,5 +36,8 @@ class AppInitializationService {
       await DatabaseHelper.instance.migrateToEncrypted();
       await EncryptionService.instance.markMigratedV2();
     }
+
+    // One-time migration: convert any legacy loyalty.db entries to storeCard passes.
+    await LoyaltyMigrationService.migrateFromLocalDb();
   }
 }
