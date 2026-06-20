@@ -458,10 +458,9 @@ class WalletEditScreenState extends State<WalletEditScreen> {
     });
   }
 
-  /// Get maximum card number length based on selected network
+  /// Get maximum card number length
   int _getMaxCardLength(String network) {
-    final validLengths = CardUtils.getValidLengthsForNetwork(network);
-    return validLengths.reduce((a, b) => a > b ? a : b);
+    return 19;
   }
 
   void _saveUpdatedDetails() async {
@@ -614,15 +613,9 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                     if (v == null || v.isEmpty) {
                       return 'Please enter a card number';
                     }
-                    final detectedNetwork = CardUtils.detectCardNetwork(v);
-                    if (detectedNetwork == null) {
-                      return 'Unable to detect card network';
-                    }
-                    if (!CardUtils.isValidLengthForNetwork(
-                      v,
-                      detectedNetwork,
-                    )) {
-                      return CardUtils.getLengthErrorMessage(detectedNetwork);
+                    final cleaned = v.replaceAll(RegExp(r'\D'), '');
+                    if (cleaned.length < 13 || cleaned.length > 19) {
+                      return 'Card number must be 13-19 digits';
                     }
                     return null;
                   },
