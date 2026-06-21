@@ -1,17 +1,14 @@
 import 'dart:io';
 import 'package:barcode_scan2/barcode_scan2.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
 import 'package:wallet/models/db_helper.dart';
-import 'package:wallet/models/provider_helper.dart';
 import 'package:wallet/services/barcode_utils.dart';
 import 'package:wallet/services/image_service.dart';
-import 'package:wallet/services/pkpass_service.dart';
 import 'package:wallet/widgets/barcode_card.dart';
 import 'package:wallet/models/card_color_data.dart';
 import 'package:wallet/widgets/color_picker.dart';
+import 'package:wallet/models/pass_types.dart';
 
 class BarcodeCardEntryForm extends StatefulWidget {
   final Pass? existingPass;
@@ -49,11 +46,32 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
   };
 
   final List<String> _passTypes = [
-    'generic',
-    'boardingPass',
+    // Retail
+    'loyaltyCard',
+    'giftCard',
+    'offer',
     'coupon',
-    'eventTicket',
     'storeCard',
+    // Tickets & Transit
+    'boardingPass',
+    'eventTicket',
+    'transitPass',
+    // Access
+    'digitalCarKey',
+    'campusId',
+    'corporateBadge',
+    'hotelKey',
+    'multiFamilyKey',
+    // Health
+    'healthInsuranceCard',
+    'healthTestRecord',
+    'healthVaccineCard',
+    // Identity
+    'digitalCredential',
+    // Generic
+    'generic',
+    'genericPrivate',
+    'inStorePayment',
   ];
 
   @override
@@ -230,68 +248,6 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     );
   }
 
-  Future<void> _importPkpass() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pkpass'],
-      );
-
-      if (result != null && result.files.single.path != null) {
-        final pass = await PkpassService.instance.parsePkpass(
-          result.files.single.path!,
-        );
-        if (pass != null) {
-          if (mounted) {
-            // Confirm import
-            final confirm = await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('Import Pass'),
-                content: Text(
-                  'Do you want to import "${pass.organizationName}"?',
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Cancel'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    child: const Text('Import'),
-                  ),
-                ],
-              ),
-            );
-
-            if (confirm == true) {
-              await PassDatabaseHelper.instance.insertPass(pass);
-              if (mounted) {
-                context.read<PassProvider>().fetchPasses();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Pass imported successfully!')),
-                );
-                Navigator.pop(context, true);
-              }
-            }
-          }
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Failed to parse .pkpass file.')),
-            );
-          }
-        }
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to import pass. Please try again.')),
-        );
-      }
-    }
-  }
-
   void _prepopulateFields({bool force = false}) {
     if (force) {
       for (var list in _dynamicFields.values) {
@@ -324,14 +280,38 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           {'label': 'ARRIVAL', 'value': ''},
         ]);
         break;
+      case 'loyaltyCard':
       case 'storeCard':
+        _dynamicFields['primaryFields']!.add({'label': 'MEMBER NAME', 'value': ''});
         _dynamicFields['secondaryFields']!.addAll([
           {'label': 'BALANCE', 'value': ''},
-          {'label': 'MEMBER NAME', 'value': ''},
+          {'label': 'TIER', 'value': ''},
         ]);
         _dynamicFields['auxiliaryFields']!.addAll([
-          {'label': 'TIER', 'value': ''},
           {'label': 'ACCOUNT #', 'value': ''},
+          {'label': 'POINTS', 'value': ''},
+        ]);
+        break;
+      case 'giftCard':
+        _dynamicFields['primaryFields']!.add({'label': 'CARD NUMBER', 'value': ''});
+        _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'BALANCE', 'value': ''},
+          {'label': 'PIN', 'value': ''},
+        ]);
+        _dynamicFields['auxiliaryFields']!.addAll([
+          {'label': 'RECIPIENT', 'value': ''},
+          {'label': 'EVENT #', 'value': ''},
+        ]);
+        break;
+      case 'offer':
+        _dynamicFields['primaryFields']!.add({'label': 'OFFER', 'value': ''});
+        _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'PROVIDER', 'value': ''},
+          {'label': 'EXPIRES', 'value': ''},
+        ]);
+        _dynamicFields['auxiliaryFields']!.addAll([
+          {'label': 'TERMS', 'value': ''},
+          {'label': 'CODE', 'value': ''},
         ]);
         break;
       case 'eventTicket':
@@ -345,6 +325,137 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           {'label': 'ROW', 'value': ''},
           {'label': 'SEAT', 'value': ''},
           {'label': 'TIME', 'value': ''},
+        ]);
+        break;
+      case 'transitPass':
+        _dynamicFields['primaryFields']!.addAll([
+          {'label': 'FROM', 'value': ''},
+          {'label': 'TO', 'value': ''},
+        ]);
+        _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'ROUTE', 'value': ''},
+          {'label': 'FARE CLASS', 'value': ''},
+        ]);
+        _dynamicFields['auxiliaryFields']!.addAll([
+          {'label': 'SEAT', 'value': ''},
+          {'label': 'COACH', 'value': ''},
+          {'label': 'PLATFORM', 'value': ''},
+        ]);
+        break;
+      case 'digitalCarKey':
+        _dynamicFields['primaryFields']!.add({'label': 'VEHICLE', 'value': ''});
+        _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'KEY STATUS', 'value': ''},
+        ]);
+        _dynamicFields['auxiliaryFields']!.addAll([
+          {'label': 'VIN', 'value': ''},
+          {'label': 'DEVICE', 'value': ''},
+        ]);
+        break;
+      case 'campusId':
+        _dynamicFields['primaryFields']!.add({'label': 'STUDENT NAME', 'value': ''});
+        _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'UNIVERSITY', 'value': ''},
+          {'label': 'ID #', 'value': ''},
+        ]);
+        _dynamicFields['auxiliaryFields']!.addAll([
+          {'label': 'DORM', 'value': ''},
+          {'label': 'YEAR', 'value': ''},
+        ]);
+        break;
+      case 'corporateBadge':
+        _dynamicFields['primaryFields']!.add({'label': 'EMPLOYEE NAME', 'value': ''});
+        _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'COMPANY', 'value': ''},
+          {'label': 'DEPT', 'value': ''},
+        ]);
+        _dynamicFields['auxiliaryFields']!.addAll([
+          {'label': 'ID #', 'value': ''},
+          {'label': 'ACCESS LEVEL', 'value': ''},
+        ]);
+        break;
+      case 'hotelKey':
+        _dynamicFields['primaryFields']!.add({'label': 'GUEST NAME', 'value': ''});
+        _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'HOTEL', 'value': ''},
+          {'label': 'ROOM #', 'value': ''},
+        ]);
+        _dynamicFields['auxiliaryFields']!.addAll([
+          {'label': 'CHECK-IN', 'value': ''},
+          {'label': 'CHECK-OUT', 'value': ''},
+        ]);
+        break;
+      case 'multiFamilyKey':
+        _dynamicFields['primaryFields']!.add({'label': 'RESIDENT NAME', 'value': ''});
+        _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'PROPERTY', 'value': ''},
+          {'label': 'UNIT #', 'value': ''},
+        ]);
+        _dynamicFields['auxiliaryFields']!.addAll([
+          {'label': 'ACCESS LEVEL', 'value': ''},
+        ]);
+        break;
+      case 'healthInsuranceCard':
+        _dynamicFields['primaryFields']!.add({'label': 'MEMBER NAME', 'value': ''});
+        _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'POLICY #', 'value': ''},
+          {'label': 'PROVIDER', 'value': ''},
+        ]);
+        _dynamicFields['auxiliaryFields']!.addAll([
+          {'label': 'GROUP #', 'value': ''},
+          {'label': 'PCN', 'value': ''},
+        ]);
+        break;
+      case 'healthTestRecord':
+        _dynamicFields['primaryFields']!.add({'label': 'TEST TYPE', 'value': ''});
+        _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'RESULT', 'value': ''},
+          {'label': 'DATE', 'value': ''},
+        ]);
+        _dynamicFields['auxiliaryFields']!.addAll([
+          {'label': 'LAB', 'value': ''},
+          {'label': 'PROVIDER', 'value': ''},
+        ]);
+        break;
+      case 'healthVaccineCard':
+        _dynamicFields['primaryFields']!.add({'label': 'VACCINE', 'value': ''});
+        _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'DOSE', 'value': ''},
+          {'label': 'DATE', 'value': ''},
+        ]);
+        _dynamicFields['auxiliaryFields']!.addAll([
+          {'label': 'MANUFACTURER', 'value': ''},
+          {'label': 'LOT #', 'value': ''},
+        ]);
+        break;
+      case 'digitalCredential':
+        _dynamicFields['primaryFields']!.add({'label': 'DOCUMENT TYPE', 'value': ''});
+        _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'ISSUER', 'value': ''},
+          {'label': 'ID #', 'value': ''},
+        ]);
+        _dynamicFields['auxiliaryFields']!.addAll([
+          {'label': 'EXPIRY', 'value': ''},
+          {'label': 'VERIFIED', 'value': ''},
+        ]);
+        break;
+      case 'genericPrivate':
+        _dynamicFields['primaryFields']!.add({'label': 'ORGANIZATION', 'value': ''});
+        _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'DATA TYPE', 'value': ''},
+        ]);
+        _dynamicFields['auxiliaryFields']!.addAll([
+          {'label': 'ID #', 'value': ''},
+          {'label': 'NOTES', 'value': ''},
+        ]);
+        break;
+      case 'inStorePayment':
+        _dynamicFields['primaryFields']!.add({'label': 'CARD NUMBER', 'value': ''});
+        _dynamicFields['secondaryFields']!.addAll([
+          {'label': 'MEMBER NAME', 'value': ''},
+        ]);
+        _dynamicFields['auxiliaryFields']!.addAll([
+          {'label': 'CARD TYPE', 'value': ''},
         ]);
         break;
       case 'coupon':
@@ -408,21 +519,68 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     );
   }
 
-  String _getPassTypeLabel(String type) {
-    switch (type) {
-      case 'boardingPass':
-        return 'BOARDING PASS';
-      case 'eventTicket':
-        return 'EVENT TICKET';
-      case 'coupon':
-        return 'COUPON';
-      case 'storeCard':
-        return 'STORE CARD';
-      case 'generic':
-        return 'GENERIC / OTHER';
-      default:
-        return type.toUpperCase();
+  List<DropdownMenuItem<String>> _buildCategorizedPassTypeItems() {
+    final items = <DropdownMenuItem<String>>[];
+    final categories = [
+      PassCategory.retail,
+      PassCategory.tickets,
+      PassCategory.access,
+      PassCategory.health,
+      PassCategory.identity,
+      PassCategory.generic,
+    ];
+
+    for (final category in categories) {
+      final typesInCategory = _passTypes
+          .where((t) => PassType.fromValue(t).category == category)
+          .toList();
+      if (typesInCategory.isEmpty) continue;
+
+      // Add category header
+      items.add(
+        DropdownMenuItem<String>(
+          enabled: false,
+          value: 'header_${category.name}',
+          child: Text(
+            '── ${category.label.toUpperCase()} ──',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white54
+                  : Colors.black45,
+              letterSpacing: 1,
+            ),
+          ),
+        ),
+      );
+
+      for (final type in typesInCategory) {
+        items.add(
+          DropdownMenuItem<String>(
+            value: type,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: Row(
+                children: [
+                  Icon(
+                    PassType.fromValue(type).icon,
+                    size: 16,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : Colors.black54,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(getPassTypeLabel(type)),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
     }
+
+    return items;
   }
 
   @override
@@ -507,15 +665,7 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         DropdownButtonFormField<String>(
           initialValue: _selectedType,
           decoration: const InputDecoration(labelText: 'Pass Category'),
-          items:
-              _passTypes
-                  .map(
-                    (t) => DropdownMenuItem(
-                      value: t,
-                      child: Text(_getPassTypeLabel(t)),
-                    ),
-                  )
-                  .toList(),
+          items: _buildCategorizedPassTypeItems(),
           onChanged: (v) {
             if (v != null && v != _selectedType) {
               setState(() {
@@ -525,12 +675,17 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
             }
           },
         ),
-        if (_selectedType == 'boardingPass') ...[
+        if (_selectedType == 'boardingPass' || _selectedType == 'transitPass') ...[
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             initialValue: _transitType,
             decoration: const InputDecoration(labelText: 'Transit Type'),
             items: [
+              'BUS',
+              'RAIL',
+              'TRAM',
+              'FERRY',
+              'OTHER',
               'PKTransitTypeAir',
               'PKTransitTypeBoat',
               'PKTransitTypeBus',

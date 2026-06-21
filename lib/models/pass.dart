@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:wallet/services/encryption_service.dart';
+import 'package:wallet/models/pass_types.dart';
 
 class Pass {
   final int? id;
-  final String type; // generic, boardingPass, coupon, eventTicket, storeCard
+  final String type;
   final String organizationName;
   final String? description;
   final String? logoText;
@@ -43,6 +44,9 @@ class Pass {
     this.fields,
     this.orderIndex = 0,
   });
+
+  PassCategory get category => PassType.fromValue(type).category;
+  PassType get passType => PassType.fromValue(type);
 
   Map<String, dynamic> toMap() {
     return {

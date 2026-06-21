@@ -301,12 +301,70 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
         if (fieldType == 'primary') return "Event Details";
         if (fieldType == 'secondary') return "Venue Info";
         return "Ticket Details";
+      case 'loyaltyCard':
       case 'storeCard':
-        if (fieldType == 'primary') return "Pass Details";
-        return "Account Details";
+        if (fieldType == 'primary') return "Member Info";
+        if (fieldType == 'secondary') return "Account Details";
+        return "Rewards Info";
+      case 'giftCard':
+        if (fieldType == 'primary') return "Card Info";
+        if (fieldType == 'secondary') return "Balance & PIN";
+        return "Gift Details";
+      case 'offer':
+        if (fieldType == 'primary') return "Offer Details";
+        if (fieldType == 'secondary') return "Provider Info";
+        return "Terms";
       case 'coupon':
         if (fieldType == 'primary') return "Offer Details";
         return "Coupon Info";
+      case 'transitPass':
+        if (fieldType == 'primary') return "Route Details";
+        if (fieldType == 'secondary') return "Trip Info";
+        return "Fare Details";
+      case 'digitalCarKey':
+        if (fieldType == 'primary') return "Vehicle Info";
+        if (fieldType == 'secondary') return "Key Details";
+        return "Access Info";
+      case 'campusId':
+        if (fieldType == 'primary') return "Student Info";
+        if (fieldType == 'secondary') return "University Details";
+        return "Access Info";
+      case 'corporateBadge':
+        if (fieldType == 'primary') return "Employee Info";
+        if (fieldType == 'secondary') return "Company Details";
+        return "Access Info";
+      case 'hotelKey':
+        if (fieldType == 'primary') return "Guest Info";
+        if (fieldType == 'secondary') return "Hotel Details";
+        return "Stay Details";
+      case 'multiFamilyKey':
+        if (fieldType == 'primary') return "Resident Info";
+        if (fieldType == 'secondary') return "Property Details";
+        return "Access Info";
+      case 'healthInsuranceCard':
+        if (fieldType == 'primary') return "Member Info";
+        if (fieldType == 'secondary') return "Policy Details";
+        return "Coverage Info";
+      case 'healthTestRecord':
+        if (fieldType == 'primary') return "Test Info";
+        if (fieldType == 'secondary') return "Results";
+        return "Lab Details";
+      case 'healthVaccineCard':
+        if (fieldType == 'primary') return "Vaccine Info";
+        if (fieldType == 'secondary') return "Dose Details";
+        return "Manufacturer Info";
+      case 'digitalCredential':
+        if (fieldType == 'primary') return "Document Info";
+        if (fieldType == 'secondary') return "Issuer Details";
+        return "Verification";
+      case 'genericPrivate':
+        if (fieldType == 'primary') return "Organization";
+        if (fieldType == 'secondary') return "Data Details";
+        return "Additional Info";
+      case 'inStorePayment':
+        if (fieldType == 'primary') return "Card Info";
+        if (fieldType == 'secondary') return "Account Details";
+        return "Payment Info";
       default:
         if (fieldType == 'primary') return "Card Details";
         return "Information";

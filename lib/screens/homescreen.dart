@@ -961,6 +961,9 @@ class _HomeScreenState extends State<HomeScreen> {
         final searchedPasses = provider.searchPasses(_searchQuery);
         final filteredPasses = searchedPasses.where((pass) {
           if (_selectedPassFilter == 'all') return true;
+          // Handle legacy types mapping to modern equivalents
+          if (_selectedPassFilter == 'loyaltyCard' && pass.type == 'storeCard') return true;
+          if (_selectedPassFilter == 'offer' && pass.type == 'coupon') return true;
           return pass.type == _selectedPassFilter;
         }).toList();
 
@@ -1012,10 +1015,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: SegmentedButton<String>(
                     segments: const [
                       ButtonSegment<String>(value: 'all', label: Text('ALL')),
-                      ButtonSegment<String>(value: 'boardingPass', label: Text('BOARDING PASSES')),
-                      ButtonSegment<String>(value: 'eventTicket', label: Text('EVENT TICKETS')),
-                      ButtonSegment<String>(value: 'coupon', label: Text('COUPONS')),
-                      ButtonSegment<String>(value: 'storeCard', label: Text('STORE CARDS')),
+                      ButtonSegment<String>(value: 'loyaltyCard', label: Text('LOYALTY')),
+                      ButtonSegment<String>(value: 'giftCard', label: Text('GIFT CARDS')),
+                      ButtonSegment<String>(value: 'offer', label: Text('OFFERS')),
+                      ButtonSegment<String>(value: 'boardingPass', label: Text('BOARDING')),
+                      ButtonSegment<String>(value: 'eventTicket', label: Text('EVENTS')),
+                      ButtonSegment<String>(value: 'transitPass', label: Text('TRANSIT')),
+                      ButtonSegment<String>(value: 'healthInsuranceCard', label: Text('HEALTH')),
+                      ButtonSegment<String>(value: 'campusId', label: Text('CAMPUS')),
+                      ButtonSegment<String>(value: 'corporateBadge', label: Text('CORPORATE')),
+                      ButtonSegment<String>(value: 'hotelKey', label: Text('HOTEL')),
                       ButtonSegment<String>(value: 'generic', label: Text('OTHER')),
                     ],
                     showSelectedIcon: false,
