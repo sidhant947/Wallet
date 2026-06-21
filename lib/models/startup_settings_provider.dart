@@ -33,6 +33,7 @@ class StartupSettingsProvider with ChangeNotifier {
     {'code': 'CHF', 'symbol': 'CHF', 'name': 'Swiss Franc'},
     {'code': 'CNY', 'symbol': '¥', 'name': 'Chinese Yuan'},
     {'code': 'NZD', 'symbol': 'NZ\$', 'name': 'New Zealand Dollar'},
+    {'code': 'SEK', 'symbol': 'kr', 'name': 'Swedish Krona'},
   ];
 
   // Initialize settings from saved preferences
