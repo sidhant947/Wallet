@@ -103,14 +103,10 @@ class _IdentityCardDetailScreenState extends State<IdentityCardDetailScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
-    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          currentCard.name,
-          style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-        ),
+        title: const SizedBox.shrink(),
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(

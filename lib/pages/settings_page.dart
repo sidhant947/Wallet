@@ -456,6 +456,7 @@ class _SettingsPageState extends State<SettingsPage> {
         buttonText: 'Restore',
         isDestructive: true,
         isDark: isDark,
+        validatePassword: false,
         onConfirm: (password) async {
           try {
             final walletProvider = context.read<WalletProvider>();
@@ -812,6 +813,7 @@ class _LiquidGlassPasswordDialog extends StatefulWidget {
   final String buttonText;
   final bool isDestructive;
   final bool isDark;
+  final bool validatePassword;
   final Future<void> Function(String) onConfirm;
   const _LiquidGlassPasswordDialog({
     required this.title,
@@ -819,6 +821,7 @@ class _LiquidGlassPasswordDialog extends StatefulWidget {
     required this.buttonText,
     this.isDestructive = false,
     required this.isDark,
+    this.validatePassword = true,
     required this.onConfirm,
   });
 
@@ -850,7 +853,7 @@ class _LiquidGlassPasswordDialogState
 
   void _validateAndConfirm() {
     final password = _passwordController.text;
-    if (password.length < _minPasswordLength) {
+    if (widget.validatePassword && password.length < _minPasswordLength) {
       setState(() {
         _passwordError = 'Password must be at least $_minPasswordLength characters';
       });

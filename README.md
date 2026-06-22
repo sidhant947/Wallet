@@ -25,12 +25,12 @@ Stay secure on your favorite platform. Secure Wallet is available on several pri
 ## ✨ Key Features
 
 *   🚫 **Zero Internet Access**: The app does not request the `INTERNET` permission. Your data is physically impossible to leak online.
-*   🛡️ **Military-Grade Encryption**: All sensitive fields, custom data, and card images are encrypted using **AES-256-GCM**.
-*   🔐 **Biometric Security**: Protect your vault with fingerprint or face unlock using platform-native security.
+*   🛡️ **Military-Grade Encryption**: All sensitive fields, custom data, and card images are encrypted using **AES-256-GCM** with **Argon2id** key derivation (RFC 9106).
+*   🔐 **Biometric Security**: Protect your vault with fingerprint or face unlock. Authentication is required on app start, and before destructive actions like backup restore or data deletion.
 *   🎨 **Liquid Glass UI**: A premium, modern design featuring smooth glassmorphism, staggered animations, and dynamic transitions.
 *   📲 **Apple Wallet Support**: Import `.pkpass` files directly into your local vault.
 *   🔄 **Secure E2EE Sharing**: Share cards via encrypted QR codes. Data is decrypted only by the receiving app instance.
-*   💾 **Encrypted Backups**: Export your entire vault into a `.wbk` file secured with **PBKDF2-HMAC-SHA256** key derivation.
+*   💾 **Encrypted Backups**: Export your entire vault into a `.wbk` file secured with **Argon2id** key derivation. Backups include cards, passes, identities, and settings.
 *   📸 **Encrypted Image Vault**: Store front/back photos of cards; images are encrypted on disk and decrypted directly into memory.
 *   🌓 **True OLED Dark Mode**: Optimized for battery saving and premium aesthetics.
 

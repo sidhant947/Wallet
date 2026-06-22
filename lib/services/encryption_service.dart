@@ -49,8 +49,9 @@ class _EncryptBackupParams {
 class _DecryptBackupParams {
   final Uint8List data;
   final String password;
+  final List<int>? keyBytes;
 
-  _DecryptBackupParams(this.data, this.password);
+  _DecryptBackupParams(this.data, this.password, [this.keyBytes]);
 }
 
 /// AES-256-GCM encryption service for securing sensitive local data.
@@ -281,9 +282,21 @@ class EncryptionService {
     Uint8List encryptedData,
     String password,
   ) async {
+    List<int>? keyBytes;
+    try {
+      final decoded = utf8.decode(encryptedData);
+      if (decoded.startsWith('argon2:')) {
+        final payload = decoded.substring(7);
+        final parts = payload.split(':');
+        if (parts.length == 3) {
+          final salt = base64Decode(parts[0]);
+          keyBytes = await deriveKeyArgon2id(password, salt);
+        }
+      }
+    } catch (_) {}
     return await compute(
       _backupDecryptIsolate,
-      _DecryptBackupParams(encryptedData, password),
+      _DecryptBackupParams(encryptedData, password, keyBytes),
     );
   }
 
@@ -678,10 +691,9 @@ Uint8List _backupDecryptIsolate(_DecryptBackupParams params) {
         }
 
         // Key derivation must happen synchronously in isolate.
-        // PBKDF2 is sync; for Argon2id, we fall back to PBKDF2 in isolate
-        // and the caller should pre-derive on main thread for Argon2id.
-        final keyBytes = isArgon2
-            ? service._deriveKeyPBKDF2(params.password, salt) // fallback
+        // PBKDF2 is sync; Argon2id key is pre-derived on main thread.
+        final keyBytes = isArgon2 && params.keyBytes != null
+            ? params.keyBytes!
             : service._deriveKeyPBKDF2(params.password, salt);
         final key = encrypt.Key(Uint8List.fromList(keyBytes));
 

@@ -101,7 +101,7 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(p.organizationName),
+        title: const SizedBox.shrink(),
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(

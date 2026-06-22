@@ -6,7 +6,7 @@ Why choose Wallet?
 Wallet does not have internet permission. Your data never leaves your device, making it 100% immune to cloud leaks, remote hacks, or third-party tracking. True privacy is offline.
 
 🛡️ MILITARY-GRADE ENCRYPTION
-Every detail—card numbers, images, and custom fields—is protected using industry-standard AES-256-GCM authenticated encryption. Your master key stays safely in your device's hardware keystore.
+Every detail—card numbers, images, and custom fields—is protected using industry-standard AES-256-GCM authenticated encryption with Argon2id key derivation (RFC 9106). Your master key stays safely in your device's hardware keystore.
 
 🎨 PREMIUM "LIQUID GLASS" DESIGN
 Experience a beautiful, modern interface with glassmorphism effects, smooth staggered animations, and full support for premium Light and OLED Dark modes.
@@ -15,13 +15,13 @@ Experience a beautiful, modern interface with glassmorphism effects, smooth stag
 Easily import your digital passes and tickets. Support for .pkpass files allows you to move your boarding passes, coupons, and event tickets into a secure, offline vault.
 
 🔐 BIOMETRIC PROTECTION
-Secure your vault with your fingerprint or face unlock. Experience instant, secure access with platform-native authentication.
+Secure your vault with your fingerprint or face unlock. Authentication is required on app start, and before destructive actions like backup restore or data deletion.
 
 🔄 SECURE ENCRYPTED SHARING
 Share passes or loyalty cards securely via End-to-End Encrypted (E2EE) QR codes. Your data is encrypted for transfer and can only be decrypted by another instance of the app.
 
 💾 SECURE BACKUPS
-Create encrypted backups (.wbk) of your entire vault, including images. Every backup is protected by a password-derived key using PBKDF2-HMAC-SHA256 with 100,000 iterations.
+Create encrypted backups (.wbk) of your entire vault, including passes, and settings. Every backup is protected by Argon2id key derivation, memory-hard and resistant to GPU attacks.
 
 📸 ENCRYPTED CARD SCANS
 Store high-quality, encrypted images of the front and back of your physical cards. Access them digitally whenever you need them, without compromising your security.

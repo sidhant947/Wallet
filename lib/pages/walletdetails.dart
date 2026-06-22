@@ -128,17 +128,13 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final startupProvider = Provider.of<StartupSettingsProvider>(context);
-    final textTheme = Theme.of(context).textTheme;
     final isDark = themeProvider.isDarkMode;
     final symbol = startupProvider.selectedCurrencySymbol;
     bool isPathValid(String? path) => path != null && path.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          currentWallet.name,
-          style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-        ),
+        title: const SizedBox.shrink(),
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
