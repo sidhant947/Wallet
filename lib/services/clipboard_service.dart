@@ -12,8 +12,6 @@ class ClipboardService {
 
   static const Duration _defaultClearDuration = Duration(seconds: 15);
 
-  String? get currentContent => _currentContent;
-
   Future<void> copy(String text, {Duration? clearAfter}) async {
     await Clipboard.setData(ClipboardData(text: text));
     _currentContent = text;
@@ -32,11 +30,5 @@ class ClipboardService {
 
     _currentContent = null;
     _clearTimer = null;
-  }
-
-  void cancelAutoClear() {
-    _clearTimer?.cancel();
-    _clearTimer = null;
-    _currentContent = null;
   }
 }

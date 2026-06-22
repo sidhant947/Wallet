@@ -77,21 +77,3 @@ const Map<String, CardColorData> cardColorPalette = {
     name: 'Rose',
   ),
 };
-
-// Legacy support - map old color names to new palette
-const Map<String, Color> cardColors = {
-  'default': Color(0xFF0D0D0D),
-  'obsidian': Color(0xFF0D0D0D),
-  'midnight': Color(0xFF0F0F23),
-  'graphite': Color(0xFF1C1C1C),
-  'titanium': Color(0xFF3A3A4A),
-  'cosmic': Color(0xFF1A0A2E),
-  'ocean': Color(0xFF0A1628),
-  'emerald': Color(0xFF0A1F1A),
-  'rose': Color(0xFF2A1A1F),
-  'blue': Color(0xFF0A1628),
-  'green': Color(0xFF0A1F1A),
-  'red': Color(0xFF2A1A1F),
-  'purple': Color(0xFF1A0A2E),
-  'orange': Color(0xFF3A3A4A),
-};

@@ -65,7 +65,7 @@ class _ShareSecureScreenState extends State<ShareSecureScreen> {
                       onPressed: () => setDialogState(() => obscure = !obscure),
                     ),
                   ),
-                  onSubmitted: (_) => _onPasswordSet(controller.text),
+                  onSubmitted: (_) => _onPasswordSet(controller.text, context),
                 ),
               ],
             ),
@@ -75,7 +75,7 @@ class _ShareSecureScreenState extends State<ShareSecureScreen> {
                 child: const Text('Cancel'),
               ),
               FilledButton(
-                onPressed: () => _onPasswordSet(controller.text),
+                onPressed: () => _onPasswordSet(controller.text, context),
                 child: const Text('Generate QR'),
               ),
             ],
@@ -85,8 +85,19 @@ class _ShareSecureScreenState extends State<ShareSecureScreen> {
     );
   }
 
-  void _onPasswordSet(String password) {
-    Navigator.pop(context);
+  static const int _minPasswordLength = 8;
+
+  Future<void> _onPasswordSet(String password, BuildContext dialogContext) async {
+    if (password.length < _minPasswordLength) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Password must be at least $_minPasswordLength characters'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    Navigator.pop(dialogContext);
     if (password.isEmpty) return;
 
     Map<String, dynamic> dataMap;
@@ -110,7 +121,7 @@ class _ShareSecureScreenState extends State<ShareSecureScreen> {
     dataMap.remove('id');
 
     final payload = {'type': shareType, 'data': dataMap};
-    final chunks = EncryptionService.instance.encryptForTransfer(jsonEncode(payload), password);
+    final chunks = await EncryptionService.instance.encryptForTransfer(jsonEncode(payload), password);
     dataMap.clear();
     payload.clear();
 

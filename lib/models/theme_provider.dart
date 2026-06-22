@@ -118,31 +118,6 @@ class ThemeProvider with ChangeNotifier {
     );
   }
 
-  // --- LIQUID GLASS DESIGN HELPERS ---
-
-  /// Returns the glass background color based on theme
-  Color get glassBackground => _isDarkMode
-      ? Colors.white.withValues(alpha: 0.08)
-      : Colors.black.withValues(alpha: 0.04);
-
-  /// Returns the glass border color based on theme
-  Color get glassBorder => _isDarkMode
-      ? Colors.white.withValues(alpha: 0.15)
-      : Colors.black.withValues(alpha: 0.08);
-
-  /// Returns a subtle glass highlight for top edges
-  Color get glassHighlight => _isDarkMode
-      ? Colors.white.withValues(alpha: 0.2)
-      : Colors.white.withValues(alpha: 0.7);
-
-  /// Returns card surface color for glass effect
-  Color get glassSurface =>
-      _isDarkMode ? const Color(0xFF0A0A0A) : const Color(0xFFF8F8F8);
-
-  /// Returns the elevated glass surface color
-  Color get glassElevatedSurface =>
-      _isDarkMode ? const Color(0xFF121212) : Colors.white;
-
   // --- TYPOGRAPHY BEST PRACTICES ---
   TextTheme _buildTextTheme(bool isDark) {
     final Color color = isDark ? Colors.white : Colors.black;

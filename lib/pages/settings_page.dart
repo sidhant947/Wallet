@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/theme_provider.dart';
@@ -23,6 +24,17 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
+  }
+
+  Future<bool> _authenticateForDestructiveAction() async {
+    if (Platform.isLinux) return true;
+    final auth = LocalAuthentication();
+    final isDeviceSupported = await auth.isDeviceSupported();
+    if (!isDeviceSupported) return true;
+    return await auth.authenticate(
+      localizedReason: 'Authenticate to perform this action',
+      options: const AuthenticationOptions(stickyAuth: true),
+    );
   }
 
   String _getThemeDisplayName(ThemePreference preference) {
@@ -402,7 +414,9 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showBackupDialog(ThemeProvider themeProvider) {
+  void _showBackupDialog(ThemeProvider themeProvider) async {
+    final authenticated = await _authenticateForDestructiveAction();
+    if (!authenticated || !mounted) return;
     final isDark = themeProvider.isDarkMode;
     showDialog(
       context: context,
@@ -429,7 +443,9 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showRestoreDialog(ThemeProvider themeProvider) {
+  void _showRestoreDialog(ThemeProvider themeProvider) async {
+    final authenticated = await _authenticateForDestructiveAction();
+    if (!authenticated || !mounted) return;
     final isDark = themeProvider.isDarkMode;
     showDialog(
       context: context,
@@ -475,7 +491,9 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showDeleteAllDataDialog(ThemeProvider themeProvider) {
+  void _showDeleteAllDataDialog(ThemeProvider themeProvider) async {
+    final authenticated = await _authenticateForDestructiveAction();
+    if (!authenticated || !mounted) return;
     final isDark = themeProvider.isDarkMode;
     showDialog(
       context: context,
@@ -814,6 +832,9 @@ class _LiquidGlassPasswordDialogState
   late final TextEditingController _passwordController;
   bool _isLoading = false;
   bool _obscure = true;
+  String? _passwordError;
+
+  static const int _minPasswordLength = 8;
 
   @override
   void initState() {
@@ -825,6 +846,23 @@ class _LiquidGlassPasswordDialogState
   void dispose() {
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _validateAndConfirm() {
+    final password = _passwordController.text;
+    if (password.length < _minPasswordLength) {
+      setState(() {
+        _passwordError = 'Password must be at least $_minPasswordLength characters';
+      });
+      return;
+    }
+    setState(() {
+      _passwordError = null;
+      _isLoading = true;
+    });
+    widget.onConfirm(password).then((_) {
+      if (mounted) setState(() => _isLoading = false);
+    });
   }
 
   @override
@@ -854,8 +892,14 @@ class _LiquidGlassPasswordDialogState
             style: TextStyle(
               color: widget.isDark ? Colors.white : Colors.black,
             ),
+            onChanged: (_) {
+              if (_passwordError != null) {
+                setState(() => _passwordError = null);
+              }
+            },
             decoration: InputDecoration(
               labelText: 'Password',
+              errorText: _passwordError,
               suffixIcon: IconButton(
                 icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
                 onPressed: () => setState(() => _obscure = !_obscure),
@@ -870,12 +914,7 @@ class _LiquidGlassPasswordDialogState
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: () async {
-            if (_passwordController.text.isEmpty) return;
-            setState(() => _isLoading = true);
-            await widget.onConfirm(_passwordController.text);
-            if (mounted) setState(() => _isLoading = false);
-          },
+          onPressed: _isLoading ? null : _validateAndConfirm,
           style: FilledButton.styleFrom(
             backgroundColor: widget.isDestructive
                 ? Colors.red

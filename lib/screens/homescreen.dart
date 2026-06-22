@@ -108,14 +108,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final rawData = scanResult.rawContent;
 
-      // V2: Chunked password-based transfer
-      if (rawData.startsWith('v2:')) {
+      // V2/V3: Chunked password-based transfer (V2=PBKDF2, V3=Argon2id)
+      if (rawData.startsWith('v2:') || rawData.startsWith('v3:')) {
         _handleChunkScan(rawData);
         return;
       }
 
       // Legacy v1 single-QR transfer
-      final decryptedJson = EncryptionService.instance.decryptFromTransfer(rawData);
+      final decryptedJson = await EncryptionService.instance.decryptFromTransfer(rawData);
 
       if (decryptedJson == null) {
         if (mounted) {
@@ -309,7 +309,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _transferChunks.clear();
       _expectedTotalChunks = 0;
 
-      final decryptedJson = EncryptionService.instance.decryptFromTransfer(joinedData, password: password);
+      final decryptedJson = await EncryptionService.instance.decryptFromTransfer(joinedData, password: password);
 
       if (decryptedJson == null) {
         _showImportError('Decryption failed. Wrong password or corrupted data.');

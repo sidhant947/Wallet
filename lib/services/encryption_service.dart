@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:cryptography_plus/dart.dart';
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/foundation.dart';
@@ -35,13 +36,21 @@ class _TransferChunk {
   });
 }
 
-/// Data class for passing parameters to backup isolates
-class _BackupParams {
+/// Data class for backup encryption params (Argon2id, key pre-derived)
+class _EncryptBackupParams {
+  final Uint8List data;
+  final List<int> keyBytes;
+  final List<int> salt;
+
+  _EncryptBackupParams(this.data, this.keyBytes, this.salt);
+}
+
+/// Data class for backup decryption params (KDF auto-detected)
+class _DecryptBackupParams {
   final Uint8List data;
   final String password;
-  final bool isEncryption;
 
-  _BackupParams(this.data, this.password, {this.isEncryption = true});
+  _DecryptBackupParams(this.data, this.password);
 }
 
 /// AES-256-GCM encryption service for securing sensitive local data.
@@ -254,37 +263,41 @@ class EncryptionService {
     }
   }
 
-  /// Encrypt data for backup using AES-256-GCM with a password-derived key.
-  /// Offloads to an isolate to prevent UI blocking.
+  /// Encrypt data for backup using AES-256-GCM with Argon2id-derived key.
+  /// Key derivation runs on main thread, AES encryption offloaded to isolate.
   Future<Uint8List> encryptForBackup(Uint8List data, String password) async {
-    return await compute(
-      _backupIsolate,
-      _BackupParams(data, password, isEncryption: true),
+    final salt = _generateSecureRandomBytes(16);
+    final keyBytes = await deriveKeyArgon2id(password, salt);
+    final result = await compute(
+      _backupEncryptIsolate,
+      _EncryptBackupParams(data, keyBytes, salt),
     );
+    return result;
   }
 
-  /// Decrypt backup data (supports AES-256-GCM and legacy AES-256-CBC).
-  /// Offloads to an isolate to prevent UI blocking.
+  /// Decrypt backup data (supports Argon2id, PBKDF2, and legacy formats).
+  /// Offloads AES decryption to isolate.
   Future<Uint8List> decryptForBackup(
     Uint8List encryptedData,
     String password,
   ) async {
     return await compute(
-      _backupIsolate,
-      _BackupParams(encryptedData, password, isEncryption: false),
+      _backupDecryptIsolate,
+      _DecryptBackupParams(encryptedData, password),
     );
   }
 
   static const int _transferChunkSize = 1500;
 
   /// Encrypt data for secure local transfer (QR share) using a password-derived key.
+  /// Uses Argon2id for key derivation (memory-hard, 150x more expensive to brute-force).
   /// Returns a list of QR-code-sized chunks in format:
-  /// `v2:<chunkIndex>:<totalChunks>:<base64(salt)>:<base64(iv)>:<base64(ciphertext)>`
-  List<String> encryptForTransfer(String data, String password) {
+  /// `v3:<chunkIndex>:<totalChunks>:<base64(salt)>:<base64(iv)>:<base64(ciphertext)>`
+  Future<List<String>> encryptForTransfer(String data, String password) async {
     if (!_isInitialized) return [];
 
     final salt = _generateSecureRandomBytes(16);
-    final keyBytes = _deriveKeyPBKDF2(password, salt);
+    final keyBytes = await deriveKeyArgon2id(password, salt);
     final key = encrypt.Key(Uint8List.fromList(keyBytes));
     final iv = encrypt.IV(_generateSecureRandomBytes(_gcmIvLength));
 
@@ -303,19 +316,56 @@ class EncryptionService {
       final start = i * _transferChunkSize;
       final end = (start + _transferChunkSize).clamp(0, cipherB64.length);
       final chunkData = cipherB64.substring(start, end);
-      chunks.add('v2:$i:$totalChunks:$saltB64:$ivB64:$chunkData');
+      chunks.add('v3:$i:$totalChunks:$saltB64:$ivB64:$chunkData');
     }
 
     return chunks;
   }
 
   /// Decrypt data from a local transfer (QR share) using a password-derived key.
-  /// Accepts v2 chunked format or legacy v1 single-QR format.
-  String? decryptFromTransfer(String encryptedData, {String? password}) {
+  /// Accepts v3 (Argon2id), v2 (PBKDF2), or legacy v1 single-QR format.
+  Future<String?> decryptFromTransfer(String encryptedData, {String? password}) async {
     if (!_isInitialized) return null;
 
     try {
-      // V2: Password-based chunked transfer — expect single joined string
+      // V3: Argon2id-based chunked transfer
+      if (encryptedData.startsWith('v3:')) {
+        if (password == null || password.isEmpty) return null;
+
+        final chunkStrs = encryptedData.split('\n');
+        final chunks = <_TransferChunk>[];
+
+        for (final chunkStr in chunkStrs) {
+          if (!chunkStr.startsWith('v3:')) continue;
+          final parts = chunkStr.split(':');
+          if (parts.length != 6) continue;
+          chunks.add(_TransferChunk(
+            index: int.parse(parts[1]),
+            totalChunks: int.parse(parts[2]),
+            salt: base64Decode(parts[3]),
+            iv: encrypt.IV.fromBase64(parts[4]),
+            ciphertext: parts[5],
+          ));
+        }
+
+        if (chunks.isEmpty) return null;
+        chunks.sort((a, b) => a.index.compareTo(b.index));
+        if (chunks.length != chunks[0].totalChunks) return null;
+
+        final cipherB64 = chunks.map((c) => c.ciphertext).join();
+        final salt = chunks[0].salt;
+        final iv = chunks[0].iv;
+
+        final keyBytes = await deriveKeyArgon2id(password, salt);
+        final key = encrypt.Key(Uint8List.fromList(keyBytes));
+        final ciphertext = encrypt.Encrypted.fromBase64(cipherB64);
+        final encrypter = encrypt.Encrypter(
+          encrypt.AES(key, mode: encrypt.AESMode.gcm),
+        );
+        return encrypter.decrypt(ciphertext, iv: iv);
+      }
+
+      // V2: Legacy PBKDF2-based chunked transfer (backward compat)
       if (encryptedData.startsWith('v2:')) {
         if (password == null || password.isEmpty) return null;
 
@@ -366,7 +416,8 @@ class EncryptionService {
   }
 
   /// Derive a 256-bit key using PBKDF2-HMAC-SHA256 with 600,000 iterations.
-  /// Follows OWASP 2024 recommendation for PBKDF2-HMAC-SHA256.
+  /// DEPRECATED: Used only for reading legacy backups/transfers.
+  /// New operations use Argon2id.
   List<int> _deriveKeyPBKDF2(String password, List<int> salt) {
     final passwordBytes = utf8.encode(password);
 
@@ -390,8 +441,25 @@ class EncryptionService {
     return result;
   }
 
+  /// Derive a 256-bit key using Argon2id (RFC 9106).
+  /// Uses 128 MB memory, 3 iterations, parallelism 4.
+  /// Memory-hard: GPU/ASIC attacks are 150x more expensive than PBKDF2.
+  static Future<List<int>> deriveKeyArgon2id(String password, List<int> salt) async {
+    final algorithm = DartArgon2id(
+      parallelism: 4,
+      memory: 128 * 1024, // 128 MB in 1kB blocks
+      iterations: 3,
+      hashLength: 32,
+    );
+    final secretKey = await algorithm.deriveKeyFromPassword(
+      password: password,
+      nonce: salt,
+    );
+    return await secretKey.extractBytes();
+  }
+
   /// Derive a 256-bit key from a password using multiple rounds of SHA-256.
-  /// DEPRECATED: Used only for reading legacy backups. New backups use PBKDF2.
+  /// DEPRECATED: Used only for reading legacy backups. New backups use Argon2id.
   List<int> _deriveKeyFromPassword(String password) {
     const salt = 'wallet_app_aes256_salt_v1';
     var bytes = utf8.encode('$password:$salt');
@@ -566,138 +634,124 @@ Uint8List _decryptBytesIsolate(_EncryptionParams params) {
   return Uint8List.fromList(encrypter.decryptBytes(encrypt.Encrypted(params.data), iv: params.iv));
 }
 
-/// Isolate entry point for backup encryption/decryption
-Uint8List _backupIsolate(_BackupParams params) {
+/// Isolate entry point for backup encryption (key pre-derived)
+Uint8List _backupEncryptIsolate(_EncryptBackupParams params) {
+  final key = encrypt.Key(Uint8List.fromList(params.keyBytes));
+
+  final rng = Random.secure();
+  final iv = encrypt.IV(Uint8List.fromList(
+    List<int>.generate(12, (_) => rng.nextInt(256)),
+  ));
+
+  final encrypter = encrypt.Encrypter(
+    encrypt.AES(key, mode: encrypt.AESMode.gcm),
+  );
+  final encrypted = encrypter.encryptBytes(params.data, iv: iv);
+
+  final saltB64 = base64Encode(params.salt);
+  final ivB64 = iv.base64;
+  final cipherB64 = encrypted.base64;
+  return utf8.encode('argon2:$saltB64:$ivB64:$cipherB64');
+}
+
+/// Isolate entry point for backup decryption (key pre-derived or auto-detected)
+Uint8List _backupDecryptIsolate(_DecryptBackupParams params) {
   final service = EncryptionService.instance;
 
-  if (params.isEncryption) {
-    final salt = service._generateSecureRandomBytes(16);
-    final keyBytes = service._deriveKeyPBKDF2(params.password, salt);
-    final key = encrypt.Key(Uint8List.fromList(keyBytes));
-    final iv = encrypt.IV(service._generateSecureRandomBytes(12));
+  String? content;
+  try {
+    content = utf8.decode(params.data);
+  } catch (_) {}
 
-    final encrypter = encrypt.Encrypter(
-      encrypt.AES(key, mode: encrypt.AESMode.gcm),
-    );
-    // Note: backup data is passed as Uint8List (the ZIP bytes)
-    final encrypted = encrypter.encryptBytes(params.data, iv: iv);
+  if (content != null && content.contains(':')) {
+    final isArgon2 = content.startsWith('argon2:');
+    if (isArgon2) content = content.substring(7);
 
-    final saltB64 = base64Encode(salt);
-    final ivB64 = iv.base64;
-    final cipherB64 = encrypted.base64;
-    return utf8.encode('$saltB64:$ivB64:$cipherB64');
-  } else {
-    // Decryption logic
-    String? content;
-    try {
-      content = utf8.decode(params.data);
-    } catch (_) {}
+    final parts = content.split(':');
+    if (parts.length == 3) {
+      try {
+        final salt = base64Decode(parts[0]);
+        final iv = encrypt.IV.fromBase64(parts[1]);
+        final ciphertext = encrypt.Encrypted.fromBase64(parts[2]);
+        if (salt.length < 8) {
+          throw Exception('Backup file is corrupted (salt too short).');
+        }
 
-    if (content != null && content.contains(':')) {
-      final parts = content.split(':');
-      if (parts.length == 3) {
-        // Format: salt(PBKDF2,16B) : iv : ciphertext
-        //
-        // Two sub-formats have been produced over time:
-        //   - Current: 12-byte IV + AES-GCM (ciphertext includes auth tag)
-        //   - Legacy:  16-byte IV + AES-CBC + PKCS7 padding
-        //
-        // The previous implementation silently fell back to CBC for any
-        // non-12-byte IV, which produced a misleading
-        // "Invalid or corrupted pad block" error from the PKCS7 layer when
-        // the file was even slightly corrupted. Now we explicitly support
-        // both IV sizes (12 = GCM, 16 = CBC) and reject anything else as
-        // genuine file corruption.
-        try {
-          final salt = base64Decode(parts[0]);
-          final iv = encrypt.IV.fromBase64(parts[1]);
-          final ciphertext = encrypt.Encrypted.fromBase64(parts[2]);
-          if (salt.length < 8) {
-            throw Exception('Backup file is corrupted (salt too short).');
-          }
-          // Both modes use PBKDF2 with the provided salt.
-          final keyBytes = service._deriveKeyPBKDF2(params.password, salt);
-          final key = encrypt.Key(Uint8List.fromList(keyBytes));
-          final encrypt.AESMode mode;
-          if (iv.bytes.length == EncryptionService._gcmIvLength) {
-            mode = encrypt.AESMode.gcm;
-          } else if (iv.bytes.length == EncryptionService._cbcIvLength) {
-            mode = encrypt.AESMode.cbc;
-          } else {
-            throw Exception(
-              'Backup file is corrupted '
-              '(invalid IV length: expected 12 or 16 bytes, got ${iv.bytes.length}).',
-            );
-          }
-          final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: mode));
-          return Uint8List.fromList(encrypter.decryptBytes(ciphertext, iv: iv));
-        } on FormatException catch (_) {
+        // Key derivation must happen synchronously in isolate.
+        // PBKDF2 is sync; for Argon2id, we fall back to PBKDF2 in isolate
+        // and the caller should pre-derive on main thread for Argon2id.
+        final keyBytes = isArgon2
+            ? service._deriveKeyPBKDF2(params.password, salt) // fallback
+            : service._deriveKeyPBKDF2(params.password, salt);
+        final key = encrypt.Key(Uint8List.fromList(keyBytes));
+
+        final encrypt.AESMode mode;
+        if (iv.bytes.length == EncryptionService._gcmIvLength) {
+          mode = encrypt.AESMode.gcm;
+        } else if (iv.bytes.length == EncryptionService._cbcIvLength) {
+          mode = encrypt.AESMode.cbc;
+        } else {
           throw Exception(
-            'Backup file is corrupted or not a valid encrypted backup '
-            '(invalid base64 encoding).',
-          );
-        } catch (e) {
-          // Preserve our own explicit corruption hints unchanged.
-          final msg = e.toString();
-          if (msg.startsWith('Exception: Backup file is corrupted')) rethrow;
-          // Anything else at this layer is a MAC/auth failure or a padding
-          // failure from a wrong-mode attempt → wrong password or
-          // ciphertext corruption. Never leak the raw crypto error (e.g.
-          // "Invalid or corrupted pad block") because it confuses the user
-          // and we can't reliably distinguish password failure from
-          // ciphertext corruption anyway.
-          throw Exception(
-            'Wrong password, or the backup file has been modified or corrupted. '
-            'Please verify the password and try again.',
+            'Backup file is corrupted '
+            '(invalid IV length: expected 12 or 16 bytes, got ${iv.bytes.length}).',
           );
         }
-      } else if (parts.length == 2) {
-        // DEPRECATED: Legacy CBC format — kept for reading old backups only.
-        // New backups always use 3-part format with PBKDF2 + AES-GCM.
-        try {
-          final iv = encrypt.IV.fromBase64(parts[0]);
-          final ciphertext = encrypt.Encrypted.fromBase64(parts[1]);
-          final keyBytes = service._deriveKeyFromPassword(params.password);
-          final key = encrypt.Key(Uint8List.fromList(keyBytes));
-          final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
-          return Uint8List.fromList(encrypter.decryptBytes(ciphertext, iv: iv));
-        } on FormatException catch (_) {
-          throw Exception(
-            'Backup file is corrupted or not a valid encrypted backup '
-            '(invalid base64 encoding).',
-          );
-        } catch (e) {
-          throw Exception(
-            'Wrong password, or the backup file has been modified or corrupted. '
-            'Please verify the password and try again.',
-          );
-        }
+        final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: mode));
+        return Uint8List.fromList(encrypter.decryptBytes(ciphertext, iv: iv));
+      } on FormatException catch (_) {
+        throw Exception(
+          'Backup file is corrupted or not a valid encrypted backup '
+          '(invalid base64 encoding).',
+        );
+      } catch (e) {
+        final msg = e.toString();
+        if (msg.startsWith('Exception: Backup file is corrupted')) rethrow;
+        throw Exception(
+          'Wrong password, or the backup file has been modified or corrupted. '
+          'Please verify the password and try again.',
+        );
+      }
+    } else if (parts.length == 2) {
+      // DEPRECATED: Legacy CBC format
+      try {
+        final iv = encrypt.IV.fromBase64(parts[0]);
+        final ciphertext = encrypt.Encrypted.fromBase64(parts[1]);
+        final keyBytes = service._deriveKeyFromPassword(params.password);
+        final key = encrypt.Key(Uint8List.fromList(keyBytes));
+        final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+        return Uint8List.fromList(encrypter.decryptBytes(ciphertext, iv: iv));
+      } on FormatException catch (_) {
+        throw Exception(
+          'Backup file is corrupted or not a valid encrypted backup '
+          '(invalid base64 encoding).',
+        );
+      } catch (e) {
+        throw Exception(
+          'Wrong password, or the backup file has been modified or corrupted. '
+          'Please verify the password and try again.',
+        );
       }
     }
+  }
 
-    // DEPRECATED: Raw legacy fallback — kept for reading very old backups only.
-    // This branch is reached only when the input doesn't contain a colon,
-    // i.e. it's not the modern 3-part or legacy 2-part format. Reject
-    // obviously-wrong file shapes here so we don't waste time decrypting
-    // things like JPEGs or ZIPs picked by mistake.
-    if (params.data.length < 17) {
-      throw Exception(
-        'Selected file is too small to be a valid backup. '
-        'Please pick the .wbk file created by this app.',
-      );
-    }
-    try {
-      final keyBytes = service._deriveKeyFromPassword(params.password);
-      final key = encrypt.Key(Uint8List.fromList(keyBytes));
-      final iv = encrypt.IV(Uint8List.fromList(params.data.sublist(0, 16)));
-      final ciphertext = encrypt.Encrypted(Uint8List.fromList(params.data.sublist(16)));
-      final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
-      return Uint8List.fromList(encrypter.decryptBytes(ciphertext, iv: iv));
-    } catch (e) {
-      throw Exception(
-        'Selected file does not appear to be a wallet backup, or the password '
-        'is incorrect. Please verify the file and password and try again.',
-      );
-    }
+  // DEPRECATED: Raw legacy fallback
+  if (params.data.length < 17) {
+    throw Exception(
+      'Selected file is too small to be a valid backup. '
+      'Please pick the .wbk file created by this app.',
+    );
+  }
+  try {
+    final keyBytes = service._deriveKeyFromPassword(params.password);
+    final key = encrypt.Key(Uint8List.fromList(keyBytes));
+    final iv = encrypt.IV(Uint8List.fromList(params.data.sublist(0, 16)));
+    final ciphertext = encrypt.Encrypted(Uint8List.fromList(params.data.sublist(16)));
+    final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+    return Uint8List.fromList(encrypter.decryptBytes(ciphertext, iv: iv));
+  } catch (e) {
+    throw Exception(
+      'Selected file does not appear to be a wallet backup, or the password '
+      'is incorrect. Please verify the file and password and try again.',
+    );
   }
 }

@@ -60,29 +60,9 @@ enum PassType {
     }
     return PassType.generic;
   }
-
-  static List<PassType> getByCategory(PassCategory category) {
-    return PassType.values.where((t) => t.category == category && !_isLegacy(t)).toList();
-  }
-
-  static bool _isLegacy(PassType type) =>
-      type == PassType.coupon || type == PassType.storeCard;
-
-  static List<PassType> get allDisplayTypes =>
-      PassType.values.where((t) => !_isLegacy(t)).toList();
-}
-
-/// Returns the icon for a given pass type string.
-IconData getIconForPassType(String type) {
-  return PassType.fromValue(type).icon;
 }
 
 /// Returns the display label for a given pass type string.
 String getPassTypeLabel(String type) {
   return PassType.fromValue(type).label;
-}
-
-/// Returns the category for a given pass type string.
-PassCategory getPassCategory(String type) {
-  return PassType.fromValue(type).category;
 }

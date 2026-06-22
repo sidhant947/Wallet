@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:wallet/models/db_helper.dart'; // Import your Database Helper and Wallet model
 
 class WalletProvider with ChangeNotifier {
-  Map<int, bool> walletMasks = {};
   List<Wallet> wallets = [];
 
   Future<void> fetchWallets() async {
@@ -10,7 +9,6 @@ class WalletProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Fetch full wallet details (all decrypted fields) — use for detail/edit screens.
   Future<Wallet?> getWalletDetails(int id) async {
     return await DatabaseHelper.instance.getWalletById(id);
   }
@@ -18,20 +16,6 @@ class WalletProvider with ChangeNotifier {
   Future<void> deleteWallet(int id) async {
     await DatabaseHelper.instance.deleteWallet(id);
     wallets.removeWhere((w) => w.id == id);
-    notifyListeners();
-  }
-
-  bool isMasked(int walletId) {
-    return walletMasks[walletId] ?? true;
-  }
-
-  void toggleMask(int walletId) {
-    walletMasks[walletId] = !(walletMasks[walletId] ?? true);
-    notifyListeners();
-  }
-
-  void addWallet(Wallet wallet) {
-    wallets.add(wallet);
     notifyListeners();
   }
 
@@ -64,15 +48,6 @@ class PassProvider with ChangeNotifier {
     await PassDatabaseHelper.instance.deletePass(id);
     passes.removeWhere((p) => p.id == id);
     notifyListeners();
-  }
-
-  Future<void> updatePass(Pass updatedPass) async {
-    await PassDatabaseHelper.instance.updatePass(updatedPass);
-    final index = passes.indexWhere((p) => p.id == updatedPass.id);
-    if (index != -1) {
-      passes[index] = updatedPass;
-      notifyListeners();
-    }
   }
 
   Future<void> reorderPasses(int oldIndex, int newIndex) async {
@@ -138,20 +113,6 @@ class IdentityProvider with ChangeNotifier {
     await IdentityDatabaseHelper.instance.deleteIdentity(id);
     identities.removeWhere((i) => i.id == id);
     notifyListeners();
-  }
-
-  Future<void> addIdentity(IdentityCard card) async {
-    identities.add(card);
-    notifyListeners();
-  }
-
-  Future<void> updateIdentity(IdentityCard updatedCard) async {
-    await IdentityDatabaseHelper.instance.updateIdentity(updatedCard);
-    final index = identities.indexWhere((i) => i.id == updatedCard.id);
-    if (index != -1) {
-      identities[index] = updatedCard;
-      notifyListeners();
-    }
   }
 
   Future<void> reorderIdentities(int oldIndex, int newIndex) async {
