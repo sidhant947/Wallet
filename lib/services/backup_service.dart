@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/services/encryption_service.dart';
+import 'package:wallet/services/saf_service.dart';
 
 class BackupService {
   static const String _backupVersion = '4.0'; // Incremented for settings support
@@ -423,6 +424,95 @@ class BackupService {
       debugPrint('BackupService: $msg');
       debugPrint('Stack trace: $st');
       toast(msg, isError: true);
+      rethrow;
+    }
+  }
+
+  static Future<void> createAutoBackup(String password, String directoryUri) async {
+    try {
+      final wallets = await DatabaseHelper.instance.getWallets();
+      final passes = await PassDatabaseHelper.instance.getAllPasses();
+      final identities = await IdentityDatabaseHelper.instance.getAllIdentities();
+
+      final prefs = await SharedPreferences.getInstance();
+      final settings = <String, dynamic>{};
+      final keys = prefs.getKeys();
+      for (final key in keys) {
+        if (key.startsWith('wallet_aes_256_master_key') ||
+            key == 'wallet_encryption_migrated' ||
+            key == 'wallet_encryption_migrated_v2' ||
+            key == 'wallet_transfer_key' ||
+            key == 'autoBackupEnabled' ||
+            key == 'autoBackupPath' ||
+            key == 'autoBackupPassword' ||
+            key == 'autoBackupUri') {
+          continue;
+        }
+        settings[key] = prefs.get(key);
+      }
+
+      final backupData = {
+        'version': _backupVersion,
+        'timestamp': DateTime.now().toIso8601String(),
+        'wallets': wallets.map((w) => w.toMap()).toList(),
+        'passes': passes.map((p) => p.toMap()).toList(),
+        'identities': identities.map((i) => i.toMap()).toList(),
+        'settings': settings,
+      };
+
+      final String jsonString = jsonEncode(backupData);
+      final jsonBytes = utf8.encode(jsonString);
+
+      final archive = Archive();
+      archive.addFile(ArchiveFile('data.json', jsonBytes.length, jsonBytes));
+
+      final imagePaths = <String>{};
+      for (final w in wallets) {
+        if (w.frontImagePath != null) imagePaths.add(w.frontImagePath!);
+        if (w.backImagePath != null) imagePaths.add(w.backImagePath!);
+      }
+      for (final p in passes) {
+        if (p.frontImagePath != null) imagePaths.add(p.frontImagePath!);
+        if (p.backImagePath != null) imagePaths.add(p.backImagePath!);
+        if (p.stripImagePath != null) imagePaths.add(p.stripImagePath!);
+        if (p.thumbnailImagePath != null) imagePaths.add(p.thumbnailImagePath!);
+      }
+      for (final i in identities) {
+        if (i.frontImagePath != null) imagePaths.add(i.frontImagePath!);
+        if (i.backImagePath != null) imagePaths.add(i.backImagePath!);
+      }
+
+      final imageFutures = imagePaths.map((path) async {
+        try {
+          final decryptedBytes =
+              await EncryptionService.instance.decryptImageToBytes(path);
+          if (decryptedBytes != null) {
+            final fileName = p.basename(path).replaceAll('.enc', '');
+            return ArchiveFile(
+              'images/$fileName',
+              decryptedBytes.length,
+              decryptedBytes,
+            );
+          }
+        } catch (_) {}
+        return null;
+      }).toList();
+
+      final imageResults = await Future.wait(imageFutures);
+      for (final file in imageResults) {
+        if (file != null) archive.addFile(file);
+      }
+
+      final zipData = ZipEncoder().encode(archive);
+
+      final encryptedData = await EncryptionService.instance.encryptForBackup(
+        Uint8List.fromList(zipData),
+        password,
+      );
+
+      const fileName = 'wallet_autobackup.wbk';
+      await SafService.writeToUri(directoryUri, fileName, encryptedData);
+    } catch (_) {
       rethrow;
     }
   }

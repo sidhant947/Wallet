@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/services/barcode_utils.dart';
 import 'package:wallet/services/image_service.dart';
+import 'package:wallet/services/auto_backup_service.dart';
 import 'package:wallet/widgets/barcode_card.dart';
 import 'package:wallet/models/card_color_data.dart';
 import 'package:wallet/widgets/color_picker.dart';
@@ -173,6 +174,7 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         await PassDatabaseHelper.instance.updatePass(pass);
       } else {
         await PassDatabaseHelper.instance.insertPass(pass);
+        AutoBackupService.triggerBackup();
       }
 
       if (mounted) Navigator.pop(context, true);

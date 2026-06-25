@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:wallet/models/db_helper.dart'; // Import your Database Helper and Wallet model
+import 'package:wallet/models/db_helper.dart';
+import 'package:wallet/services/auto_backup_service.dart';
 
 class WalletProvider with ChangeNotifier {
   List<Wallet> wallets = [];
@@ -17,6 +18,7 @@ class WalletProvider with ChangeNotifier {
     await DatabaseHelper.instance.deleteWallet(id);
     wallets.removeWhere((w) => w.id == id);
     notifyListeners();
+    AutoBackupService.triggerBackup();
   }
 
   Future<void> reorderWallets(int oldIndex, int newIndex) async {
@@ -48,6 +50,7 @@ class PassProvider with ChangeNotifier {
     await PassDatabaseHelper.instance.deletePass(id);
     passes.removeWhere((p) => p.id == id);
     notifyListeners();
+    AutoBackupService.triggerBackup();
   }
 
   Future<void> reorderPasses(int oldIndex, int newIndex) async {
@@ -113,6 +116,7 @@ class IdentityProvider with ChangeNotifier {
     await IdentityDatabaseHelper.instance.deleteIdentity(id);
     identities.removeWhere((i) => i.id == id);
     notifyListeners();
+    AutoBackupService.triggerBackup();
   }
 
   Future<void> reorderIdentities(int oldIndex, int newIndex) async {

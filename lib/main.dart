@@ -6,9 +6,11 @@ import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/models/startup_settings_provider.dart';
 import 'package:wallet/services/app_initialization_service.dart';
 import 'package:wallet/services/encryption_service.dart';
+import 'models/auto_backup_provider.dart';
 import 'models/provider_helper.dart';
 import 'screens/homescreen.dart';
 import 'package:provider/provider.dart';
+import 'package:wallet/services/auto_backup_service.dart';
 import 'dart:io' show Platform;
 
 void main() async {
@@ -16,12 +18,16 @@ void main() async {
 
   final themeProvider = ThemeProvider();
   final startupProvider = StartupSettingsProvider();
+  final autoBackupProvider = AutoBackupProvider();
 
   await Future.wait([
     themeProvider.init(),
     startupProvider.loadStartupSettings(),
+    autoBackupProvider.init(),
     AppInitializationService.initializeApp(),
   ]);
+
+  AutoBackupService.initialize(autoBackupProvider);
 
   runApp(
     MultiProvider(
@@ -31,6 +37,7 @@ void main() async {
         ChangeNotifierProvider(create: (context) => IdentityProvider()),
         ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider.value(value: startupProvider),
+        ChangeNotifierProvider.value(value: autoBackupProvider),
       ],
       child: const MyApp(),
     ),

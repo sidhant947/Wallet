@@ -7,6 +7,7 @@ import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/services/card_utils.dart';
 import 'package:wallet/services/image_service.dart';
+import 'package:wallet/services/auto_backup_service.dart';
 import 'package:wallet/widgets/color_picker.dart';
 import 'package:wallet/widgets/form_section.dart';
 import 'package:wallet/widgets/glass_credit_card.dart';
@@ -132,6 +133,7 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
           backImagePath: backImagePath,
         );
         await DatabaseHelper.instance.insertWallet(wallet);
+        AutoBackupService.triggerBackup();
 
         if (mounted) {
           Navigator.pop(context, true);

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/provider_helper.dart';
 import 'package:wallet/services/image_service.dart';
+import 'package:wallet/services/auto_backup_service.dart';
 import 'package:wallet/widgets/identity_card_widget.dart';
 import 'package:wallet/widgets/color_picker.dart';
 
@@ -96,6 +97,7 @@ class IdentityCardEntryFormState extends State<IdentityCardEntryForm> {
         await IdentityDatabaseHelper.instance.updateIdentity(card);
       } else {
         await IdentityDatabaseHelper.instance.insertIdentity(card);
+        AutoBackupService.triggerBackup();
       }
 
       if (mounted) {

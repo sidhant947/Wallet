@@ -20,6 +20,7 @@ import '../models/theme_provider.dart';
 import '../pages/walletdetails.dart';
 import 'package:wallet/widgets/identity_card_widget.dart';
 import 'package:wallet/screens/identity_card_details_screen.dart';
+import 'package:wallet/services/auto_backup_service.dart';
 
 /// Smooth route builder — used across the app for premium transitions
 class SmoothPageRoute<T> extends PageRouteBuilder<T> {
@@ -149,6 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final confirm = await _showImportConfirmation(newPass.organizationName, 'Pass');
           if (confirm == true) {
             await PassDatabaseHelper.instance.insertPass(newPass);
+            AutoBackupService.triggerBackup();
             if (mounted) {
               context.read<PassProvider>().fetchPasses();
               _showSuccessSnackBar('Pass imported successfully!');
@@ -165,6 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final confirm = await _showImportConfirmation(newWallet.name, 'Payment Card');
           if (confirm == true) {
             await DatabaseHelper.instance.insertWallet(newWallet);
+            AutoBackupService.triggerBackup();
             if (mounted) {
               context.read<WalletProvider>().fetchWallets();
               _showSuccessSnackBar('Payment card imported successfully!');
@@ -181,6 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final confirm = await _showImportConfirmation(newIdentity.name, 'Identity Card');
           if (confirm == true) {
             await IdentityDatabaseHelper.instance.insertIdentity(newIdentity);
+            AutoBackupService.triggerBackup();
             if (mounted) {
               context.read<IdentityProvider>().fetchIdentities();
               _showSuccessSnackBar('Identity card imported successfully!');
@@ -335,6 +339,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final confirm = await _showImportConfirmation(newPass.organizationName, 'Pass');
           if (confirm == true) {
             await PassDatabaseHelper.instance.insertPass(newPass);
+            AutoBackupService.triggerBackup();
             if (mounted) {
               context.read<PassProvider>().fetchPasses();
               _showSuccessSnackBar('Pass imported successfully!');
@@ -351,6 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final confirm = await _showImportConfirmation(newWallet.name, 'Payment Card');
           if (confirm == true) {
             await DatabaseHelper.instance.insertWallet(newWallet);
+            AutoBackupService.triggerBackup();
             if (mounted) {
               context.read<WalletProvider>().fetchWallets();
               _showSuccessSnackBar('Payment card imported successfully!');
@@ -367,6 +373,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final confirm = await _showImportConfirmation(newIdentity.name, 'Identity Card');
           if (confirm == true) {
             await IdentityDatabaseHelper.instance.insertIdentity(newIdentity);
+            AutoBackupService.triggerBackup();
             if (mounted) {
               context.read<IdentityProvider>().fetchIdentities();
               _showSuccessSnackBar('Identity card imported successfully!');

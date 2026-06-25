@@ -6,6 +6,7 @@ import 'package:wallet/models/provider_helper.dart';
 import 'package:wallet/models/theme_provider.dart';
 import 'package:wallet/models/startup_settings_provider.dart';
 import 'package:wallet/services/pkpass_service.dart';
+import 'package:wallet/services/auto_backup_service.dart';
 import 'package:wallet/widgets/credit_card_entry_form.dart';
 import 'package:wallet/widgets/barcode_card_entry_form.dart';
 import 'package:wallet/widgets/identity_card_entry_form.dart';
@@ -55,6 +56,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
 
             if (confirm == true) {
               await PassDatabaseHelper.instance.insertPass(pass);
+              AutoBackupService.triggerBackup();
               if (mounted) {
                 context.read<PassProvider>().fetchPasses();
                 ScaffoldMessenger.of(context).showSnackBar(
