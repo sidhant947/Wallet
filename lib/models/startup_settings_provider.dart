@@ -24,6 +24,7 @@ class StartupSettingsProvider with ChangeNotifier {
 
   static const List<Map<String, String>> majorCurrencies = [
     {'code': 'INR', 'symbol': '₹', 'name': 'Indian Rupee'},
+    {'code': 'BDT', 'symbol': '৳', 'name': 'Bangladeshi Taka'},
     {'code': 'USD', 'symbol': '\$', 'name': 'US Dollar'},
     {'code': 'EUR', 'symbol': '€', 'name': 'Euro'},
     {'code': 'GBP', 'symbol': '£', 'name': 'British Pound'},
