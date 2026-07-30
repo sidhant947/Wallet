@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wallet/services/clipboard_service.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:provider/provider.dart';
@@ -57,6 +58,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<String> _transferChunks = [];
   int _expectedTotalChunks = 0;
 
+  StreamSubscription? _intentDataStreamSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -74,6 +77,8 @@ class _HomeScreenState extends State<HomeScreen> {
       } else {
         setState(() => _selectedIndex = startupProvider.defaultScreenIndex);
       }
+
+      _initSharingIntent();
     });
 
     _searchController.addListener(() {
@@ -88,8 +93,39 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _initSharingIntent() {
+    // For sharing images while app is in memory
+    _intentDataStreamSubscription = ReceiveSharingIntent.instance.getMediaStream().listen((value) {
+      _handleSharedMedia(value);
+    }, onError: (_) {});
+
+    // For sharing images when app was closed/opened via intent
+    ReceiveSharingIntent.instance.getInitialMedia().then((value) {
+      _handleSharedMedia(value);
+      ReceiveSharingIntent.instance.reset();
+    });
+  }
+
+  void _handleSharedMedia(List<SharedMediaFile> value) {
+    if (value.isNotEmpty && mounted) {
+      final imagePath = value.first.path;
+      if (imagePath.isNotEmpty) {
+        Navigator.push(
+          context,
+          SmoothPageRoute(
+            page: AddCardScreen(
+              initialTabIndex: 1,
+              initialSharedImagePath: imagePath,
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
+    _intentDataStreamSubscription?.cancel();
     _debounce?.cancel();
     _searchController.dispose();
     super.dispose();

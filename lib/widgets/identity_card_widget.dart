@@ -15,8 +15,8 @@ class IdentityCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colorKey = card.color ?? (isDark ? 'obsidian' : 'slate');
-    final colorData = cardColorPalette[colorKey] ?? cardColorPalette['obsidian']!;
+    final colorKey = card.color ?? (isDark ? '#0F0F0F' : '#1E293B');
+    final colorData = CardColorData.fromHexOrKey(colorKey, isDark: isDark);
     
     return GestureDetector(
       onTap: onTap,

@@ -161,6 +161,7 @@ class _IdentityCardDetailScreenState extends State<IdentityCardDetailScreen> {
                 color: isDark ? Colors.white : Colors.black,
               ),
               onPressed: () async {
+                final navigator = Navigator.of(context);
                 final result = await Navigator.push(
                   context,
                   SmoothPageRoute(
@@ -169,7 +170,7 @@ class _IdentityCardDetailScreenState extends State<IdentityCardDetailScreen> {
                 );
 
                 if (result == true && mounted) {
-                  Navigator.pop(context, true);
+                  navigator.pop(true);
                 }
               },
             ),

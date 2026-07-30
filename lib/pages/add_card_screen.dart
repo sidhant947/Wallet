@@ -13,8 +13,13 @@ import 'package:wallet/widgets/identity_card_entry_form.dart';
 
 class AddCardScreen extends StatefulWidget {
   final int initialTabIndex;
+  final String? initialSharedImagePath;
 
-  const AddCardScreen({super.key, this.initialTabIndex = 0});
+  const AddCardScreen({
+    super.key,
+    this.initialTabIndex = 0,
+    this.initialSharedImagePath,
+  });
 
   @override
   State<AddCardScreen> createState() => _AddCardScreenState();
@@ -96,7 +101,9 @@ class _AddCardScreenState extends State<AddCardScreen> {
 
     switch (effectiveIndex) {
       case 1:
-        form = BarcodeCardEntryForm();
+        form = BarcodeCardEntryForm(
+          initialSharedImagePath: widget.initialSharedImagePath,
+        );
         break;
       case 2:
         form = IdentityCardEntryForm();

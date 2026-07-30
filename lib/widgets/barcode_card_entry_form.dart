@@ -3,19 +3,22 @@ import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wallet/models/db_helper.dart';
+import 'package:wallet/services/barcode_decoder_service.dart';
 import 'package:wallet/services/barcode_utils.dart';
 import 'package:wallet/services/image_service.dart';
 import 'package:wallet/services/auto_backup_service.dart';
 import 'package:wallet/widgets/barcode_card.dart';
-import 'package:wallet/models/card_color_data.dart';
 import 'package:wallet/widgets/color_picker.dart';
 import 'package:wallet/models/pass_types.dart';
 
 class BarcodeCardEntryForm extends StatefulWidget {
   final Pass? existingPass;
+  final String? initialSharedImagePath;
+
   const BarcodeCardEntryForm({
     super.key,
     this.existingPass,
+    this.initialSharedImagePath,
   });
 
   @override
@@ -104,21 +107,8 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
       }
 
       // Load color from existing pass background color
-      if (p.backgroundColor != null) {
-        final matchingEntry = cardColorPalette.entries
-            .cast<MapEntry<String, CardColorData>?>()
-            .firstWhere(
-              (entry) {
-                if (entry == null) return false;
-                final hex =
-                    '#${(entry.value.primary.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
-                return p.backgroundColor!.toLowerCase() == hex.toLowerCase();
-              },
-              orElse: () => null,
-            );
-        if (matchingEntry != null) {
-          _selectedColor = matchingEntry.key;
-        }
+      if (p.backgroundColor != null && p.backgroundColor!.isNotEmpty) {
+        _selectedColor = p.backgroundColor!;
       }
     } else {
       _prepopulateFields();
@@ -126,6 +116,12 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
 
     _organizationController.addListener(() => setState(() {}));
     _barcodeValueController.addListener(() => setState(() {}));
+
+    if (widget.initialSharedImagePath != null && widget.initialSharedImagePath!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scanFromImagePath(widget.initialSharedImagePath!);
+      });
+    }
   }
 
   @override
@@ -166,8 +162,7 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         stripImagePath: widget.existingPass?.stripImagePath,
         thumbnailImagePath: widget.existingPass?.thumbnailImagePath,
         fields: _dynamicFields,
-        backgroundColor:
-            '#${((cardColorPalette[_selectedColor]?.primary ?? Colors.black).toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}',
+        backgroundColor: _selectedColor,
       );
 
       if (widget.existingPass != null) {
@@ -193,6 +188,51 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           _barcodeValueController.text = result.rawContent;
         });
       }
+    } catch (_) {}
+  }
+
+  Future<void> _scanFromImagePath(String filePath) async {
+    try {
+      final scanResult = await BarcodeDecoderService.scanImageFile(File(filePath));
+      if (scanResult != null && scanResult.text.isNotEmpty) {
+        setState(() {
+          _barcodeValueController.text = scanResult.text;
+          if (scanResult.format != null &&
+              BarcodeUtils.supportedFormats.containsKey(scanResult.format)) {
+            _selectedBarcodeFormat = scanResult.format!;
+          }
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Scanned ${scanResult.format ?? 'Barcode'}: ${scanResult.text}',
+              ),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No barcode or QR code detected in the selected image.')),
+          );
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error reading image file.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _scanFromGallery() async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile == null) return;
+      await _scanFromImagePath(pickedFile.path);
     } catch (_) {}
   }
 
@@ -624,8 +664,7 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
             backImagePath: _backImagePath,
             stripImagePath: widget.existingPass?.stripImagePath,
             thumbnailImagePath: widget.existingPass?.thumbnailImagePath,
-            backgroundColor:
-                '#${((cardColorPalette[_selectedColor]?.primary ?? Colors.black).toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}',
+            backgroundColor: _selectedColor,
             foregroundColor: widget.existingPass?.foregroundColor,
             labelColor: widget.existingPass?.labelColor,
           ),
@@ -646,10 +685,20 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           controller: _barcodeValueController,
           decoration: InputDecoration(
             labelText: 'Barcode Value',
-            suffixIcon: IconButton(
-              icon: const Icon(Icons.camera_alt_rounded),
-              tooltip: 'Scan Barcode',
-              onPressed: _scan,
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.image_outlined),
+                  tooltip: 'Import from Gallery',
+                  onPressed: _scanFromGallery,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.camera_alt_rounded),
+                  tooltip: 'Scan Barcode',
+                  onPressed: _scan,
+                ),
+              ],
             ),
           ),
         ),

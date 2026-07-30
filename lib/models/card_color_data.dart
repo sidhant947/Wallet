@@ -12,68 +12,38 @@ class CardColorData {
     required this.accent,
     required this.name,
   });
+
+  factory CardColorData.fromHexOrKey(String colorValue, {bool isDark = true}) {
+    String cleanHex = colorValue.trim();
+    if (cleanHex.startsWith('#')) {
+      cleanHex = cleanHex.substring(1);
+    }
+
+    if (cleanHex.length == 6) {
+      final intValue = int.tryParse(cleanHex, radix: 16);
+      if (intValue != null) {
+        final Color baseColor = Color(0xFF000000 | intValue);
+        final HSLColor hsl = HSLColor.fromColor(baseColor);
+        final Color primary = baseColor;
+        final Color secondary = hsl.withLightness((hsl.lightness - 0.1).clamp(0.0, 1.0)).toColor();
+        final Color accent = hsl.withLightness((hsl.lightness + 0.1).clamp(0.0, 1.0)).toColor();
+        return CardColorData(
+          primary: primary,
+          secondary: secondary,
+          accent: accent,
+          name: '#${cleanHex.toUpperCase()}',
+        );
+      }
+    }
+
+    final Color fallbackColor = isDark ? const Color(0xFF0F0F0F) : const Color(0xFF1E293B);
+    final HSLColor hsl = HSLColor.fromColor(fallbackColor);
+    return CardColorData(
+      primary: fallbackColor,
+      secondary: hsl.withLightness((hsl.lightness - 0.1).clamp(0.0, 1.0)).toColor(),
+      accent: hsl.withLightness((hsl.lightness + 0.1).clamp(0.0, 1.0)).toColor(),
+      name: 'Custom',
+    );
+  }
 }
 
-// Premium color palette - Modern 2024 Design
-const Map<String, CardColorData> cardColorPalette = {
-  'obsidian': CardColorData(
-    primary: Color(0xFF0F0F0F),
-    secondary: Color(0xFF1A1A1A),
-    accent: Color(0xFF262626),
-    name: 'Obsidian',
-  ),
-  'midnight': CardColorData(
-    primary: Color(0xFF0F172A),
-    secondary: Color(0xFF1E293B),
-    accent: Color(0xFF334155),
-    name: 'Midnight',
-  ),
-  'slate': CardColorData(
-    primary: Color(0xFF1E293B),
-    secondary: Color(0xFF334155),
-    accent: Color(0xFF475569),
-    name: 'Slate',
-  ),
-  'indigo': CardColorData(
-    primary: Color(0xFF1E1B4B),
-    secondary: Color(0xFF312E81),
-    accent: Color(0xFF4338CA),
-    name: 'Indigo',
-  ),
-  'violet': CardColorData(
-    primary: Color(0xFF2E1065),
-    secondary: Color(0xFF4C1D95),
-    accent: Color(0xFF6D28D9),
-    name: 'Violet',
-  ),
-  'ocean': CardColorData(
-    primary: Color(0xFF0C4A6E),
-    secondary: Color(0xFF075985),
-    accent: Color(0xFF0284C7),
-    name: 'Ocean',
-  ),
-  'teal': CardColorData(
-    primary: Color(0xFF134E4A),
-    secondary: Color(0xFF115E59),
-    accent: Color(0xFF0D9488),
-    name: 'Teal',
-  ),
-  'emerald': CardColorData(
-    primary: Color(0xFF064E3B),
-    secondary: Color(0xFF065F46),
-    accent: Color(0xFF059669),
-    name: 'Emerald',
-  ),
-  'amber': CardColorData(
-    primary: Color(0xFF78350F),
-    secondary: Color(0xFF92400E),
-    accent: Color(0xFFD97706),
-    name: 'Amber',
-  ),
-  'rose': CardColorData(
-    primary: Color(0xFF4C0519),
-    secondary: Color(0xFF881337),
-    accent: Color(0xFFE11D48),
-    name: 'Rose',
-  ),
-};

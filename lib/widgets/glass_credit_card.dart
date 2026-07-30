@@ -41,9 +41,8 @@ class _GlassCreditCardState extends State<GlassCreditCard> {
         ? widget.wallet.number.substring(widget.wallet.number.length - 4)
         : widget.wallet.number;
 
-    final String colorKey = widget.wallet.color ?? 'obsidian';
-    final CardColorData colorData =
-        cardColorPalette[colorKey] ?? cardColorPalette['obsidian']!;
+    final String colorKey = widget.wallet.color ?? '#0F0F0F';
+    final CardColorData colorData = CardColorData.fromHexOrKey(colorKey);
 
     return Material(
       color: Colors.transparent,
