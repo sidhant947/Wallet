@@ -890,71 +890,43 @@ class _SettingsPageState extends State<SettingsPage> {
     return GestureDetector(
       onTap: () async {
         HapticFeedback.mediumImpact();
-        const url = 'https://github.com/sponsors/sidhant947';
+        const url = 'https://ko-fi.com/sidhant947';
         if (await canLaunchUrl(Uri.parse(url))) {
           await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
         }
       },
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          gradient: LinearGradient(
-            colors: isDark
-                ? [const Color(0xFF1A1A1A), const Color(0xFF0A0A0A)]
-                : [const Color(0xFFF0F4FF), const Color(0xFFE6EEFF)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark
-                ? Colors.blue.withValues(alpha: 0.2)
-                : Colors.blue.withValues(alpha: 0.1),
-            width: 1,
+            color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8),
+            width: 0.5,
           ),
         ),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.apple_rounded,
-                color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
-                size: 28,
-              ),
+            Icon(
+              Icons.coffee_outlined,
+              size: 20,
+              color: isDark ? Colors.white70 : Colors.black87,
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Support iOS Release',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Help us bring Wallet to iOS. Tap to support us on GitHub Sponsors.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: isDark ? Colors.white54 : Colors.black54,
-                    ),
-                  ),
-                ],
+              child: Text(
+                'Buy Me a Coffee',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
               ),
             ),
             Icon(
               Icons.arrow_forward_ios_rounded,
-              size: 16,
-              color: isDark ? Colors.white24 : Colors.black26,
+              size: 14,
+              color: isDark ? Colors.white30 : Colors.black38,
             ),
           ],
         ),

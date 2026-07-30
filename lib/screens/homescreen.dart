@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wallet/services/clipboard_service.dart';
@@ -94,6 +95,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _initSharingIntent() {
+    if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) return;
+
     // For sharing images while app is in memory
     _intentDataStreamSubscription = ReceiveSharingIntent.instance.getMediaStream().listen((value) {
       _handleSharedMedia(value);
