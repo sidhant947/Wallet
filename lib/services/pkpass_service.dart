@@ -12,17 +12,45 @@ class PkpassService {
   Future<Pass?> parsePkpass(String filePath) async {
     try {
       final bytes = await File(filePath).readAsBytes();
+      return _parsePkpassFromBytes(bytes);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Pass?> _parsePkpassFromBytes(Uint8List bytes) async {
+    try {
       final archive = ZipDecoder().decodeBytes(bytes);
 
-      // Find pass.json
-      final passFile = archive.findFile('pass.json');
+      for (final file in archive.files) {
+        if (file.name.endsWith('.pkpass') && file.isFile) {
+          final nestedPass = await _parsePkpassFromBytes(Uint8List.fromList(file.content as List<int>));
+          if (nestedPass != null) {
+            return nestedPass;
+          }
+        }
+      }
+
+      ArchiveFile? passFile;
+      for (final file in archive.files) {
+        if (file.name == 'pass.json' || file.name.endsWith('/pass.json')) {
+          passFile = file;
+          break;
+        }
+      }
+
       if (passFile == null) {
         return null;
       }
 
-      final passJson = jsonDecode(utf8.decode(passFile.content));
+      String passJsonStr;
+      try {
+        passJsonStr = utf8.decode(passFile.content);
+      } catch (_) {
+        passJsonStr = latin1.decode(passFile.content);
+      }
+      final passJson = jsonDecode(passJsonStr);
       
-      // Extract basic info
       String name = passJson['organizationName'] ?? passJson['description'] ?? 'Imported Pass';
       String description = passJson['description'] ?? '';
       String? logoText = passJson['logoText'];
@@ -30,15 +58,14 @@ class PkpassService {
       String? barcodeFormat;
       String? barcodeAltText;
       
-      // Extract barcode info
-      if (passJson['barcode'] != null) {
-        number = passJson['barcode']['message'] ?? '';
-        barcodeFormat = passJson['barcode']['format']?.toString();
-        barcodeAltText = passJson['barcode']['altText']?.toString();
-      } else if (passJson['barcodes'] != null && passJson['barcodes'] is List && (passJson['barcodes'] as List).isNotEmpty) {
+      if (passJson['barcodes'] != null && passJson['barcodes'] is List && (passJson['barcodes'] as List).isNotEmpty) {
         number = (passJson['barcodes'] as List)[0]['message'] ?? '';
         barcodeFormat = (passJson['barcodes'] as List)[0]['format']?.toString();
         barcodeAltText = (passJson['barcodes'] as List)[0]['altText']?.toString();
+      } else if (passJson['barcode'] != null) {
+        number = passJson['barcode']['message'] ?? '';
+        barcodeFormat = passJson['barcode']['format']?.toString();
+        barcodeAltText = passJson['barcode']['altText']?.toString();
       }
 
       // Determine pass type and extract fields

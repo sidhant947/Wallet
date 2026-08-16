@@ -30,7 +30,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['pkpass'],
+        allowedExtensions: ['pkpass', 'zip'],
       );
 
       if (result != null && result.files.single.path != null) {
