@@ -138,10 +138,25 @@ class DatabaseHelper {
     Database db = await instance.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'wallets',
-      columns: ['id', 'name', 'number', 'expiry', 'network', 'issuer', 'cardtype', 'color', 'frontImagePath', 'backImagePath', 'orderIndex'],
+      columns: [
+        'id',
+        'name',
+        'number',
+        'expiry',
+        'network',
+        'issuer',
+        'cardtype',
+        'color',
+        'frontImagePath',
+        'backImagePath',
+        'orderIndex',
+      ],
       orderBy: 'orderIndex ASC',
     );
-    return List.generate(maps.length, (i) => Wallet.fromEncryptedMapSummary(maps[i]));
+    return List.generate(
+      maps.length,
+      (i) => Wallet.fromEncryptedMapSummary(maps[i]),
+    );
   }
 
   /// Fetch a single wallet by ID with all fields decrypted.
@@ -260,7 +275,9 @@ class PassDatabaseHelper {
             orderIndex INTEGER DEFAULT 0
           )
         ''');
-        await db.execute('CREATE INDEX idx_passes_order ON passes(orderIndex);');
+        await db.execute(
+          'CREATE INDEX idx_passes_order ON passes(orderIndex);',
+        );
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -287,16 +304,27 @@ class PassDatabaseHelper {
     final db = await database;
     final result = await db.query(
       'passes',
-      columns: ['frontImagePath', 'backImagePath', 'stripImagePath', 'thumbnailImagePath'],
+      columns: [
+        'frontImagePath',
+        'backImagePath',
+        'stripImagePath',
+        'thumbnailImagePath',
+      ],
       where: 'id = ?',
       whereArgs: [id],
     );
     if (result.isEmpty) return;
 
-    await DatabaseHelper.deleteImageFile(result[0]['frontImagePath'] as String?);
+    await DatabaseHelper.deleteImageFile(
+      result[0]['frontImagePath'] as String?,
+    );
     await DatabaseHelper.deleteImageFile(result[0]['backImagePath'] as String?);
-    await DatabaseHelper.deleteImageFile(result[0]['stripImagePath'] as String?);
-    await DatabaseHelper.deleteImageFile(result[0]['thumbnailImagePath'] as String?);
+    await DatabaseHelper.deleteImageFile(
+      result[0]['stripImagePath'] as String?,
+    );
+    await DatabaseHelper.deleteImageFile(
+      result[0]['thumbnailImagePath'] as String?,
+    );
 
     await db.delete('passes', where: 'id = ?', whereArgs: [id]);
   }
@@ -414,7 +442,9 @@ class IdentityDatabaseHelper {
     );
     if (result.isEmpty) return;
 
-    await DatabaseHelper.deleteImageFile(result[0]['frontImagePath'] as String?);
+    await DatabaseHelper.deleteImageFile(
+      result[0]['frontImagePath'] as String?,
+    );
     await DatabaseHelper.deleteImageFile(result[0]['backImagePath'] as String?);
 
     await db.delete('identities', where: 'id = ?', whereArgs: [id]);
@@ -466,5 +496,3 @@ class IdentityDatabaseHelper {
     }
   }
 }
-
-

@@ -6,11 +6,8 @@ class FullScreenImageViewer extends StatefulWidget {
   final String? imagePath;
   final Uint8List? imageBytes;
 
-  const FullScreenImageViewer({
-    super.key,
-    this.imagePath,
-    this.imageBytes,
-  }) : assert(imagePath != null || imageBytes != null);
+  const FullScreenImageViewer({super.key, this.imagePath, this.imageBytes})
+    : assert(imagePath != null || imageBytes != null);
 
   @override
   State<FullScreenImageViewer> createState() => _FullScreenImageViewerState();
@@ -32,7 +29,9 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
 
   Future<void> _loadBytes() async {
     setState(() => _isLoading = true);
-    final bytes = await EncryptionService.instance.decryptImageToBytes(widget.imagePath!);
+    final bytes = await EncryptionService.instance.decryptImageToBytes(
+      widget.imagePath!,
+    );
     if (mounted) {
       setState(() {
         _bytes = bytes;
@@ -65,13 +64,13 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
         child: _isLoading
             ? const CircularProgressIndicator(color: Colors.white)
             : _bytes == null
-                ? const Icon(Icons.broken_image, color: Colors.white54, size: 64)
-                : InteractiveViewer(
-                    panEnabled: true,
-                    minScale: 1.0,
-                    maxScale: 4.0,
-                    child: Image.memory(_bytes!, cacheWidth: 1000),
-                  ),
+            ? const Icon(Icons.broken_image, color: Colors.white54, size: 64)
+            : InteractiveViewer(
+                panEnabled: true,
+                minScale: 1.0,
+                maxScale: 4.0,
+                child: Image.memory(_bytes!, cacheWidth: 1000),
+              ),
       ),
     );
   }

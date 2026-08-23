@@ -98,42 +98,43 @@ class ColorPicker extends StatelessWidget {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: [
-                        Colors.red,
-                        Colors.pink,
-                        Colors.purple,
-                        Colors.deepPurple,
-                        Colors.indigo,
-                        Colors.blue,
-                        Colors.lightBlue,
-                        Colors.cyan,
-                        Colors.teal,
-                        Colors.green,
-                        Colors.lightGreen,
-                        Colors.amber,
-                        Colors.orange,
-                        Colors.deepOrange,
-                        Colors.brown,
-                        Colors.grey,
-                      ].map((c) {
-                        return GestureDetector(
-                          onTap: () {
-                            setDialogState(() {
-                              tempColor = c;
-                              controller.text = _formatHex(c);
-                            });
-                          },
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: c,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white24),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                      children:
+                          [
+                            Colors.red,
+                            Colors.pink,
+                            Colors.purple,
+                            Colors.deepPurple,
+                            Colors.indigo,
+                            Colors.blue,
+                            Colors.lightBlue,
+                            Colors.cyan,
+                            Colors.teal,
+                            Colors.green,
+                            Colors.lightGreen,
+                            Colors.amber,
+                            Colors.orange,
+                            Colors.deepOrange,
+                            Colors.brown,
+                            Colors.grey,
+                          ].map((c) {
+                            return GestureDetector(
+                              onTap: () {
+                                setDialogState(() {
+                                  tempColor = c;
+                                  controller.text = _formatHex(c);
+                                });
+                              },
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: c,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white24),
+                                ),
+                              ),
+                            );
+                          }).toList(),
                     ),
                   ],
                 ),
@@ -264,4 +265,3 @@ class ColorPicker extends StatelessWidget {
     );
   }
 }
-

@@ -170,7 +170,9 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
                 HapticFeedback.mediumImpact();
                 Navigator.push(
                   context,
-                  SmoothPageRoute(page: ShareSecureScreen(wallet: currentWallet)),
+                  SmoothPageRoute(
+                    page: ShareSecureScreen(wallet: currentWallet),
+                  ),
                 );
               },
             ),
@@ -633,7 +635,8 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                   _issuerController,
                   'Card Issuer (e.g. HDFC)',
                   isDark,
-                  validator: (v) => v!.isEmpty ? 'Please enter an issuer' : null,
+                  validator: (v) =>
+                      v!.isEmpty ? 'Please enter an issuer' : null,
                 ),
                 const SizedBox(height: 16),
                 _buildDropdown('Card Network', _network, isDark, (newValue) {

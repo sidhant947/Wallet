@@ -76,11 +76,18 @@ class PassProvider with ChangeNotifier {
 
     return passes.where((pass) {
       // Basic fields
-      if (pass.organizationName.toLowerCase().contains(lowercaseQuery)) return true;
-      if (pass.description != null && pass.description!.toLowerCase().contains(lowercaseQuery)) return true;
-      if (pass.logoText != null && pass.logoText!.toLowerCase().contains(lowercaseQuery)) return true;
+      if (pass.organizationName.toLowerCase().contains(lowercaseQuery))
+        return true;
+      if (pass.description != null &&
+          pass.description!.toLowerCase().contains(lowercaseQuery))
+        return true;
+      if (pass.logoText != null &&
+          pass.logoText!.toLowerCase().contains(lowercaseQuery))
+        return true;
       if (pass.barcodeValue.toLowerCase().contains(lowercaseQuery)) return true;
-      if (pass.barcodeAltText != null && pass.barcodeAltText!.toLowerCase().contains(lowercaseQuery)) return true;
+      if (pass.barcodeAltText != null &&
+          pass.barcodeAltText!.toLowerCase().contains(lowercaseQuery))
+        return true;
 
       // Search through dynamic fields
       if (pass.fields != null) {
@@ -90,8 +97,10 @@ class PassProvider with ChangeNotifier {
               if (field is Map) {
                 final label = field['label']?.toString() ?? '';
                 final value = field['value']?.toString() ?? '';
-                if ((label.isNotEmpty && label.toLowerCase().contains(lowercaseQuery)) ||
-                    (value.isNotEmpty && value.toLowerCase().contains(lowercaseQuery))) {
+                if ((label.isNotEmpty &&
+                        label.toLowerCase().contains(lowercaseQuery)) ||
+                    (value.isNotEmpty &&
+                        value.toLowerCase().contains(lowercaseQuery))) {
                   return true;
                 }
               }
@@ -144,4 +153,3 @@ class IdentityProvider with ChangeNotifier {
     }).toList();
   }
 }
-

@@ -31,13 +31,17 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     // Build list of formats from BarcodeUtils
-    _formats = BarcodeUtils.supportedFormats.entries.map((e) => _BarcodeFormat(
-      e.value,
-      e.key,
-      BarcodeUtils.getIconForFormat(e.key),
-    )).toList();
+    _formats = BarcodeUtils.supportedFormats.entries
+        .map(
+          (e) => _BarcodeFormat(
+            e.value,
+            e.key,
+            BarcodeUtils.getIconForFormat(e.key),
+          ),
+        )
+        .toList();
 
     // Set initial selection based on pass format
     if (widget.barcodeFormat != null) {
@@ -164,10 +168,11 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
   Widget _buildBarcodeCard(bool isDark) {
     final format = _formats[_selectedIndex];
     // Check if it's a 2D/Square-ish barcode
-    final is2D = format.name == 'QR Code' || 
-                 format.name == 'Aztec' || 
-                 format.name == 'Data Matrix' || 
-                 format.name == 'PDF417';
+    final is2D =
+        format.name == 'QR Code' ||
+        format.name == 'Aztec' ||
+        format.name == 'Data Matrix' ||
+        format.name == 'PDF417';
 
     return Container(
       width: double.infinity,
@@ -272,7 +277,9 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
               decoration: BoxDecoration(
                 color: isSelected
                     ? (isDark ? Colors.white : Colors.black)
-                    : (isDark ? Colors.white.withValues(alpha: 0.047) : Colors.black.withValues(alpha: 0.031)),
+                    : (isDark
+                          ? Colors.white.withValues(alpha: 0.047)
+                          : Colors.black.withValues(alpha: 0.031)),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -290,7 +297,9 @@ class _DisplayBarcodeScreenState extends State<DisplayBarcodeScreen> {
                     format.name,
                     style: TextStyle(
                       fontSize: 10,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
                       color: isSelected
                           ? (isDark ? Colors.black : Colors.white)
                           : (isDark ? Colors.white54 : Colors.black45),

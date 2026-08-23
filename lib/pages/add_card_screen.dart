@@ -82,7 +82,9 @@ class _AddCardScreenState extends State<AddCardScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to import pass. Please try again.')),
+          const SnackBar(
+            content: Text('Failed to import pass. Please try again.'),
+          ),
         );
       }
     }
@@ -91,11 +93,16 @@ class _AddCardScreenState extends State<AddCardScreen> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    final startupProvider = Provider.of<StartupSettingsProvider>(context, listen: false);
+    final startupProvider = Provider.of<StartupSettingsProvider>(
+      context,
+      listen: false,
+    );
     final isDark = themeProvider.isDarkMode;
     final textColor = isDark ? Colors.white : Colors.black;
 
-    final int effectiveIndex = startupProvider.paymentsOnlyMode ? 0 : widget.initialTabIndex;
+    final int effectiveIndex = startupProvider.paymentsOnlyMode
+        ? 0
+        : widget.initialTabIndex;
 
     Widget form;
 
@@ -136,7 +143,9 @@ class _AddCardScreenState extends State<AddCardScreen> {
             Container(
               margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0),
+                color: isDark
+                    ? const Color(0xFF1A1A1A)
+                    : const Color(0xFFF0F0F0),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: TextButton.icon(

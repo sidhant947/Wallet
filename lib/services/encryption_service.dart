@@ -123,13 +123,18 @@ class EncryptionService {
       // Initialize per-device transfer key (used for QR share encryption)
       String? transferKeyBase64;
       try {
-        transferKeyBase64 = await _secureStorage.read(key: _transferKeyStorageKey);
+        transferKeyBase64 = await _secureStorage.read(
+          key: _transferKeyStorageKey,
+        );
       } catch (_) {}
       if (transferKeyBase64 == null || transferKeyBase64.isEmpty) {
         final keyBytes = _generateSecureRandomBytes(32);
         transferKeyBase64 = base64Encode(keyBytes);
         try {
-          await _secureStorage.write(key: _transferKeyStorageKey, value: transferKeyBase64);
+          await _secureStorage.write(
+            key: _transferKeyStorageKey,
+            value: transferKeyBase64,
+          );
         } catch (_) {}
       }
       _transferKey = encrypt.Key.fromBase64(transferKeyBase64);
@@ -187,7 +192,9 @@ class EncryptionService {
     if (!_isEncrypted(ciphertext)) {
       // Data is not encrypted — likely legacy unencrypted data.
       // Return as-is for backward compatibility.
-      debugPrint('EncryptionService: returning unencrypted value (data was not encrypted)');
+      debugPrint(
+        'EncryptionService: returning unencrypted value (data was not encrypted)',
+      );
       return ciphertext;
     }
 
@@ -337,7 +344,10 @@ class EncryptionService {
 
   /// Decrypt data from a local transfer (QR share) using a password-derived key.
   /// Accepts v3 (Argon2id), v2 (PBKDF2), or legacy v1 single-QR format.
-  Future<String?> decryptFromTransfer(String encryptedData, {String? password}) async {
+  Future<String?> decryptFromTransfer(
+    String encryptedData, {
+    String? password,
+  }) async {
     if (!_isInitialized) return null;
 
     try {
@@ -352,13 +362,15 @@ class EncryptionService {
           if (!chunkStr.startsWith('v3:')) continue;
           final parts = chunkStr.split(':');
           if (parts.length != 6) continue;
-          chunks.add(_TransferChunk(
-            index: int.parse(parts[1]),
-            totalChunks: int.parse(parts[2]),
-            salt: base64Decode(parts[3]),
-            iv: encrypt.IV.fromBase64(parts[4]),
-            ciphertext: parts[5],
-          ));
+          chunks.add(
+            _TransferChunk(
+              index: int.parse(parts[1]),
+              totalChunks: int.parse(parts[2]),
+              salt: base64Decode(parts[3]),
+              iv: encrypt.IV.fromBase64(parts[4]),
+              ciphertext: parts[5],
+            ),
+          );
         }
 
         if (chunks.isEmpty) return null;
@@ -389,13 +401,15 @@ class EncryptionService {
           if (!chunkStr.startsWith('v2:')) continue;
           final parts = chunkStr.split(':');
           if (parts.length != 6) continue;
-          chunks.add(_TransferChunk(
-            index: int.parse(parts[1]),
-            totalChunks: int.parse(parts[2]),
-            salt: base64Decode(parts[3]),
-            iv: encrypt.IV.fromBase64(parts[4]),
-            ciphertext: parts[5],
-          ));
+          chunks.add(
+            _TransferChunk(
+              index: int.parse(parts[1]),
+              totalChunks: int.parse(parts[2]),
+              salt: base64Decode(parts[3]),
+              iv: encrypt.IV.fromBase64(parts[4]),
+              ciphertext: parts[5],
+            ),
+          );
         }
 
         if (chunks.isEmpty) return null;
@@ -457,7 +471,10 @@ class EncryptionService {
   /// Derive a 256-bit key using Argon2id (RFC 9106).
   /// Uses 128 MB memory, 3 iterations, parallelism 4.
   /// Memory-hard: GPU/ASIC attacks are 150x more expensive than PBKDF2.
-  static Future<List<int>> deriveKeyArgon2id(String password, List<int> salt) async {
+  static Future<List<int>> deriveKeyArgon2id(
+    String password,
+    List<int> salt,
+  ) async {
     final algorithm = DartArgon2id(
       parallelism: 4,
       memory: 128 * 1024, // 128 MB in 1kB blocks
@@ -503,12 +520,7 @@ class EncryptionService {
       // Offload encryption to isolate
       final encryptedBytes = await compute(
         _encryptBytesIsolate,
-        _EncryptionParams(
-          imageBytes,
-          _encryptionKey!,
-          iv,
-          encrypt.AESMode.gcm,
-        ),
+        _EncryptionParams(imageBytes, _encryptionKey!, iv, encrypt.AESMode.gcm),
       );
 
       // Store as: base64(iv):base64(ciphertext)
@@ -636,7 +648,9 @@ Uint8List _encryptBytesIsolate(_EncryptionParams params) {
   final encrypter = encrypt.Encrypter(
     encrypt.AES(params.key, mode: params.mode),
   );
-  return Uint8List.fromList(encrypter.encryptBytes(params.data, iv: params.iv).bytes);
+  return Uint8List.fromList(
+    encrypter.encryptBytes(params.data, iv: params.iv).bytes,
+  );
 }
 
 /// Isolate entry point for decryption
@@ -644,7 +658,9 @@ Uint8List _decryptBytesIsolate(_EncryptionParams params) {
   final encrypter = encrypt.Encrypter(
     encrypt.AES(params.key, mode: params.mode),
   );
-  return Uint8List.fromList(encrypter.decryptBytes(encrypt.Encrypted(params.data), iv: params.iv));
+  return Uint8List.fromList(
+    encrypter.decryptBytes(encrypt.Encrypted(params.data), iv: params.iv),
+  );
 }
 
 /// Isolate entry point for backup encryption (key pre-derived)
@@ -652,9 +668,9 @@ Uint8List _backupEncryptIsolate(_EncryptBackupParams params) {
   final key = encrypt.Key(Uint8List.fromList(params.keyBytes));
 
   final rng = Random.secure();
-  final iv = encrypt.IV(Uint8List.fromList(
-    List<int>.generate(12, (_) => rng.nextInt(256)),
-  ));
+  final iv = encrypt.IV(
+    Uint8List.fromList(List<int>.generate(12, (_) => rng.nextInt(256))),
+  );
 
   final encrypter = encrypt.Encrypter(
     encrypt.AES(key, mode: encrypt.AESMode.gcm),
@@ -730,7 +746,9 @@ Uint8List _backupDecryptIsolate(_DecryptBackupParams params) {
         final ciphertext = encrypt.Encrypted.fromBase64(parts[1]);
         final keyBytes = service._deriveKeyFromPassword(params.password);
         final key = encrypt.Key(Uint8List.fromList(keyBytes));
-        final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+        final encrypter = encrypt.Encrypter(
+          encrypt.AES(key, mode: encrypt.AESMode.cbc),
+        );
         return Uint8List.fromList(encrypter.decryptBytes(ciphertext, iv: iv));
       } on FormatException catch (_) {
         throw Exception(
@@ -757,8 +775,12 @@ Uint8List _backupDecryptIsolate(_DecryptBackupParams params) {
     final keyBytes = service._deriveKeyFromPassword(params.password);
     final key = encrypt.Key(Uint8List.fromList(keyBytes));
     final iv = encrypt.IV(Uint8List.fromList(params.data.sublist(0, 16)));
-    final ciphertext = encrypt.Encrypted(Uint8List.fromList(params.data.sublist(16)));
-    final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+    final ciphertext = encrypt.Encrypted(
+      Uint8List.fromList(params.data.sublist(16)),
+    );
+    final encrypter = encrypt.Encrypter(
+      encrypt.AES(key, mode: encrypt.AESMode.cbc),
+    );
     return Uint8List.fromList(encrypter.decryptBytes(ciphertext, iv: iv));
   } catch (e) {
     throw Exception(

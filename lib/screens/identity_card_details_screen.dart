@@ -17,7 +17,8 @@ class IdentityCardDetailScreen extends StatefulWidget {
   const IdentityCardDetailScreen({super.key, required this.card});
 
   @override
-  State<IdentityCardDetailScreen> createState() => _IdentityCardDetailScreenState();
+  State<IdentityCardDetailScreen> createState() =>
+      _IdentityCardDetailScreenState();
 }
 
 class _IdentityCardDetailScreenState extends State<IdentityCardDetailScreen> {
@@ -142,7 +143,9 @@ class _IdentityCardDetailScreenState extends State<IdentityCardDetailScreen> {
                 HapticFeedback.mediumImpact();
                 Navigator.push(
                   context,
-                  SmoothPageRoute(page: ShareSecureScreen(identity: currentCard)),
+                  SmoothPageRoute(
+                    page: ShareSecureScreen(identity: currentCard),
+                  ),
                 );
               },
             ),
@@ -164,9 +167,7 @@ class _IdentityCardDetailScreenState extends State<IdentityCardDetailScreen> {
                 final navigator = Navigator.of(context);
                 final result = await Navigator.push(
                   context,
-                  SmoothPageRoute(
-                    page: IdentityEditScreen(card: currentCard),
-                  ),
+                  SmoothPageRoute(page: IdentityEditScreen(card: currentCard)),
                 );
 
                 if (result == true && mounted) {
@@ -190,8 +191,9 @@ class _IdentityCardDetailScreenState extends State<IdentityCardDetailScreen> {
             },
           ),
           const SizedBox(height: 24),
-          
-          if (_isPathValid(currentCard.frontImagePath) || _isPathValid(currentCard.backImagePath))
+
+          if (_isPathValid(currentCard.frontImagePath) ||
+              _isPathValid(currentCard.backImagePath))
             _LiquidGlassDetailSection(
               title: "Identity Images",
               icon: Icons.photo_library_outlined,
@@ -201,9 +203,17 @@ class _IdentityCardDetailScreenState extends State<IdentityCardDetailScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     if (_isPathValid(currentCard.frontImagePath))
-                      _buildImageThumbnail(currentCard.frontImagePath!, 'Front', isDark),
+                      _buildImageThumbnail(
+                        currentCard.frontImagePath!,
+                        'Front',
+                        isDark,
+                      ),
                     if (_isPathValid(currentCard.backImagePath))
-                      _buildImageThumbnail(currentCard.backImagePath!, 'Back', isDark),
+                      _buildImageThumbnail(
+                        currentCard.backImagePath!,
+                        'Back',
+                        isDark,
+                      ),
                   ],
                 ),
               ),
@@ -278,7 +288,11 @@ class _LiquidGlassDetailSection extends StatelessWidget {
           padding: const EdgeInsets.only(left: 4, bottom: 12, top: 8),
           child: Row(
             children: [
-              Icon(icon, size: 16, color: isDark ? Colors.white38 : Colors.black38),
+              Icon(
+                icon,
+                size: 16,
+                color: isDark ? Colors.white38 : Colors.black38,
+              ),
               const SizedBox(width: 8),
               Text(
                 title.toUpperCase(),
@@ -358,10 +372,7 @@ class IdentityEditScreenState extends State<IdentityEditScreen> {
           ),
         ],
       ),
-      body: IdentityCardEntryForm(
-        key: _formKey,
-        existingCard: widget.card,
-      ),
+      body: IdentityCardEntryForm(key: _formKey, existingCard: widget.card),
     );
   }
 }

@@ -1138,7 +1138,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // Consolidated Toolbar: Category Dropdown & View Mode
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -1236,7 +1235,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(width: 12),
 
-                    // View Mode Eye Icon
                     Container(
                       height: 40,
                       decoration: BoxDecoration(
@@ -1284,7 +1282,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
-            // Empty State
             if (filteredPasses.isEmpty)
               SliverToBoxAdapter(
                 child: Padding(
@@ -1434,6 +1431,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     return PassGridCard(
                       pass: pass,
                       displayMode: gridMode,
+                      onCardLongPress: () {
+                        HapticFeedback.mediumImpact();
+                        _showGridContextMenu(context, pass);
+                      },
                       onCardTap: () async {
                         HapticFeedback.selectionClick();
                         final passProvider = Provider.of<PassProvider>(
@@ -1456,6 +1457,75 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
+        );
+      },
+    );
+  }
+
+  void _showGridContextMenu(BuildContext context, Pass pass) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDark = themeProvider.isDarkMode;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit_outlined, color: Colors.blue),
+                title: const Text('Edit'),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  HapticFeedback.lightImpact();
+                  final result = await Navigator.push(
+                    context,
+                    SmoothPageRoute(page: PassEditScreen(pass: pass)),
+                  );
+                  if (result == true && context.mounted) {
+                    context.read<PassProvider>().fetchPasses();
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.copy_rounded, color: Colors.blue),
+                title: const Text('Copy'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  HapticFeedback.mediumImpact();
+                  ClipboardService.instance.copy(pass.barcodeValue);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Pass data copied!'),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.red,
+                ),
+                title: const Text('Delete'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showPassDeleteConfirmationDialog(
+                    id: pass.id!,
+                    name: pass.organizationName,
+                  );
+                },
+              ),
+            ],
+          ),
         );
       },
     );

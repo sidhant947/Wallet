@@ -42,7 +42,10 @@ class StartupSettingsProvider with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _showAuthenticationScreen = prefs.getBool(_authKey) ?? true;
     _defaultScreenIndex = prefs.getInt(_defaultScreenKey) ?? 0;
-    _paymentsOnlyMode = prefs.getBool(_paymentsOnlyKey) ?? prefs.getBool('hideIdentityAndLoyalty') ?? false;
+    _paymentsOnlyMode =
+        prefs.getBool(_paymentsOnlyKey) ??
+        prefs.getBool('hideIdentityAndLoyalty') ??
+        false;
     _selectedCurrencyCode = prefs.getString(_currencyCodeKey) ?? 'INR';
     _selectedCurrencySymbol = prefs.getString(_currencySymbolKey) ?? '₹';
     notifyListeners();

@@ -117,7 +117,8 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     _organizationController.addListener(() => setState(() {}));
     _barcodeValueController.addListener(() => setState(() {}));
 
-    if (widget.initialSharedImagePath != null && widget.initialSharedImagePath!.isNotEmpty) {
+    if (widget.initialSharedImagePath != null &&
+        widget.initialSharedImagePath!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scanFromImagePath(widget.initialSharedImagePath!);
       });
@@ -173,7 +174,8 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
       }
 
       if (mounted) Navigator.pop(context, true);
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
@@ -193,7 +195,9 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
 
   Future<void> _scanFromImagePath(String filePath) async {
     try {
-      final scanResult = await BarcodeDecoderService.scanImageFile(File(filePath));
+      final scanResult = await BarcodeDecoderService.scanImageFile(
+        File(filePath),
+      );
       if (scanResult != null && scanResult.text.isNotEmpty) {
         setState(() {
           _barcodeValueController.text = scanResult.text;
@@ -214,7 +218,11 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No barcode or QR code detected in the selected image.')),
+            const SnackBar(
+              content: Text(
+                'No barcode or QR code detected in the selected image.',
+              ),
+            ),
           );
         }
       }
@@ -240,7 +248,9 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      final encryptedPath = await saveImageToAppDirectory(File(pickedFile.path));
+      final encryptedPath = await saveImageToAppDirectory(
+        File(pickedFile.path),
+      );
       setState(() {
         if (isFront) {
           _frontImagePath = encryptedPath;
@@ -251,7 +261,12 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     }
   }
 
-  Widget _buildImagePickerTile(String label, String? path, VoidCallback onTap, bool isDark) {
+  Widget _buildImagePickerTile(
+    String label,
+    String? path,
+    VoidCallback onTap,
+    bool isDark,
+  ) {
     return Column(
       children: [
         GestureDetector(
@@ -260,21 +275,27 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
             height: 80,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.black.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: path != null 
-                  ? Colors.green.withValues(alpha: 0.5) 
-                  : (isDark ? Colors.white12 : Colors.black12),
+                color: path != null
+                    ? Colors.green.withValues(alpha: 0.5)
+                    : (isDark ? Colors.white12 : Colors.black12),
               ),
             ),
             child: path != null
-              ? const Icon(Icons.check_circle_rounded, color: Colors.green, size: 28)
-              : Icon(
-                  Icons.add_a_photo_outlined,
-                  size: 24,
-                  color: isDark ? Colors.white38 : Colors.black38,
-                ),
+                ? const Icon(
+                    Icons.check_circle_rounded,
+                    color: Colors.green,
+                    size: 28,
+                  )
+                : Icon(
+                    Icons.add_a_photo_outlined,
+                    size: 24,
+                    color: isDark ? Colors.white38 : Colors.black38,
+                  ),
           ),
         ),
         const SizedBox(height: 6),
@@ -324,7 +345,10 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         break;
       case 'loyaltyCard':
       case 'storeCard':
-        _dynamicFields['primaryFields']!.add({'label': 'MEMBER NAME', 'value': ''});
+        _dynamicFields['primaryFields']!.add({
+          'label': 'MEMBER NAME',
+          'value': '',
+        });
         _dynamicFields['secondaryFields']!.addAll([
           {'label': 'BALANCE', 'value': ''},
           {'label': 'TIER', 'value': ''},
@@ -335,7 +359,10 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         ]);
         break;
       case 'giftCard':
-        _dynamicFields['primaryFields']!.add({'label': 'CARD NUMBER', 'value': ''});
+        _dynamicFields['primaryFields']!.add({
+          'label': 'CARD NUMBER',
+          'value': '',
+        });
         _dynamicFields['secondaryFields']!.addAll([
           {'label': 'BALANCE', 'value': ''},
           {'label': 'PIN', 'value': ''},
@@ -395,7 +422,10 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         ]);
         break;
       case 'campusId':
-        _dynamicFields['primaryFields']!.add({'label': 'STUDENT NAME', 'value': ''});
+        _dynamicFields['primaryFields']!.add({
+          'label': 'STUDENT NAME',
+          'value': '',
+        });
         _dynamicFields['secondaryFields']!.addAll([
           {'label': 'UNIVERSITY', 'value': ''},
           {'label': 'ID #', 'value': ''},
@@ -406,7 +436,10 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         ]);
         break;
       case 'corporateBadge':
-        _dynamicFields['primaryFields']!.add({'label': 'EMPLOYEE NAME', 'value': ''});
+        _dynamicFields['primaryFields']!.add({
+          'label': 'EMPLOYEE NAME',
+          'value': '',
+        });
         _dynamicFields['secondaryFields']!.addAll([
           {'label': 'COMPANY', 'value': ''},
           {'label': 'DEPT', 'value': ''},
@@ -417,7 +450,10 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         ]);
         break;
       case 'hotelKey':
-        _dynamicFields['primaryFields']!.add({'label': 'GUEST NAME', 'value': ''});
+        _dynamicFields['primaryFields']!.add({
+          'label': 'GUEST NAME',
+          'value': '',
+        });
         _dynamicFields['secondaryFields']!.addAll([
           {'label': 'HOTEL', 'value': ''},
           {'label': 'ROOM #', 'value': ''},
@@ -428,7 +464,10 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         ]);
         break;
       case 'multiFamilyKey':
-        _dynamicFields['primaryFields']!.add({'label': 'RESIDENT NAME', 'value': ''});
+        _dynamicFields['primaryFields']!.add({
+          'label': 'RESIDENT NAME',
+          'value': '',
+        });
         _dynamicFields['secondaryFields']!.addAll([
           {'label': 'PROPERTY', 'value': ''},
           {'label': 'UNIT #', 'value': ''},
@@ -438,7 +477,10 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         ]);
         break;
       case 'healthInsuranceCard':
-        _dynamicFields['primaryFields']!.add({'label': 'MEMBER NAME', 'value': ''});
+        _dynamicFields['primaryFields']!.add({
+          'label': 'MEMBER NAME',
+          'value': '',
+        });
         _dynamicFields['secondaryFields']!.addAll([
           {'label': 'POLICY #', 'value': ''},
           {'label': 'PROVIDER', 'value': ''},
@@ -449,7 +491,10 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         ]);
         break;
       case 'healthTestRecord':
-        _dynamicFields['primaryFields']!.add({'label': 'TEST TYPE', 'value': ''});
+        _dynamicFields['primaryFields']!.add({
+          'label': 'TEST TYPE',
+          'value': '',
+        });
         _dynamicFields['secondaryFields']!.addAll([
           {'label': 'RESULT', 'value': ''},
           {'label': 'DATE', 'value': ''},
@@ -471,7 +516,10 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         ]);
         break;
       case 'digitalCredential':
-        _dynamicFields['primaryFields']!.add({'label': 'DOCUMENT TYPE', 'value': ''});
+        _dynamicFields['primaryFields']!.add({
+          'label': 'DOCUMENT TYPE',
+          'value': '',
+        });
         _dynamicFields['secondaryFields']!.addAll([
           {'label': 'ISSUER', 'value': ''},
           {'label': 'ID #', 'value': ''},
@@ -482,7 +530,10 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         ]);
         break;
       case 'genericPrivate':
-        _dynamicFields['primaryFields']!.add({'label': 'ORGANIZATION', 'value': ''});
+        _dynamicFields['primaryFields']!.add({
+          'label': 'ORGANIZATION',
+          'value': '',
+        });
         _dynamicFields['secondaryFields']!.addAll([
           {'label': 'DATA TYPE', 'value': ''},
         ]);
@@ -492,7 +543,10 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         ]);
         break;
       case 'inStorePayment':
-        _dynamicFields['primaryFields']!.add({'label': 'CARD NUMBER', 'value': ''});
+        _dynamicFields['primaryFields']!.add({
+          'label': 'CARD NUMBER',
+          'value': '',
+        });
         _dynamicFields['secondaryFields']!.addAll([
           {'label': 'MEMBER NAME', 'value': ''},
         ]);
@@ -509,9 +563,10 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         _dynamicFields['auxiliaryFields']!.add({'label': 'TERMS', 'value': ''});
         break;
       case 'generic':
-        _dynamicFields['secondaryFields']!.add(
-          {'label': 'DETAILS', 'value': ''},
-        );
+        _dynamicFields['secondaryFields']!.add({
+          'label': 'DETAILS',
+          'value': '',
+        });
         _dynamicFields['auxiliaryFields']!.add({'label': 'DATE', 'value': ''});
         break;
     }
@@ -635,26 +690,21 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-
         BarcodeCard(
           pass: Pass(
             type: _selectedType,
-            organizationName:
-                _organizationController.text.isEmpty
-                    ? 'ORGANIZATION'
-                    : _organizationController.text,
-            description:
-                _descriptionController.text.isEmpty
-                    ? widget.existingPass?.description
-                    : _descriptionController.text,
-            logoText:
-                _logoTextController.text.isEmpty
-                    ? widget.existingPass?.logoText
-                    : _logoTextController.text,
-            barcodeValue:
-                _barcodeValueController.text.isEmpty
-                    ? '123456789'
-                    : _barcodeValueController.text,
+            organizationName: _organizationController.text.isEmpty
+                ? 'ORGANIZATION'
+                : _organizationController.text,
+            description: _descriptionController.text.isEmpty
+                ? widget.existingPass?.description
+                : _descriptionController.text,
+            logoText: _logoTextController.text.isEmpty
+                ? widget.existingPass?.logoText
+                : _logoTextController.text,
+            barcodeValue: _barcodeValueController.text.isEmpty
+                ? '123456789'
+                : _barcodeValueController.text,
             barcodeFormat: BarcodeUtils.getInternalFormatName(
               _selectedBarcodeFormat,
             ),
@@ -706,10 +756,9 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
         DropdownButtonFormField<String>(
           initialValue: _selectedBarcodeFormat,
           decoration: const InputDecoration(labelText: 'Barcode Format'),
-          items:
-              BarcodeUtils.supportedFormats.keys
-                  .map((f) => DropdownMenuItem(value: f, child: Text(f)))
-                  .toList(),
+          items: BarcodeUtils.supportedFormats.keys
+              .map((f) => DropdownMenuItem(value: f, child: Text(f)))
+              .toList(),
           onChanged: (v) => setState(() => _selectedBarcodeFormat = v!),
         ),
         const SizedBox(height: 16),
@@ -726,29 +775,31 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
             }
           },
         ),
-        if (_selectedType == 'boardingPass' || _selectedType == 'transitPass') ...[
+        if (_selectedType == 'boardingPass' ||
+            _selectedType == 'transitPass') ...[
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             initialValue: _transitType,
             decoration: const InputDecoration(labelText: 'Transit Type'),
-            items: [
-              'BUS',
-              'RAIL',
-              'TRAM',
-              'FERRY',
-              'OTHER',
-              'PKTransitTypeAir',
-              'PKTransitTypeBoat',
-              'PKTransitTypeBus',
-              'PKTransitTypeRail',
-            ]
-                .map(
-                  (t) => DropdownMenuItem(
-                    value: t,
-                    child: Text(t.replaceFirst('PKTransitType', '')),
-                  ),
-                )
-                .toList(),
+            items:
+                [
+                      'BUS',
+                      'RAIL',
+                      'TRAM',
+                      'FERRY',
+                      'OTHER',
+                      'PKTransitTypeAir',
+                      'PKTransitTypeBoat',
+                      'PKTransitTypeBus',
+                      'PKTransitTypeRail',
+                    ]
+                    .map(
+                      (t) => DropdownMenuItem(
+                        value: t,
+                        child: Text(t.replaceFirst('PKTransitType', '')),
+                      ),
+                    )
+                    .toList(),
             onChanged: (v) => setState(() => _transitType = v!),
           ),
         ],

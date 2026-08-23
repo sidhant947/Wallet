@@ -285,8 +285,10 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
                 label: const Text('Additional Info'),
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.blue,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),

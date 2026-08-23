@@ -12,8 +12,10 @@ import 'package:wallet/services/encryption_service.dart';
 import 'package:wallet/services/saf_service.dart';
 
 class BackupService {
-  static const String _backupVersion = '4.0'; // Incremented for settings support
-  static const int _maxDecompressedSize = 100 * 1024 * 1024; // 100MB zip bomb limit
+  static const String _backupVersion =
+      '4.0'; // Incremented for settings support
+  static const int _maxDecompressedSize =
+      100 * 1024 * 1024; // 100MB zip bomb limit
 
   static const Set<String> _allowedSettingsKeys = {
     'themePreference',
@@ -34,8 +36,9 @@ class BackupService {
     try {
       final wallets = await DatabaseHelper.instance.getWallets();
       final passes = await PassDatabaseHelper.instance.getAllPasses();
-      final identities = await IdentityDatabaseHelper.instance.getAllIdentities();
-      
+      final identities = await IdentityDatabaseHelper.instance
+          .getAllIdentities();
+
       // Fetch settings from SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       final settings = <String, dynamic>{};
@@ -85,8 +88,8 @@ class BackupService {
 
       final imageFutures = imagePaths.map((path) async {
         try {
-          final decryptedBytes =
-              await EncryptionService.instance.decryptImageToBytes(path);
+          final decryptedBytes = await EncryptionService.instance
+              .decryptImageToBytes(path);
           if (decryptedBytes != null) {
             final fileName = p.basename(path).replaceAll('.enc', '');
             return ArchiveFile(
@@ -125,7 +128,10 @@ class BackupService {
     }
   }
 
-  static Future<void> restoreBackup(String password, {BuildContext? context}) async {
+  static Future<void> restoreBackup(
+    String password, {
+    BuildContext? context,
+  }) async {
     // Optional UI hooks for granular progress reporting. Caller may pass null.
     void toast(String message, {bool isError = false}) {
       debugPrint('BackupService: $message');
@@ -207,7 +213,8 @@ class BackupService {
             }
           }
 
-          if (archive == null) throw Exception("Could not decode backup archive.");
+          if (archive == null)
+            throw Exception("Could not decode backup archive.");
 
           // Zip bomb protection: check decompressed size
           int totalSize = 0;
@@ -224,8 +231,9 @@ class BackupService {
           }
 
           backupData = jsonDecode(utf8.decode(dataFile.content as List<int>));
-          imageFiles =
-              archive.where((f) => f.name.startsWith('images/')).toList();
+          imageFiles = archive
+              .where((f) => f.name.startsWith('images/'))
+              .toList();
         } catch (_) {
           throw Exception(
             'Failed to process backup archive. It might be corrupted.',
@@ -299,19 +307,17 @@ class BackupService {
 
           // Update image paths if they were re-encrypted to a different filename/extension
           if (walletMap['frontImagePath'] != null) {
-            final oldName = p.basename(walletMap['frontImagePath']).replaceAll(
-              '.enc',
-              '',
-            );
+            final oldName = p
+                .basename(walletMap['frontImagePath'])
+                .replaceAll('.enc', '');
             if (oldToNewImagePaths.containsKey(oldName)) {
               walletMap['frontImagePath'] = oldToNewImagePaths[oldName];
             }
           }
           if (walletMap['backImagePath'] != null) {
-            final oldName = p.basename(walletMap['backImagePath']).replaceAll(
-              '.enc',
-              '',
-            );
+            final oldName = p
+                .basename(walletMap['backImagePath'])
+                .replaceAll('.enc', '');
             if (oldToNewImagePaths.containsKey(oldName)) {
               walletMap['backImagePath'] = oldToNewImagePaths[oldName];
             }
@@ -357,7 +363,9 @@ class BackupService {
         debugPrint('BackupService: failed to read loyalties array: $e');
         loyaltiesData = [];
       }
-      debugPrint('BackupService: found ${loyaltiesData.length} loyalty entries to migrate');
+      debugPrint(
+        'BackupService: found ${loyaltiesData.length} loyalty entries to migrate',
+      );
 
       String? remapImagePath(String? path) {
         if (path == null || path.isEmpty) return path;
@@ -370,7 +378,9 @@ class BackupService {
         try {
           // Skip non-Map entries (corrupted backup or unexpected shape).
           if (loyalty is! Map) {
-            debugPrint('BackupService: loyalty[$i] is ${loyalty.runtimeType}, skipping');
+            debugPrint(
+              'BackupService: loyalty[$i] is ${loyalty.runtimeType}, skipping',
+            );
             continue;
           }
           final lm = Map<String, dynamic>.from(loyalty);
@@ -403,19 +413,25 @@ class BackupService {
           final identityMap = Map<String, dynamic>.from(i);
 
           if (identityMap['frontImagePath'] != null) {
-            final oldName = p.basename(identityMap['frontImagePath']).replaceAll('.enc', '');
+            final oldName = p
+                .basename(identityMap['frontImagePath'])
+                .replaceAll('.enc', '');
             if (oldToNewImagePaths.containsKey(oldName)) {
               identityMap['frontImagePath'] = oldToNewImagePaths[oldName];
             }
           }
           if (identityMap['backImagePath'] != null) {
-            final oldName = p.basename(identityMap['backImagePath']).replaceAll('.enc', '');
+            final oldName = p
+                .basename(identityMap['backImagePath'])
+                .replaceAll('.enc', '');
             if (oldToNewImagePaths.containsKey(oldName)) {
               identityMap['backImagePath'] = oldToNewImagePaths[oldName];
             }
           }
 
-          await IdentityDatabaseHelper.instance.insertIdentity(IdentityCard.fromMap(identityMap));
+          await IdentityDatabaseHelper.instance.insertIdentity(
+            IdentityCard.fromMap(identityMap),
+          );
         } catch (_) {}
       }
       toast('Restore complete!');
@@ -428,11 +444,15 @@ class BackupService {
     }
   }
 
-  static Future<void> createAutoBackup(String password, String directoryUri) async {
+  static Future<void> createAutoBackup(
+    String password,
+    String directoryUri,
+  ) async {
     try {
       final wallets = await DatabaseHelper.instance.getWallets();
       final passes = await PassDatabaseHelper.instance.getAllPasses();
-      final identities = await IdentityDatabaseHelper.instance.getAllIdentities();
+      final identities = await IdentityDatabaseHelper.instance
+          .getAllIdentities();
 
       final prefs = await SharedPreferences.getInstance();
       final settings = <String, dynamic>{};
@@ -484,8 +504,8 @@ class BackupService {
 
       final imageFutures = imagePaths.map((path) async {
         try {
-          final decryptedBytes =
-              await EncryptionService.instance.decryptImageToBytes(path);
+          final decryptedBytes = await EncryptionService.instance
+              .decryptImageToBytes(path);
           if (decryptedBytes != null) {
             final fileName = p.basename(path).replaceAll('.enc', '');
             return ArchiveFile(
@@ -568,21 +588,30 @@ class BackupService {
     // Must have at least one data array
     final hasWallets = data.containsKey('wallets') && data['wallets'] is List;
     final hasPasses = data.containsKey('passes') && data['passes'] is List;
-    final hasIdentities = data.containsKey('identities') && data['identities'] is List;
-    final hasLoyalties = data.containsKey('loyalties') && data['loyalties'] is List;
-    if (!hasWallets && !hasPasses && !hasIdentities && !hasLoyalties) return false;
+    final hasIdentities =
+        data.containsKey('identities') && data['identities'] is List;
+    final hasLoyalties =
+        data.containsKey('loyalties') && data['loyalties'] is List;
+    if (!hasWallets && !hasPasses && !hasIdentities && !hasLoyalties)
+      return false;
     // Validate wallet entries have required fields
     if (hasWallets) {
       for (final w in data['wallets'] as List) {
         if (w is! Map<String, dynamic>) return false;
-        if (!w.containsKey('name') || !w.containsKey('number') || !w.containsKey('expiry')) return false;
+        if (!w.containsKey('name') ||
+            !w.containsKey('number') ||
+            !w.containsKey('expiry'))
+          return false;
       }
     }
     // Validate pass entries
     if (hasPasses) {
       for (final p in data['passes'] as List) {
         if (p is! Map<String, dynamic>) return false;
-        if (!p.containsKey('type') || !p.containsKey('organizationName') || !p.containsKey('barcodeValue')) return false;
+        if (!p.containsKey('type') ||
+            !p.containsKey('organizationName') ||
+            !p.containsKey('barcodeValue'))
+          return false;
       }
     }
     // Validate identity entries

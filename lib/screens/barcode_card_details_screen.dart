@@ -19,7 +19,8 @@ class BarcodeCardDetailScreen extends StatefulWidget {
   const BarcodeCardDetailScreen({super.key, required this.pass});
 
   @override
-  State<BarcodeCardDetailScreen> createState() => _BarcodeCardDetailScreenState();
+  State<BarcodeCardDetailScreen> createState() =>
+      _BarcodeCardDetailScreenState();
 }
 
 class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
@@ -109,16 +110,27 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
           child: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: isDark ? Colors.white : Colors.black,
+              size: 20,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
         ),
         actions: [
           Container(
             margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0),
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: IconButton(
-              icon: Icon(Icons.share_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
+              icon: Icon(
+                Icons.share_rounded,
+                color: isDark ? Colors.white : Colors.black,
+                size: 20,
+              ),
               tooltip: 'Share Pass (Encrypted Data)',
               onPressed: () {
                 HapticFeedback.mediumImpact();
@@ -131,9 +143,16 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
           ),
           Container(
             margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0),
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: IconButton(
-              icon: Icon(Icons.edit, color: isDark ? Colors.white : Colors.black, size: 20),
+              icon: Icon(
+                Icons.edit,
+                color: isDark ? Colors.white : Colors.black,
+                size: 20,
+              ),
               onPressed: () {
                 HapticFeedback.lightImpact();
                 _navigateToEditScreen(context);
@@ -191,7 +210,7 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
                       color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 24,
                       offset: const Offset(0, 8),
-                    )
+                    ),
                   ],
                 ),
                 child: Column(
@@ -203,10 +222,14 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
                       height: 180,
                       width: double.infinity,
                       errorBuilder: (context, error) => const Center(
-                        child: Text('Invalid Barcode Data', style: TextStyle(color: Colors.red)),
+                        child: Text(
+                          'Invalid Barcode Data',
+                          style: TextStyle(color: Colors.red),
+                        ),
                       ),
                     ),
-                    if (p.barcodeAltText != null || p.barcodeValue.isNotEmpty) ...[
+                    if (p.barcodeAltText != null ||
+                        p.barcodeValue.isNotEmpty) ...[
                       const SizedBox(height: 24),
                       Text(
                         p.barcodeAltText ?? p.barcodeValue,
@@ -242,22 +265,38 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
                     if (_isPathValid(p.frontImagePath))
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: _buildImageThumbnail(p.frontImagePath!, 'Front', isDark),
+                        child: _buildImageThumbnail(
+                          p.frontImagePath!,
+                          'Front',
+                          isDark,
+                        ),
                       ),
                     if (_isPathValid(p.backImagePath))
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: _buildImageThumbnail(p.backImagePath!, 'Back', isDark),
+                        child: _buildImageThumbnail(
+                          p.backImagePath!,
+                          'Back',
+                          isDark,
+                        ),
                       ),
                     if (_isPathValid(p.stripImagePath))
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: _buildImageThumbnail(p.stripImagePath!, 'Strip', isDark),
+                        child: _buildImageThumbnail(
+                          p.stripImagePath!,
+                          'Strip',
+                          isDark,
+                        ),
                       ),
                     if (_isPathValid(p.thumbnailImagePath))
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: _buildImageThumbnail(p.thumbnailImagePath!, 'Thumbnail', isDark),
+                        child: _buildImageThumbnail(
+                          p.thumbnailImagePath!,
+                          'Thumbnail',
+                          isDark,
+                        ),
                       ),
                   ],
                 ),
@@ -271,16 +310,41 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
 
           // Fields Sections - Structured by Pass Type
           if (p.fields != null) ...[
-            if (p.fields!['primaryFields'] != null) 
-              _buildFieldsSection(_getSectionTitle(p.type, 'primary'), p.fields!['primaryFields'], isDark, Icons.star_outline_rounded),
-            if (p.fields!['secondaryFields'] != null) 
-              _buildFieldsSection(_getSectionTitle(p.type, 'secondary'), p.fields!['secondaryFields'], isDark, Icons.info_outline_rounded),
-            if (p.fields!['auxiliaryFields'] != null) 
-              _buildFieldsSection(_getSectionTitle(p.type, 'auxiliary'), p.fields!['auxiliaryFields'], isDark, Icons.grid_view_rounded),
-            if (p.fields!['headerFields'] != null) 
-              _buildFieldsSection("Header Details", p.fields!['headerFields'], isDark, Icons.list_alt_rounded),
-            if (p.fields!['backFields'] != null) 
-              _buildFieldsSection("Additional Info", p.fields!['backFields'], isDark, Icons.more_horiz_rounded),
+            if (p.fields!['primaryFields'] != null)
+              _buildFieldsSection(
+                _getSectionTitle(p.type, 'primary'),
+                p.fields!['primaryFields'],
+                isDark,
+                Icons.star_outline_rounded,
+              ),
+            if (p.fields!['secondaryFields'] != null)
+              _buildFieldsSection(
+                _getSectionTitle(p.type, 'secondary'),
+                p.fields!['secondaryFields'],
+                isDark,
+                Icons.info_outline_rounded,
+              ),
+            if (p.fields!['auxiliaryFields'] != null)
+              _buildFieldsSection(
+                _getSectionTitle(p.type, 'auxiliary'),
+                p.fields!['auxiliaryFields'],
+                isDark,
+                Icons.grid_view_rounded,
+              ),
+            if (p.fields!['headerFields'] != null)
+              _buildFieldsSection(
+                "Header Details",
+                p.fields!['headerFields'],
+                isDark,
+                Icons.list_alt_rounded,
+              ),
+            if (p.fields!['backFields'] != null)
+              _buildFieldsSection(
+                "Additional Info",
+                p.fields!['backFields'],
+                isDark,
+                Icons.more_horiz_rounded,
+              ),
           ],
 
           const SizedBox(height: 32),
@@ -380,11 +444,23 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
       title: title,
       icon: Icons.description_outlined,
       isDark: isDark,
-      child: Text(content, style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, fontSize: 14, height: 1.5)),
+      child: Text(
+        content,
+        style: TextStyle(
+          color: isDark ? Colors.white70 : Colors.black87,
+          fontSize: 14,
+          height: 1.5,
+        ),
+      ),
     );
   }
 
-  Widget _buildFieldsSection(String title, dynamic fields, bool isDark, IconData icon) {
+  Widget _buildFieldsSection(
+    String title,
+    dynamic fields,
+    bool isDark,
+    IconData icon,
+  ) {
     if (fields is! List || fields.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(bottom: 24.0),
@@ -393,7 +469,15 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
         icon: icon,
         isDark: isDark,
         child: Column(
-          children: fields.map((f) => _buildDetailRow(f['label'] ?? '', f['value']?.toString() ?? '', isDark)).toList(),
+          children: fields
+              .map(
+                (f) => _buildDetailRow(
+                  f['label'] ?? '',
+                  f['value']?.toString() ?? '',
+                  isDark,
+                ),
+              )
+              .toList(),
         ),
       ),
     );
@@ -405,8 +489,25 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 13, fontWeight: FontWeight.w500)),
-          Flexible(child: Text(value, textAlign: TextAlign.right, style: TextStyle(color: isDark ? Colors.white : Colors.black, fontSize: 14, fontWeight: FontWeight.bold))),
+          Text(
+            label,
+            style: TextStyle(
+              color: isDark ? Colors.white54 : Colors.black54,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -471,10 +572,7 @@ class PassEditScreenState extends State<PassEditScreen> {
           ),
         ],
       ),
-      body: BarcodeCardEntryForm(
-        key: _formKey,
-        existingPass: widget.pass,
-      ),
+      body: BarcodeCardEntryForm(key: _formKey, existingPass: widget.pass),
     );
   }
 }
@@ -484,7 +582,12 @@ class _LiquidGlassSection extends StatelessWidget {
   final IconData icon;
   final Widget child;
   final bool isDark;
-  const _LiquidGlassSection({required this.title, required this.icon, required this.child, required this.isDark});
+  const _LiquidGlassSection({
+    required this.title,
+    required this.icon,
+    required this.child,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -493,9 +596,35 @@ class _LiquidGlassSection extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Row(children: [Icon(icon, size: 14, color: isDark ? Colors.white38 : Colors.black38), const SizedBox(width: 8), Text(title.toUpperCase(), style: TextStyle(color: isDark ? Colors.white38 : Colors.black38, fontWeight: FontWeight.bold, letterSpacing: 1.2, fontSize: 11))]),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 14,
+                color: isDark ? Colors.white38 : Colors.black38,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                title.toUpperCase(),
+                style: TextStyle(
+                  color: isDark ? Colors.white38 : Colors.black38,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
         ),
-        Container(padding: const EdgeInsets.all(16), width: double.infinity, decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5)), child: child),
+        Container(
+          padding: const EdgeInsets.all(16),
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
+          ),
+          child: child,
+        ),
       ],
     );
   }

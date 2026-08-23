@@ -7,12 +7,14 @@ enum PassDisplayMode { card, front, back }
 class PassGridCard extends StatelessWidget {
   final Pass pass;
   final VoidCallback onCardTap;
+  final VoidCallback onCardLongPress;
   final PassDisplayMode displayMode;
 
   const PassGridCard({
     super.key,
     required this.pass,
     required this.onCardTap,
+    required this.onCardLongPress,
     this.displayMode = PassDisplayMode.front,
   });
 
@@ -34,6 +36,7 @@ class PassGridCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onCardTap,
+      onLongPress: onCardLongPress,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,

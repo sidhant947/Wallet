@@ -14,7 +14,11 @@ class SafService {
     }
   }
 
-  static Future<bool> writeToUri(String uri, String filename, List<int> bytes) async {
+  static Future<bool> writeToUri(
+    String uri,
+    String filename,
+    List<int> bytes,
+  ) async {
     try {
       await _channel.invokeMethod('writeToUri', {
         'uri': uri,

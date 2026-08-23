@@ -19,7 +19,7 @@ class Pass {
   final String? backImagePath;
   final String? stripImagePath;
   final String? thumbnailImagePath;
-  final Map<String, dynamic>? fields; 
+  final Map<String, dynamic>? fields;
   int orderIndex;
 
   Pass({
@@ -137,7 +137,9 @@ class Pass {
       backImagePath: map['backImagePath'],
       stripImagePath: map['stripImagePath'],
       thumbnailImagePath: map['thumbnailImagePath'],
-      fields: map['fields'] != null ? enc.decryptJsonToDynamicMap(map['fields']) : null,
+      fields: map['fields'] != null
+          ? enc.decryptJsonToDynamicMap(map['fields'])
+          : null,
       orderIndex: map['orderIndex'] ?? 0,
     );
   }

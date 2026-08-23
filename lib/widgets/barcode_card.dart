@@ -9,17 +9,11 @@ class BarcodeCard extends StatelessWidget {
   final Pass pass;
   final VoidCallback onCardTap;
 
-  const BarcodeCard({
-    super.key,
-    required this.pass,
-    required this.onCardTap,
-  });
+  const BarcodeCard({super.key, required this.pass, required this.onCardTap});
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: _buildLayout(context),
-    );
+    return RepaintBoundary(child: _buildLayout(context));
   }
 
   Widget _buildLayout(BuildContext context) {
@@ -165,7 +159,8 @@ class _GoogleWalletBaseLayout extends StatelessWidget {
                               letterSpacing: 0.8,
                             ),
                           ),
-                          if (pass.logoText != null && pass.logoText!.isNotEmpty)
+                          if (pass.logoText != null &&
+                              pass.logoText!.isNotEmpty)
                             Text(
                               pass.logoText!,
                               maxLines: 1,
@@ -491,8 +486,10 @@ class _GenericPassLayout extends StatelessWidget {
         if (details.isNotEmpty)
           _GWSingleRow(label: 'Details', value: details, textColor: textColor),
         _GWTwoItemRow(
-          startLabel: 'Date', startValue: date,
-          endLabel: '', endValue: '',
+          startLabel: 'Date',
+          startValue: date,
+          endLabel: '',
+          endValue: '',
           textColor: textColor,
         ),
       ],
@@ -522,14 +519,25 @@ class _LoyaltyCardLayout extends StatelessWidget {
       pass: pass,
       onTap: onTap,
       fieldRows: [
-        _GWSingleRow(label: 'Member Name', value: memberName, textColor: textColor),
-        _GWThreeItemRow(
-          startLabel: 'Balance', startValue: balance,
-          middleLabel: 'Points', middleValue: points,
-          endLabel: 'Tier', endValue: tier,
+        _GWSingleRow(
+          label: 'Member Name',
+          value: memberName,
           textColor: textColor,
         ),
-        _GWSingleRow(label: 'Account #', value: accountNum, textColor: textColor),
+        _GWThreeItemRow(
+          startLabel: 'Balance',
+          startValue: balance,
+          middleLabel: 'Points',
+          middleValue: points,
+          endLabel: 'Tier',
+          endValue: tier,
+          textColor: textColor,
+        ),
+        _GWSingleRow(
+          label: 'Account #',
+          value: accountNum,
+          textColor: textColor,
+        ),
       ],
     );
   }
@@ -556,11 +564,18 @@ class _GiftCardLayout extends StatelessWidget {
       pass: pass,
       onTap: onTap,
       fieldRows: [
-        _GWSingleRow(label: 'Card Number', value: cardNumber, textColor: textColor),
+        _GWSingleRow(
+          label: 'Card Number',
+          value: cardNumber,
+          textColor: textColor,
+        ),
         _GWThreeItemRow(
-          startLabel: 'Balance', startValue: balance,
-          middleLabel: 'PIN', middleValue: pin,
-          endLabel: 'Recipient', endValue: recipient,
+          startLabel: 'Balance',
+          startValue: balance,
+          middleLabel: 'PIN',
+          middleValue: pin,
+          endLabel: 'Recipient',
+          endValue: recipient,
           textColor: textColor,
         ),
       ],
@@ -593,8 +608,10 @@ class _OfferLayout extends StatelessWidget {
         if (offerTitle.isNotEmpty)
           _GWSingleRow(label: 'Offer', value: offerTitle, textColor: textColor),
         _GWTwoItemRow(
-          startLabel: 'Provider', startValue: provider,
-          endLabel: 'Expires', endValue: expires,
+          startLabel: 'Provider',
+          startValue: provider,
+          endLabel: 'Expires',
+          endValue: expires,
           textColor: textColor,
         ),
         if (code.isNotEmpty)
@@ -638,20 +655,54 @@ class _BoardingPassLayout extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('FROM', style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                    Text(
+                      'FROM',
+                      style: TextStyle(
+                        color: textColor.withValues(alpha: 0.5),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text(from.isEmpty ? '---' : from, style: TextStyle(color: textColor, fontSize: 28, fontWeight: FontWeight.w900)),
+                    Text(
+                      from.isEmpty ? '---' : from,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              Icon(Icons.flight_takeoff_rounded, color: textColor.withValues(alpha: 0.3), size: 24),
+              Icon(
+                Icons.flight_takeoff_rounded,
+                color: textColor.withValues(alpha: 0.3),
+                size: 24,
+              ),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('TO', style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                    Text(
+                      'TO',
+                      style: TextStyle(
+                        color: textColor.withValues(alpha: 0.5),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text(to.isEmpty ? '---' : to, style: TextStyle(color: textColor, fontSize: 28, fontWeight: FontWeight.w900)),
+                    Text(
+                      to.isEmpty ? '---' : to,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -659,14 +710,19 @@ class _BoardingPassLayout extends StatelessWidget {
           ),
         ),
         _GWThreeItemRow(
-          startLabel: 'Flight', startValue: flight,
-          middleLabel: 'Gate', middleValue: gate,
-          endLabel: 'Seat', endValue: seat,
+          startLabel: 'Flight',
+          startValue: flight,
+          middleLabel: 'Gate',
+          middleValue: gate,
+          endLabel: 'Seat',
+          endValue: seat,
           textColor: textColor,
         ),
         _GWTwoItemRow(
-          startLabel: 'Departure', startValue: departure,
-          endLabel: 'Arrival', endValue: arrival,
+          startLabel: 'Departure',
+          startValue: departure,
+          endLabel: 'Arrival',
+          endValue: arrival,
           textColor: textColor,
         ),
       ],
@@ -702,14 +758,19 @@ class _EventTicketLayout extends StatelessWidget {
         if (event.isNotEmpty)
           _GWSingleRow(label: 'Event', value: event, textColor: textColor),
         _GWTwoItemRow(
-          startLabel: 'Venue', startValue: venue,
-          endLabel: 'Date', endValue: date,
+          startLabel: 'Venue',
+          startValue: venue,
+          endLabel: 'Date',
+          endValue: date,
           textColor: textColor,
         ),
         _GWThreeItemRow(
-          startLabel: 'Section', startValue: section,
-          middleLabel: 'Row', middleValue: row,
-          endLabel: 'Seat', endValue: seat,
+          startLabel: 'Section',
+          startValue: section,
+          middleLabel: 'Row',
+          middleValue: row,
+          endLabel: 'Seat',
+          endValue: seat,
           textColor: textColor,
         ),
         if (time.isNotEmpty)
@@ -742,10 +803,18 @@ class _TransitPassLayout extends StatelessWidget {
     final transitType = pass.transitType ?? 'BUS';
     IconData transitIcon;
     switch (transitType.toUpperCase()) {
-      case 'RAIL': case 'TRAIN': transitIcon = Icons.train_rounded; break;
-      case 'TRAM': transitIcon = Icons.tram_rounded; break;
-      case 'FERRY': transitIcon = Icons.directions_boat_rounded; break;
-      default: transitIcon = Icons.directions_bus_rounded;
+      case 'RAIL':
+      case 'TRAIN':
+        transitIcon = Icons.train_rounded;
+        break;
+      case 'TRAM':
+        transitIcon = Icons.tram_rounded;
+        break;
+      case 'FERRY':
+        transitIcon = Icons.directions_boat_rounded;
+        break;
+      default:
+        transitIcon = Icons.directions_bus_rounded;
     }
 
     return _GoogleWalletBaseLayout(
@@ -761,20 +830,58 @@ class _TransitPassLayout extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('FROM', style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                    Text(
+                      'FROM',
+                      style: TextStyle(
+                        color: textColor.withValues(alpha: 0.5),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text(from.isEmpty ? '---' : from, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: textColor, fontSize: 24, fontWeight: FontWeight.w900)),
+                    Text(
+                      from.isEmpty ? '---' : from,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_rounded, color: textColor.withValues(alpha: 0.3), size: 20),
+              Icon(
+                Icons.arrow_forward_rounded,
+                color: textColor.withValues(alpha: 0.3),
+                size: 20,
+              ),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('TO', style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                    Text(
+                      'TO',
+                      style: TextStyle(
+                        color: textColor.withValues(alpha: 0.5),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text(to.isEmpty ? '---' : to, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: textColor, fontSize: 24, fontWeight: FontWeight.w900)),
+                    Text(
+                      to.isEmpty ? '---' : to,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -782,14 +889,19 @@ class _TransitPassLayout extends StatelessWidget {
           ),
         ),
         _GWThreeItemRow(
-          startLabel: 'Route', startValue: route,
-          middleLabel: 'Fare', middleValue: fareClass,
-          endLabel: 'Platform', endValue: platform,
+          startLabel: 'Route',
+          startValue: route,
+          middleLabel: 'Fare',
+          middleValue: fareClass,
+          endLabel: 'Platform',
+          endValue: platform,
           textColor: textColor,
         ),
         _GWTwoItemRow(
-          startLabel: 'Seat', startValue: seat,
-          endLabel: 'Coach', endValue: coach,
+          startLabel: 'Seat',
+          startValue: seat,
+          endLabel: 'Coach',
+          endValue: coach,
           textColor: textColor,
         ),
       ],
@@ -820,16 +932,25 @@ class _HealthInsuranceLayout extends StatelessWidget {
       onTap: onTap,
       titleIcon: Icons.health_and_safety_rounded,
       fieldRows: [
-        _GWSingleRow(label: 'Member Name', value: memberName, textColor: textColor),
+        _GWSingleRow(
+          label: 'Member Name',
+          value: memberName,
+          textColor: textColor,
+        ),
         _GWTwoItemRow(
-          startLabel: 'Provider', startValue: provider,
-          endLabel: 'Policy #', endValue: policyNumber,
+          startLabel: 'Provider',
+          startValue: provider,
+          endLabel: 'Policy #',
+          endValue: policyNumber,
           textColor: textColor,
         ),
         _GWThreeItemRow(
-          startLabel: 'Group #', startValue: groupNumber,
-          middleLabel: 'PCN', middleValue: pcn,
-          endLabel: '', endValue: '',
+          startLabel: 'Group #',
+          startValue: groupNumber,
+          middleLabel: 'PCN',
+          middleValue: pcn,
+          endLabel: '',
+          endValue: '',
           textColor: textColor,
         ),
       ],
@@ -862,13 +983,17 @@ class _HealthTestLayout extends StatelessWidget {
       fieldRows: [
         _GWSingleRow(label: 'Test Type', value: testType, textColor: textColor),
         _GWTwoItemRow(
-          startLabel: 'Result', startValue: result,
-          endLabel: 'Date', endValue: date,
+          startLabel: 'Result',
+          startValue: result,
+          endLabel: 'Date',
+          endValue: date,
           textColor: textColor,
         ),
         _GWTwoItemRow(
-          startLabel: 'Lab', startValue: lab,
-          endLabel: 'Provider', endValue: provider,
+          startLabel: 'Lab',
+          startValue: lab,
+          endLabel: 'Provider',
+          endValue: provider,
           textColor: textColor,
         ),
       ],
@@ -901,13 +1026,17 @@ class _VaccineCardLayout extends StatelessWidget {
       fieldRows: [
         _GWSingleRow(label: 'Vaccine', value: vaccine, textColor: textColor),
         _GWTwoItemRow(
-          startLabel: 'Dose', startValue: dose,
-          endLabel: 'Date', endValue: date,
+          startLabel: 'Dose',
+          startValue: dose,
+          endLabel: 'Date',
+          endValue: date,
           textColor: textColor,
         ),
         _GWTwoItemRow(
-          startLabel: 'Manufacturer', startValue: manufacturer,
-          endLabel: 'Lot #', endValue: lotNumber,
+          startLabel: 'Manufacturer',
+          startValue: manufacturer,
+          endLabel: 'Lot #',
+          endValue: lotNumber,
           textColor: textColor,
         ),
       ],
@@ -939,8 +1068,10 @@ class _CarKeyLayout extends StatelessWidget {
       fieldRows: [
         _GWSingleRow(label: 'Vehicle', value: vehicle, textColor: textColor),
         _GWTwoItemRow(
-          startLabel: 'Key Status', startValue: keyStatus,
-          endLabel: 'VIN', endValue: vin,
+          startLabel: 'Key Status',
+          startValue: keyStatus,
+          endLabel: 'VIN',
+          endValue: vin,
           textColor: textColor,
         ),
         _GWSingleRow(label: 'Device', value: device, textColor: textColor),
@@ -972,15 +1103,25 @@ class _CampusIdLayout extends StatelessWidget {
       onTap: onTap,
       titleIcon: Icons.school_rounded,
       fieldRows: [
-        _GWSingleRow(label: 'Student Name', value: studentName, textColor: textColor),
-        _GWTwoItemRow(
-          startLabel: 'University', startValue: university.isNotEmpty ? university : pass.organizationName,
-          endLabel: 'ID #', endValue: idNumber,
+        _GWSingleRow(
+          label: 'Student Name',
+          value: studentName,
           textColor: textColor,
         ),
         _GWTwoItemRow(
-          startLabel: 'Year', startValue: year,
-          endLabel: 'Dorm', endValue: dorm,
+          startLabel: 'University',
+          startValue: university.isNotEmpty
+              ? university
+              : pass.organizationName,
+          endLabel: 'ID #',
+          endValue: idNumber,
+          textColor: textColor,
+        ),
+        _GWTwoItemRow(
+          startLabel: 'Year',
+          startValue: year,
+          endLabel: 'Dorm',
+          endValue: dorm,
           textColor: textColor,
         ),
       ],
@@ -1011,15 +1152,23 @@ class _CorporateBadgeLayout extends StatelessWidget {
       onTap: onTap,
       titleIcon: Icons.badge_rounded,
       fieldRows: [
-        _GWSingleRow(label: 'Employee Name', value: employeeName, textColor: textColor),
-        _GWTwoItemRow(
-          startLabel: 'Company', startValue: company.isNotEmpty ? company : pass.organizationName,
-          endLabel: 'Department', endValue: department,
+        _GWSingleRow(
+          label: 'Employee Name',
+          value: employeeName,
           textColor: textColor,
         ),
         _GWTwoItemRow(
-          startLabel: 'ID #', startValue: idNumber,
-          endLabel: 'Access Level', endValue: accessLevel,
+          startLabel: 'Company',
+          startValue: company.isNotEmpty ? company : pass.organizationName,
+          endLabel: 'Department',
+          endValue: department,
+          textColor: textColor,
+        ),
+        _GWTwoItemRow(
+          startLabel: 'ID #',
+          startValue: idNumber,
+          endLabel: 'Access Level',
+          endValue: accessLevel,
           textColor: textColor,
         ),
       ],
@@ -1050,15 +1199,23 @@ class _HotelKeyLayout extends StatelessWidget {
       onTap: onTap,
       titleIcon: Icons.hotel_rounded,
       fieldRows: [
-        _GWSingleRow(label: 'Guest Name', value: guestName, textColor: textColor),
-        _GWTwoItemRow(
-          startLabel: 'Hotel', startValue: hotel.isNotEmpty ? hotel : pass.organizationName,
-          endLabel: 'Room #', endValue: roomNumber,
+        _GWSingleRow(
+          label: 'Guest Name',
+          value: guestName,
           textColor: textColor,
         ),
         _GWTwoItemRow(
-          startLabel: 'Check-in', startValue: checkIn,
-          endLabel: 'Check-out', endValue: checkOut,
+          startLabel: 'Hotel',
+          startValue: hotel.isNotEmpty ? hotel : pass.organizationName,
+          endLabel: 'Room #',
+          endValue: roomNumber,
+          textColor: textColor,
+        ),
+        _GWTwoItemRow(
+          startLabel: 'Check-in',
+          startValue: checkIn,
+          endLabel: 'Check-out',
+          endValue: checkOut,
           textColor: textColor,
         ),
       ],
@@ -1088,13 +1245,23 @@ class _MultiFamilyKeyLayout extends StatelessWidget {
       onTap: onTap,
       titleIcon: Icons.apartment_rounded,
       fieldRows: [
-        _GWSingleRow(label: 'Resident Name', value: residentName, textColor: textColor),
-        _GWTwoItemRow(
-          startLabel: 'Property', startValue: property.isNotEmpty ? property : pass.organizationName,
-          endLabel: 'Unit #', endValue: unitNumber,
+        _GWSingleRow(
+          label: 'Resident Name',
+          value: residentName,
           textColor: textColor,
         ),
-        _GWSingleRow(label: 'Access Level', value: accessLevel, textColor: textColor),
+        _GWTwoItemRow(
+          startLabel: 'Property',
+          startValue: property.isNotEmpty ? property : pass.organizationName,
+          endLabel: 'Unit #',
+          endValue: unitNumber,
+          textColor: textColor,
+        ),
+        _GWSingleRow(
+          label: 'Access Level',
+          value: accessLevel,
+          textColor: textColor,
+        ),
       ],
     );
   }
@@ -1123,15 +1290,23 @@ class _DigitalCredentialLayout extends StatelessWidget {
       onTap: onTap,
       titleIcon: Icons.verified_user_rounded,
       fieldRows: [
-        _GWSingleRow(label: 'Document Type', value: docType, textColor: textColor),
-        _GWTwoItemRow(
-          startLabel: 'Issuer', startValue: issuer.isNotEmpty ? issuer : pass.organizationName,
-          endLabel: 'ID #', endValue: idNumber,
+        _GWSingleRow(
+          label: 'Document Type',
+          value: docType,
           textColor: textColor,
         ),
         _GWTwoItemRow(
-          startLabel: 'Expiry', startValue: expiry,
-          endLabel: 'Verified', endValue: verified,
+          startLabel: 'Issuer',
+          startValue: issuer.isNotEmpty ? issuer : pass.organizationName,
+          endLabel: 'ID #',
+          endValue: idNumber,
+          textColor: textColor,
+        ),
+        _GWTwoItemRow(
+          startLabel: 'Expiry',
+          startValue: expiry,
+          endLabel: 'Verified',
+          endValue: verified,
           textColor: textColor,
         ),
       ],
@@ -1190,10 +1365,16 @@ class _InStorePaymentLayout extends StatelessWidget {
       onTap: onTap,
       titleIcon: Icons.contactless_rounded,
       fieldRows: [
-        _GWSingleRow(label: 'Card Number', value: cardNumber, textColor: textColor),
+        _GWSingleRow(
+          label: 'Card Number',
+          value: cardNumber,
+          textColor: textColor,
+        ),
         _GWTwoItemRow(
-          startLabel: 'Member Name', startValue: memberName,
-          endLabel: 'Card Type', endValue: cardType,
+          startLabel: 'Member Name',
+          startValue: memberName,
+          endLabel: 'Card Type',
+          endValue: cardType,
           textColor: textColor,
         ),
       ],
@@ -1226,8 +1407,10 @@ class _CouponLayout extends StatelessWidget {
         if (offer.isNotEmpty)
           _GWSingleRow(label: 'Offer', value: offer, textColor: textColor),
         _GWTwoItemRow(
-          startLabel: 'Merchant', startValue: merchant,
-          endLabel: 'Expires', endValue: expires,
+          startLabel: 'Merchant',
+          startValue: merchant,
+          endLabel: 'Expires',
+          endValue: expires,
           textColor: textColor,
         ),
         if (terms.isNotEmpty)

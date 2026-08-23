@@ -30,8 +30,16 @@ class LoyaltyMigrationService {
       for (final row in rows) {
         final pass = Pass(
           type: 'storeCard',
-          organizationName: EncryptionService.instance.decryptText(row['loyaltyName'] as String?) ?? '',
-          barcodeValue: EncryptionService.instance.decryptText(row['loyaltyNumber'] as String?) ?? '',
+          organizationName:
+              EncryptionService.instance.decryptText(
+                row['loyaltyName'] as String?,
+              ) ??
+              '',
+          barcodeValue:
+              EncryptionService.instance.decryptText(
+                row['loyaltyNumber'] as String?,
+              ) ??
+              '',
           backgroundColor: row['color'] as String?,
           frontImagePath: row['frontImagePath'] as String?,
           backImagePath: row['backImagePath'] as String?,
@@ -42,7 +50,9 @@ class LoyaltyMigrationService {
 
       await File(path).delete();
 
-      debugPrint('LoyaltyMigrationService: migrated ${rows.length} loyalty cards to passes.');
+      debugPrint(
+        'LoyaltyMigrationService: migrated ${rows.length} loyalty cards to passes.',
+      );
     } catch (e) {
       debugPrint('LoyaltyMigrationService: migration failed: $e');
     }

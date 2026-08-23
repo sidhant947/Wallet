@@ -14,7 +14,7 @@ class ShareSecureScreen extends StatefulWidget {
   final IdentityCard? identity;
 
   const ShareSecureScreen({super.key, this.pass, this.wallet, this.identity})
-      : assert(pass != null || wallet != null || identity != null);
+    : assert(pass != null || wallet != null || identity != null);
 
   @override
   State<ShareSecureScreen> createState() => _ShareSecureScreenState();
@@ -45,13 +45,19 @@ class _ShareSecureScreenState extends State<ShareSecureScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
             backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
-            title: const Text('Set Transfer Password', style: TextStyle(fontWeight: FontWeight.bold)),
+            title: const Text(
+              'Set Transfer Password',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'Enter a password to encrypt the transfer. The receiver will need this to import.',
-                  style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, fontSize: 13),
+                  style: TextStyle(
+                    color: isDark ? Colors.white70 : Colors.black87,
+                    fontSize: 13,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -61,7 +67,9 @@ class _ShareSecureScreenState extends State<ShareSecureScreen> {
                     labelText: 'Password',
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
-                      icon: Icon(obscure ? Icons.visibility : Icons.visibility_off),
+                      icon: Icon(
+                        obscure ? Icons.visibility : Icons.visibility_off,
+                      ),
                       onPressed: () => setDialogState(() => obscure = !obscure),
                     ),
                   ),
@@ -87,11 +95,16 @@ class _ShareSecureScreenState extends State<ShareSecureScreen> {
 
   static const int _minPasswordLength = 8;
 
-  Future<void> _onPasswordSet(String password, BuildContext dialogContext) async {
+  Future<void> _onPasswordSet(
+    String password,
+    BuildContext dialogContext,
+  ) async {
     if (password.length < _minPasswordLength) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Password must be at least $_minPasswordLength characters'),
+          content: Text(
+            'Password must be at least $_minPasswordLength characters',
+          ),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -121,7 +134,10 @@ class _ShareSecureScreenState extends State<ShareSecureScreen> {
     dataMap.remove('id');
 
     final payload = {'type': shareType, 'data': dataMap};
-    final chunks = await EncryptionService.instance.encryptForTransfer(jsonEncode(payload), password);
+    final chunks = await EncryptionService.instance.encryptForTransfer(
+      jsonEncode(payload),
+      password,
+    );
     dataMap.clear();
     payload.clear();
 
@@ -231,7 +247,9 @@ class _ShareSecureScreenState extends State<ShareSecureScreen> {
               if (_pass != null) ...[
                 OutlinedButton.icon(
                   onPressed: () async {
-                    final bytes = await PkpassService.instance.generatePkpass(_pass!);
+                    final bytes = await PkpassService.instance.generatePkpass(
+                      _pass!,
+                    );
                     if (bytes != null) {
                       String safeName = _pass!.organizationName
                           .replaceAll(RegExp(r'[^\w\s-]'), '')
@@ -242,7 +260,9 @@ class _ShareSecureScreenState extends State<ShareSecureScreen> {
 
                       if (Platform.isAndroid) {
                         try {
-                          const channel = MethodChannel('com.sidhant.wallet/save_file');
+                          const channel = MethodChannel(
+                            'com.sidhant.wallet/save_file',
+                          );
                           await channel.invokeMethod('savePkpass', {
                             'bytes': bytes,
                             'name': fileName,
@@ -268,13 +288,22 @@ class _ShareSecureScreenState extends State<ShareSecureScreen> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: textColor,
                     side: BorderSide(color: textColor.withValues(alpha: 0.2)),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 40),
               ],
-              Icon(Icons.security_rounded, color: Colors.green.shade400, size: 32),
+              Icon(
+                Icons.security_rounded,
+                color: Colors.green.shade400,
+                size: 32,
+              ),
               const SizedBox(height: 16),
               Text(
                 'Password-Encrypted Transfer',
@@ -309,17 +338,25 @@ class _ShareSecureScreenState extends State<ShareSecureScreen> {
         width: 250,
         height: 250,
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.black.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.1),
             width: 2,
           ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.lock_outline_rounded, size: 48, color: textColor.withValues(alpha: 0.4)),
+            Icon(
+              Icons.lock_outline_rounded,
+              size: 48,
+              color: textColor.withValues(alpha: 0.4),
+            ),
             const SizedBox(height: 16),
             Text(
               'Tap to Set Password',
@@ -413,10 +450,17 @@ class _ShareSecureScreenState extends State<ShareSecureScreen> {
               );
             }
           },
-          icon: Icon(Icons.copy_rounded, size: 16, color: textColor.withValues(alpha: 0.6)),
+          icon: Icon(
+            Icons.copy_rounded,
+            size: 16,
+            color: textColor.withValues(alpha: 0.6),
+          ),
           label: Text(
             'Copy chunk data',
-            style: TextStyle(color: textColor.withValues(alpha: 0.6), fontSize: 12),
+            style: TextStyle(
+              color: textColor.withValues(alpha: 0.6),
+              fontSize: 12,
+            ),
           ),
         ),
       ],

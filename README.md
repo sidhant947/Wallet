@@ -33,6 +33,7 @@ Stay secure on your favorite platform. Secure Wallet is available on several pri
 *   💾 **Encrypted Backups**: Export your entire vault into a `.wbk` file secured with **Argon2id** key derivation. Backups include cards, passes, identities, and settings.
 *   📸 **Encrypted Image Vault**: Store front/back photos of cards; images are encrypted on disk and decrypted directly into memory.
 *   🌓 **True OLED Dark Mode**: Optimized for battery saving and premium aesthetics.
+*   📇 **Dynamic View Modes**: Toggle your passes between the standard list, front/back image grids, or digital card view.
 
 ---
 

@@ -104,7 +104,8 @@ class IdentityCardEntryFormState extends State<IdentityCardEntryForm> {
         context.read<IdentityProvider>().fetchIdentities();
         Navigator.pop(context, true);
       }
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }

@@ -17,7 +17,7 @@ class IdentityCardWidget extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorKey = card.color ?? (isDark ? '#0F0F0F' : '#1E293B');
     final colorData = CardColorData.fromHexOrKey(colorKey, isDark: isDark);
-    
+
     return GestureDetector(
       onTap: onTap,
       child: AspectRatio(
@@ -60,9 +60,12 @@ class IdentityCardWidget extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.03),
                   ),
                 ),
-                
+
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24.0,
+                    vertical: 24.0,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -71,7 +74,10 @@ class IdentityCardWidget extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(6),
@@ -93,9 +99,9 @@ class IdentityCardWidget extends StatelessWidget {
                           ),
                         ],
                       ),
-                      
+
                       const Spacer(),
-                      
+
                       // Cardholder Name
                       const Text(
                         'NAME',
@@ -116,9 +122,9 @@ class IdentityCardWidget extends StatelessWidget {
                           color: Colors.white,
                         ),
                       ),
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       // ID Number
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,

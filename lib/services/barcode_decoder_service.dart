@@ -47,10 +47,17 @@ class BarcodeDecoderService {
       } catch (_) {
         // Fallback: Try inverted luminance source in case of light code on dark background
         try {
-          final invertedBitmap = BinaryBitmap(HybridBinarizer(luminanceSource.invert()));
+          final invertedBitmap = BinaryBitmap(
+            HybridBinarizer(luminanceSource.invert()),
+          );
           final resultInverted = reader.decode(invertedBitmap, hints);
-          final formatString = _convertFormatName(resultInverted.barcodeFormat.name);
-          return BarcodeScanResult(text: resultInverted.text, format: formatString);
+          final formatString = _convertFormatName(
+            resultInverted.barcodeFormat.name,
+          );
+          return BarcodeScanResult(
+            text: resultInverted.text,
+            format: formatString,
+          );
         } catch (_) {}
       }
     } catch (_) {}

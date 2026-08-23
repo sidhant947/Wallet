@@ -302,7 +302,10 @@ class ThemeProvider with ChangeNotifier {
             fontWeight: FontWeight.w600,
           );
         }
-        return TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12);
+        return TextStyle(
+          color: Colors.white.withValues(alpha: 0.5),
+          fontSize: 12,
+        );
       }),
     ),
     tabBarTheme: TabBarThemeData(
@@ -485,7 +488,10 @@ class ThemeProvider with ChangeNotifier {
             fontWeight: FontWeight.w600,
           );
         }
-        return TextStyle(color: Colors.black.withValues(alpha: 0.4), fontSize: 12);
+        return TextStyle(
+          color: Colors.black.withValues(alpha: 0.4),
+          fontSize: 12,
+        );
       }),
     ),
     tabBarTheme: TabBarThemeData(
