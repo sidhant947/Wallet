@@ -23,8 +23,11 @@ import '../pages/walletdetails.dart';
 import 'package:wallet/widgets/identity_card_widget.dart';
 import 'package:wallet/screens/identity_card_details_screen.dart';
 import 'package:wallet/services/auto_backup_service.dart';
+import 'package:wallet/widgets/pass_grid_card.dart';
 
 /// Smooth route builder — used across the app for premium transitions
+enum PassViewMode { list, gridFront, gridBack, gridVirtual }
+
 class SmoothPageRoute<T> extends PageRouteBuilder<T> {
   final Widget page;
 
@@ -50,6 +53,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   String _selectedFilter = 'all';
   String _selectedPassFilter = 'all';
+
+  PassViewMode _passViewMode = PassViewMode.list;
 
   late final TextEditingController _searchController;
   String _searchQuery = "";
@@ -98,9 +103,11 @@ class _HomeScreenState extends State<HomeScreen> {
     if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) return;
 
     // For sharing images while app is in memory
-    _intentDataStreamSubscription = ReceiveSharingIntent.instance.getMediaStream().listen((value) {
-      _handleSharedMedia(value);
-    }, onError: (_) {});
+    _intentDataStreamSubscription = ReceiveSharingIntent.instance
+        .getMediaStream()
+        .listen((value) {
+          _handleSharedMedia(value);
+        }, onError: (_) {});
 
     // For sharing images when app was closed/opened via intent
     ReceiveSharingIntent.instance.getInitialMedia().then((value) {
@@ -155,7 +162,8 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       // Legacy v1 single-QR transfer
-      final decryptedJson = await EncryptionService.instance.decryptFromTransfer(rawData);
+      final decryptedJson = await EncryptionService.instance
+          .decryptFromTransfer(rawData);
 
       if (decryptedJson == null) {
         if (mounted) {
@@ -186,7 +194,10 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         final newPass = Pass.fromMap(data);
         if (mounted) {
-          final confirm = await _showImportConfirmation(newPass.organizationName, 'Pass');
+          final confirm = await _showImportConfirmation(
+            newPass.organizationName,
+            'Pass',
+          );
           if (confirm == true) {
             await PassDatabaseHelper.instance.insertPass(newPass);
             AutoBackupService.triggerBackup();
@@ -203,7 +214,10 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         final newWallet = Wallet.fromMap(data);
         if (mounted) {
-          final confirm = await _showImportConfirmation(newWallet.name, 'Payment Card');
+          final confirm = await _showImportConfirmation(
+            newWallet.name,
+            'Payment Card',
+          );
           if (confirm == true) {
             await DatabaseHelper.instance.insertWallet(newWallet);
             AutoBackupService.triggerBackup();
@@ -220,7 +234,10 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         final newIdentity = IdentityCard.fromMap(data);
         if (mounted) {
-          final confirm = await _showImportConfirmation(newIdentity.name, 'Identity Card');
+          final confirm = await _showImportConfirmation(
+            newIdentity.name,
+            'Identity Card',
+          );
           if (confirm == true) {
             await IdentityDatabaseHelper.instance.insertIdentity(newIdentity);
             AutoBackupService.triggerBackup();
@@ -234,7 +251,11 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to import. The sharing code may be corrupted.')),
+          const SnackBar(
+            content: Text(
+              'Failed to import. The sharing code may be corrupted.',
+            ),
+          ),
         );
       }
     }
@@ -273,7 +294,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Scanned chunk ${_transferChunks.length} of $totalChunks'),
+            content: Text(
+              'Scanned chunk ${_transferChunks.length} of $totalChunks',
+            ),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 1),
           ),
@@ -299,13 +322,19 @@ class _HomeScreenState extends State<HomeScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
             backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
-            title: const Text('Enter Transfer Password', style: TextStyle(fontWeight: FontWeight.bold)),
+            title: const Text(
+              'Enter Transfer Password',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'Enter the password that was used to encrypt this transfer.',
-                  style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, fontSize: 13),
+                  style: TextStyle(
+                    color: isDark ? Colors.white70 : Colors.black87,
+                    fontSize: 13,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -315,11 +344,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     labelText: 'Password',
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
-                      icon: Icon(obscure ? Icons.visibility : Icons.visibility_off),
+                      icon: Icon(
+                        obscure ? Icons.visibility : Icons.visibility_off,
+                      ),
                       onPressed: () => setDialogState(() => obscure = !obscure),
                     ),
                   ),
-                  onSubmitted: (_) => _decryptAndImportChunks(ctx, controller.text),
+                  onSubmitted: (_) =>
+                      _decryptAndImportChunks(ctx, controller.text),
                 ),
               ],
             ),
@@ -343,7 +375,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _decryptAndImportChunks(BuildContext ctx, String password) async {
+  Future<void> _decryptAndImportChunks(
+    BuildContext ctx,
+    String password,
+  ) async {
     if (password.isEmpty) return;
     Navigator.pop(ctx);
 
@@ -352,10 +387,13 @@ class _HomeScreenState extends State<HomeScreen> {
       _transferChunks.clear();
       _expectedTotalChunks = 0;
 
-      final decryptedJson = await EncryptionService.instance.decryptFromTransfer(joinedData, password: password);
+      final decryptedJson = await EncryptionService.instance
+          .decryptFromTransfer(joinedData, password: password);
 
       if (decryptedJson == null) {
-        _showImportError('Decryption failed. Wrong password or corrupted data.');
+        _showImportError(
+          'Decryption failed. Wrong password or corrupted data.',
+        );
         return;
       }
 
@@ -375,7 +413,10 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         final newPass = Pass.fromMap(data);
         if (mounted) {
-          final confirm = await _showImportConfirmation(newPass.organizationName, 'Pass');
+          final confirm = await _showImportConfirmation(
+            newPass.organizationName,
+            'Pass',
+          );
           if (confirm == true) {
             await PassDatabaseHelper.instance.insertPass(newPass);
             AutoBackupService.triggerBackup();
@@ -392,7 +433,10 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         final newWallet = Wallet.fromMap(data);
         if (mounted) {
-          final confirm = await _showImportConfirmation(newWallet.name, 'Payment Card');
+          final confirm = await _showImportConfirmation(
+            newWallet.name,
+            'Payment Card',
+          );
           if (confirm == true) {
             await DatabaseHelper.instance.insertWallet(newWallet);
             AutoBackupService.triggerBackup();
@@ -409,7 +453,10 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         final newIdentity = IdentityCard.fromMap(data);
         if (mounted) {
-          final confirm = await _showImportConfirmation(newIdentity.name, 'Identity Card');
+          final confirm = await _showImportConfirmation(
+            newIdentity.name,
+            'Identity Card',
+          );
           if (confirm == true) {
             await IdentityDatabaseHelper.instance.insertIdentity(newIdentity);
             AutoBackupService.triggerBackup();
@@ -461,9 +508,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showImportError(String message) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -471,7 +518,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0A0A0A) : Colors.white,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF0A0A0A)
+            : Colors.white,
         title: Text('Import Shared $typeLabel'),
         content: Text('Do you want to import "$name"?'),
         actions: [
@@ -513,9 +562,9 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
           title: Text(
             'Delete Pass?',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           content: Text(
             'Are you sure you want to delete "$name"? This action cannot be undone.',
@@ -587,11 +636,16 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.078) : Colors.black.withValues(alpha: 0.051),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.078)
+                  : Colors.black.withValues(alpha: 0.051),
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
-              icon: Icon(Icons.qr_code_scanner_rounded, color: isDark ? Colors.white : Colors.black),
+              icon: Icon(
+                Icons.qr_code_scanner_rounded,
+                color: isDark ? Colors.white : Colors.black,
+              ),
               tooltip: 'Scan to Import',
               onPressed: () {
                 HapticFeedback.mediumImpact();
@@ -759,12 +813,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 final maskedNumber = wallet.number.length >= 4
                     ? '••••${wallet.number.substring(wallet.number.length - 4)}'
                     : wallet.number;
-                final numberMatch = maskedNumber.contains(query) ||
+                final numberMatch =
+                    maskedNumber.contains(query) ||
                     wallet.number.contains(query);
-                final networkMatch = wallet.network?.toLowerCase().contains(query) ?? false;
-                final issuerMatch = wallet.issuer?.toLowerCase().contains(query) ?? false;
-                final typeMatch = wallet.cardtype?.toLowerCase().contains(query) ?? false;
-                return nameMatch || numberMatch || networkMatch || issuerMatch || typeMatch;
+                final networkMatch =
+                    wallet.network?.toLowerCase().contains(query) ?? false;
+                final issuerMatch =
+                    wallet.issuer?.toLowerCase().contains(query) ?? false;
+                final typeMatch =
+                    wallet.cardtype?.toLowerCase().contains(query) ?? false;
+                return nameMatch ||
+                    numberMatch ||
+                    networkMatch ||
+                    issuerMatch ||
+                    typeMatch;
               }).toList();
 
         // 2. Then, filter the result by the network button.
@@ -808,7 +870,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       hintStyle: TextStyle(
                         color: isDark ? Colors.white38 : Colors.black38,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
                               icon: Icon(
@@ -891,95 +956,98 @@ class _HomeScreenState extends State<HomeScreen> {
                   return ReorderableDelayedDragStartListener(
                     key: ValueKey(wallet.id),
                     index: index,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                        child: Slidable(
-                          key: ValueKey(wallet.id),
-                          startActionPane: ActionPane(
-                            motion: const BehindMotion(),
-                            extentRatio: 0.25,
-                            children: [
-                              SlidableAction(
-                                onPressed: (ctx) async {
-                                  HapticFeedback.lightImpact();
-                                  final provider = ctx.read<WalletProvider>();
-                                  final fullWallet = await provider.getWalletDetails(wallet.id!);
-                                  if (fullWallet != null && ctx.mounted) {
-                                    Navigator.push(
-                                      ctx,
-                                      SmoothPageRoute(
-                                        page: WalletEditScreen(wallet: fullWallet),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                      child: Slidable(
+                        key: ValueKey(wallet.id),
+                        startActionPane: ActionPane(
+                          motion: const BehindMotion(),
+                          extentRatio: 0.25,
+                          children: [
+                            SlidableAction(
+                              onPressed: (ctx) async {
+                                HapticFeedback.lightImpact();
+                                final provider = ctx.read<WalletProvider>();
+                                final fullWallet = await provider
+                                    .getWalletDetails(wallet.id!);
+                                if (fullWallet != null && ctx.mounted) {
+                                  Navigator.push(
+                                    ctx,
+                                    SmoothPageRoute(
+                                      page: WalletEditScreen(
+                                        wallet: fullWallet,
                                       ),
-                                    );
-                                  }
-                                },
-                                backgroundColor: Colors.transparent,
-                                foregroundColor: Colors.blue,
-                                icon: Icons.edit_outlined,
-                                label: 'Edit',
-                              ),
-                            ],
-                          ),
-                          endActionPane: ActionPane(
-                            motion: const BehindMotion(),
-                            extentRatio: 0.45,
-                            children: [
-                              SlidableAction(
-                                onPressed: (ctx) {
-                                  HapticFeedback.mediumImpact();
-                                  ClipboardService.instance.copy(wallet.number);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Text(
-                                        'Card number copied!',
-                                      ),
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      duration: const Duration(seconds: 1),
                                     ),
                                   );
-                                },
-                                backgroundColor: Colors.transparent,
-                                foregroundColor: Colors.blue,
-                                icon: Icons.copy_rounded,
-                                label: 'Copy',
-                              ),
-                              SlidableAction(
-                                onPressed: (ctx) async {
-                                  HapticFeedback.mediumImpact();
-                                  await context
-                                      .read<WalletProvider>()
-                                      .deleteWallet(wallet.id!);
-                                },
-                                backgroundColor: Colors.transparent,
-                                foregroundColor: Colors.red,
-                                icon: Icons.delete_outline_rounded,
-                                label: 'Delete',
-                              ),
-                            ],
-                          ),
-                          child: GlassCreditCard(
-                            wallet: wallet,
-                            isMasked: true,
-                            onCardTap: () async {
-                              final navCtx = context;
-                              final provider = navCtx.read<WalletProvider>();
-                              final fullWallet = await provider.getWalletDetails(wallet.id!);
-                              if (fullWallet != null && navCtx.mounted) {
-                                Navigator.push(
-                                  navCtx,
-                                  SmoothPageRoute(
-                                    page: WalletDetailScreen(wallet: fullWallet),
+                                }
+                              },
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.blue,
+                              icon: Icons.edit_outlined,
+                              label: 'Edit',
+                            ),
+                          ],
+                        ),
+                        endActionPane: ActionPane(
+                          motion: const BehindMotion(),
+                          extentRatio: 0.45,
+                          children: [
+                            SlidableAction(
+                              onPressed: (ctx) {
+                                HapticFeedback.mediumImpact();
+                                ClipboardService.instance.copy(wallet.number);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('Card number copied!'),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    duration: const Duration(seconds: 1),
                                   ),
                                 );
-                              }
-                            },
-                          ),
+                              },
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.blue,
+                              icon: Icons.copy_rounded,
+                              label: 'Copy',
+                            ),
+                            SlidableAction(
+                              onPressed: (ctx) async {
+                                HapticFeedback.mediumImpact();
+                                await context
+                                    .read<WalletProvider>()
+                                    .deleteWallet(wallet.id!);
+                              },
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.red,
+                              icon: Icons.delete_outline_rounded,
+                              label: 'Delete',
+                            ),
+                          ],
+                        ),
+                        child: GlassCreditCard(
+                          wallet: wallet,
+                          isMasked: true,
+                          onCardTap: () async {
+                            final navCtx = context;
+                            final provider = navCtx.read<WalletProvider>();
+                            final fullWallet = await provider.getWalletDetails(
+                              wallet.id!,
+                            );
+                            if (fullWallet != null && navCtx.mounted) {
+                              Navigator.push(
+                                navCtx,
+                                SmoothPageRoute(
+                                  page: WalletDetailScreen(wallet: fullWallet),
+                                ),
+                              );
+                            }
+                          },
                         ),
                       ),
-                    );
+                    ),
+                  );
                 },
               ),
             // Bottom padding
@@ -1007,9 +1075,10 @@ class _HomeScreenState extends State<HomeScreen> {
         final searchedPasses = provider.searchPasses(_searchQuery);
         final filteredPasses = searchedPasses.where((pass) {
           if (_selectedPassFilter == 'all') return true;
-          // Handle legacy types mapping to modern equivalents
-          if (_selectedPassFilter == 'loyaltyCard' && pass.type == 'storeCard') return true;
-          if (_selectedPassFilter == 'offer' && pass.type == 'coupon') return true;
+          if (_selectedPassFilter == 'loyaltyCard' && pass.type == 'storeCard')
+            return true;
+          if (_selectedPassFilter == 'offer' && pass.type == 'coupon')
+            return true;
           return pass.type == _selectedPassFilter;
         }).toList();
 
@@ -1021,27 +1090,43 @@ class _HomeScreenState extends State<HomeScreen> {
             // Search field
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    color: isDark ? Colors.white.withValues(alpha: 0.059) : Colors.black.withValues(alpha: 0.031),
-                    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.102) : Colors.black.withValues(alpha: 0.059)),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.059)
+                        : Colors.black.withValues(alpha: 0.031),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.102)
+                          : Colors.black.withValues(alpha: 0.059),
+                    ),
                   ),
                   child: TextField(
                     controller: _searchController,
-                    style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
                     decoration: InputDecoration(
                       filled: false,
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,
                       hintText: 'Search passes...',
-                      hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      hintStyle: TextStyle(
+                        color: isDark ? Colors.white38 : Colors.black38,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
-                              icon: Icon(Icons.clear_rounded, color: isDark ? Colors.white54 : Colors.black45),
+                              icon: Icon(
+                                Icons.clear_rounded,
+                                color: isDark ? Colors.white54 : Colors.black45,
+                              ),
                               onPressed: () {
                                 _searchController.clear();
                               },
@@ -1052,39 +1137,154 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            // Filter chips
+
+            // Consolidated Toolbar: Category Dropdown & View Mode
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment<String>(value: 'all', label: Text('ALL')),
-                      ButtonSegment<String>(value: 'loyaltyCard', label: Text('LOYALTY')),
-                      ButtonSegment<String>(value: 'giftCard', label: Text('GIFT CARDS')),
-                      ButtonSegment<String>(value: 'offer', label: Text('OFFERS')),
-                      ButtonSegment<String>(value: 'boardingPass', label: Text('BOARDING')),
-                      ButtonSegment<String>(value: 'eventTicket', label: Text('EVENTS')),
-                      ButtonSegment<String>(value: 'transitPass', label: Text('TRANSIT')),
-                      ButtonSegment<String>(value: 'healthInsuranceCard', label: Text('HEALTH')),
-                      ButtonSegment<String>(value: 'campusId', label: Text('CAMPUS')),
-                      ButtonSegment<String>(value: 'corporateBadge', label: Text('CORPORATE')),
-                      ButtonSegment<String>(value: 'hotelKey', label: Text('HOTEL')),
-                      ButtonSegment<String>(value: 'generic', label: Text('OTHER')),
-                    ],
-                    showSelectedIcon: false,
-                    selected: <String>{_selectedPassFilter},
-                    onSelectionChanged: (Set<String> newSelection) {
-                      HapticFeedback.selectionClick();
-                      setState(() => _selectedPassFilter = newSelection.first);
-                    },
-                  ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 4.0,
+                ),
+                child: Row(
+                  children: [
+                    // Improved Category Selector
+                    Expanded(
+                      child: Container(
+                        height: 40,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.05)
+                              : Colors.black.withValues(alpha: 0.03),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedPassFilter,
+                            isExpanded: true,
+                            icon: Icon(
+                              Icons.keyboard_arrow_down,
+                              color: isDark ? Colors.white54 : Colors.black54,
+                            ),
+                            dropdownColor: isDark
+                                ? const Color(0xFF1E1E1E)
+                                : Colors.white,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                            onChanged: (String? newValue) {
+                              if (newValue != null) {
+                                HapticFeedback.selectionClick();
+                                setState(() => _selectedPassFilter = newValue);
+                              }
+                            },
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'all',
+                                child: Text('All Categories'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'loyaltyCard',
+                                child: Text('Loyalty'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'giftCard',
+                                child: Text('Gift Cards'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'offer',
+                                child: Text('Offers'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'boardingPass',
+                                child: Text('Boarding'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'eventTicket',
+                                child: Text('Events'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'transitPass',
+                                child: Text('Transit'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'healthInsuranceCard',
+                                child: Text('Health'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'campusId',
+                                child: Text('Campus'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'corporateBadge',
+                                child: Text('Corporate'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'hotelKey',
+                                child: Text('Hotel'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'generic',
+                                child: Text('Other'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    // View Mode Eye Icon
+                    Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.black.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: PopupMenuButton<PassViewMode>(
+                        icon: Icon(
+                          Icons.remove_red_eye_outlined,
+                          color: isDark ? Colors.white70 : Colors.black87,
+                        ),
+                        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                        initialValue: _passViewMode,
+                        onSelected: (PassViewMode result) {
+                          HapticFeedback.selectionClick();
+                          setState(() => _passViewMode = result);
+                        },
+                        itemBuilder: (BuildContext context) =>
+                            <PopupMenuEntry<PassViewMode>>[
+                              const PopupMenuItem<PassViewMode>(
+                                value: PassViewMode.list,
+                                child: Text('Default List'),
+                              ),
+                              const PopupMenuDivider(),
+                              const PopupMenuItem<PassViewMode>(
+                                value: PassViewMode.gridFront,
+                                child: Text('Grid (Front Image)'),
+                              ),
+                              const PopupMenuItem<PassViewMode>(
+                                value: PassViewMode.gridBack,
+                                child: Text('Grid (Back Image)'),
+                              ),
+                              const PopupMenuItem<PassViewMode>(
+                                value: PassViewMode.gridVirtual,
+                                child: Text('Grid (Virtual Card)'),
+                              ),
+                            ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 8)),
-            // Passes list
+            const SliverToBoxAdapter(child: SizedBox(height: 12)),
+
+            // Empty State
             if (filteredPasses.isEmpty)
               SliverToBoxAdapter(
                 child: Padding(
@@ -1092,113 +1292,175 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Center(
                     child: Text(
                       'No passes found.',
-                      style: TextStyle(color: isDark ? Colors.white54 : Colors.black45),
+                      style: TextStyle(
+                        color: isDark ? Colors.white54 : Colors.black45,
+                      ),
                     ),
                   ),
                 ),
               )
-            else
+            // Default List View
+            else if (_passViewMode == PassViewMode.list)
               SliverReorderableList(
-              itemCount: filteredPasses.length,
-              // ignore: deprecated_member_use
-              onReorder: (oldIndex, newIndex) {
-                HapticFeedback.lightImpact();
-                context.read<PassProvider>().reorderPasses(oldIndex, newIndex);
-              },
-              itemBuilder: (context, index) {
-                final pass = filteredPasses[index];
-                return ReorderableDelayedDragStartListener(
-                  key: ValueKey(pass.id),
-                  index: index,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    child: Slidable(
-                      key: ValueKey(pass.id),
-                      startActionPane: ActionPane(
-                        motion: const BehindMotion(),
-                        extentRatio: 0.25,
-                        children: [
-                          SlidableAction(
-                            onPressed: (ctx) async {
-                              HapticFeedback.lightImpact();
-                              final result = await Navigator.push(
-                                ctx,
-                                SmoothPageRoute(
-                                  page: PassEditScreen(pass: pass),
-                                ),
-                              );
-                              if (result == true && ctx.mounted) {
-                                ctx.read<PassProvider>().fetchPasses();
-                              }
-                            },
-                            backgroundColor: Colors.transparent,
-                            foregroundColor: Colors.blue,
-                            icon: Icons.edit_outlined,
-                            label: 'Edit',
-                          ),
-                        ],
+                itemCount: filteredPasses.length,
+                onReorder: (oldIndex, newIndex) {
+                  HapticFeedback.lightImpact();
+                  context.read<PassProvider>().reorderPasses(
+                    oldIndex,
+                    newIndex,
+                  );
+                },
+                itemBuilder: (context, index) {
+                  final pass = filteredPasses[index];
+                  return ReorderableDelayedDragStartListener(
+                    key: ValueKey(pass.id),
+                    index: index,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 8.0,
                       ),
-                      endActionPane: ActionPane(
-                        motion: const BehindMotion(),
-                        extentRatio: 0.45,
-                        children: [
-                          SlidableAction(
-                            onPressed: (ctx) {
-                              HapticFeedback.mediumImpact();
-                              ClipboardService.instance.copy(pass.barcodeValue);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text('Pass data copied!'),
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                      child: Slidable(
+                        key: ValueKey(pass.id),
+                        startActionPane: ActionPane(
+                          motion: const BehindMotion(),
+                          extentRatio: 0.25,
+                          children: [
+                            SlidableAction(
+                              onPressed: (ctx) async {
+                                HapticFeedback.lightImpact();
+                                final result = await Navigator.push(
+                                  ctx,
+                                  SmoothPageRoute(
+                                    page: PassEditScreen(pass: pass),
                                   ),
-                                  duration: const Duration(seconds: 1),
-                                ),
-                              );
-                            },
-                            backgroundColor: Colors.transparent,
-                            foregroundColor: Colors.blue,
-                            icon: Icons.copy_rounded,
-                            label: 'Copy',
-                          ),
-                          SlidableAction(
-                            onPressed: (context) => _showPassDeleteConfirmationDialog(
-                              id: pass.id!,
-                              name: pass.organizationName,
+                                );
+                                if (result == true && ctx.mounted) {
+                                  ctx.read<PassProvider>().fetchPasses();
+                                }
+                              },
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.blue,
+                              icon: Icons.edit_outlined,
+                              label: 'Edit',
                             ),
-                            backgroundColor: Colors.transparent,
-                            foregroundColor: Colors.red,
-                            icon: Icons.delete_outline_rounded,
-                            label: 'Delete',
-                          ),
-                        ],
-                      ),
-                      child: BarcodeCard(
-                        pass: pass,
-                        onCardTap: () async {
-                          HapticFeedback.selectionClick();
-                          final passProvider = Provider.of<PassProvider>(context, listen: false);
-                          final result = await Navigator.push(
-                            context,
-                            SmoothPageRoute(page: BarcodeCardDetailScreen(pass: pass)),
-                          );
-                          if (result == true && mounted) {
-                            await passProvider.fetchPasses();
-                          }
-                        },
+                          ],
+                        ),
+                        endActionPane: ActionPane(
+                          motion: const BehindMotion(),
+                          extentRatio: 0.45,
+                          children: [
+                            SlidableAction(
+                              onPressed: (ctx) {
+                                HapticFeedback.mediumImpact();
+                                ClipboardService.instance.copy(
+                                  pass.barcodeValue,
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('Pass data copied!'),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                              },
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.blue,
+                              icon: Icons.copy_rounded,
+                              label: 'Copy',
+                            ),
+                            SlidableAction(
+                              onPressed: (context) =>
+                                  _showPassDeleteConfirmationDialog(
+                                    id: pass.id!,
+                                    name: pass.organizationName,
+                                  ),
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.red,
+                              icon: Icons.delete_outline_rounded,
+                              label: 'Delete',
+                            ),
+                          ],
+                        ),
+                        child: BarcodeCard(
+                          pass: pass,
+                          onCardTap: () async {
+                            HapticFeedback.selectionClick();
+                            final passProvider = Provider.of<PassProvider>(
+                              context,
+                              listen: false,
+                            );
+                            final result = await Navigator.push(
+                              context,
+                              SmoothPageRoute(
+                                page: BarcodeCardDetailScreen(pass: pass),
+                              ),
+                            );
+                            if (result == true && mounted) {
+                              await passProvider.fetchPasses();
+                            }
+                          },
+                        ),
                       ),
                     ),
+                  );
+                },
+              )
+            // Grid Views
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                sliver: SliverGrid.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12.0,
+                    mainAxisSpacing: 12.0,
+                    childAspectRatio: 1.05,
                   ),
-                );
-              },
-            ),
+                  itemCount: filteredPasses.length,
+                  itemBuilder: (context, index) {
+                    final pass = filteredPasses[index];
+
+                    // Map the UI state enum to the widget enum
+                    PassDisplayMode gridMode = PassDisplayMode.front;
+                    if (_passViewMode == PassViewMode.gridBack)
+                      gridMode = PassDisplayMode.back;
+                    if (_passViewMode == PassViewMode.gridVirtual)
+                      gridMode = PassDisplayMode.card;
+
+                    return PassGridCard(
+                      pass: pass,
+                      displayMode: gridMode,
+                      onCardTap: () async {
+                        HapticFeedback.selectionClick();
+                        final passProvider = Provider.of<PassProvider>(
+                          context,
+                          listen: false,
+                        );
+                        final result = await Navigator.push(
+                          context,
+                          SmoothPageRoute(
+                            page: BarcodeCardDetailScreen(pass: pass),
+                          ),
+                        );
+                        if (result == true && mounted) {
+                          await passProvider.fetchPasses();
+                        }
+                      },
+                    );
+                  },
+                ),
+              ),
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
         );
       },
     );
   }
+
   void _showIdentityDeleteConfirmationDialog({
     required int id,
     required String name,
@@ -1214,9 +1476,9 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
           title: Text(
             'Delete Identity Card?',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           content: Text(
             'Are you sure you want to delete "$name"? This action cannot be undone.',
@@ -1242,9 +1504,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 HapticFeedback.mediumImpact();
                 context.read<IdentityProvider>().deleteIdentity(id);
                 Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Identity Card Deleted!')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Identity Card Deleted!')),
+                );
               },
               child: const Text('Delete'),
             ),
@@ -1282,23 +1544,39 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    color: isDark ? Colors.white.withValues(alpha: 0.059) : Colors.black.withValues(alpha: 0.031),
-                    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.102) : Colors.black.withValues(alpha: 0.059)),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.059)
+                        : Colors.black.withValues(alpha: 0.031),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.102)
+                          : Colors.black.withValues(alpha: 0.059),
+                    ),
                   ),
                   child: TextField(
                     controller: _searchController,
-                    style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
                     decoration: InputDecoration(
                       filled: false,
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,
                       hintText: 'Search identities...',
-                      hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      hintStyle: TextStyle(
+                        color: isDark ? Colors.white38 : Colors.black38,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
-                              icon: Icon(Icons.clear_rounded, color: isDark ? Colors.white54 : Colors.black45),
+                              icon: Icon(
+                                Icons.clear_rounded,
+                                color: isDark ? Colors.white54 : Colors.black45,
+                              ),
                               onPressed: () {
                                 _searchController.clear();
                               },
@@ -1309,9 +1587,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            
+
             const SliverToBoxAdapter(child: SizedBox(height: 8)),
-            
+
             if (filteredIdentities.isEmpty)
               SliverToBoxAdapter(
                 child: Padding(
@@ -1319,107 +1597,124 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Center(
                     child: Text(
                       'No identity cards found.',
-                      style: TextStyle(color: isDark ? Colors.white54 : Colors.black45),
+                      style: TextStyle(
+                        color: isDark ? Colors.white54 : Colors.black45,
+                      ),
                     ),
                   ),
                 ),
               )
             else
               SliverReorderableList(
-              itemCount: filteredIdentities.length,
-              // ignore: deprecated_member_use
-              onReorder: (oldIndex, newIndex) {
-                HapticFeedback.lightImpact();
-                context.read<IdentityProvider>().reorderIdentities(oldIndex, newIndex);
-              },
-              itemBuilder: (context, index) {
-                final card = filteredIdentities[index];
-                return ReorderableDelayedDragStartListener(
-                  key: ValueKey(card.id),
-                  index: index,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    child: Slidable(
-                      key: ValueKey(card.id),
-                      startActionPane: ActionPane(
-                        motion: const BehindMotion(),
-                        extentRatio: 0.25,
-                        children: [
-                          SlidableAction(
-                            onPressed: (ctx) async {
-                              HapticFeedback.lightImpact();
-                              final result = await Navigator.push(
-                                ctx,
-                                SmoothPageRoute(
-                                  page: IdentityEditScreen(card: card),
-                                ),
-                              );
-                              if (result == true && ctx.mounted) {
-                                ctx.read<IdentityProvider>().fetchIdentities();
-                              }
-                            },
-                            backgroundColor: Colors.transparent,
-                            foregroundColor: Colors.blue,
-                            icon: Icons.edit_outlined,
-                            label: 'Edit',
-                          ),
-                        ],
+                itemCount: filteredIdentities.length,
+                // ignore: deprecated_member_use
+                onReorder: (oldIndex, newIndex) {
+                  HapticFeedback.lightImpact();
+                  context.read<IdentityProvider>().reorderIdentities(
+                    oldIndex,
+                    newIndex,
+                  );
+                },
+                itemBuilder: (context, index) {
+                  final card = filteredIdentities[index];
+                  return ReorderableDelayedDragStartListener(
+                    key: ValueKey(card.id),
+                    index: index,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 8.0,
                       ),
-                      endActionPane: ActionPane(
-                        motion: const BehindMotion(),
-                        extentRatio: 0.45,
-                        children: [
-                          SlidableAction(
-                            onPressed: (ctx) {
-                              HapticFeedback.mediumImpact();
-                              ClipboardService.instance.copy(card.value);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text('ID value copied!'),
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                      child: Slidable(
+                        key: ValueKey(card.id),
+                        startActionPane: ActionPane(
+                          motion: const BehindMotion(),
+                          extentRatio: 0.25,
+                          children: [
+                            SlidableAction(
+                              onPressed: (ctx) async {
+                                HapticFeedback.lightImpact();
+                                final result = await Navigator.push(
+                                  ctx,
+                                  SmoothPageRoute(
+                                    page: IdentityEditScreen(card: card),
                                   ),
-                                  duration: const Duration(seconds: 1),
-                                ),
-                              );
-                            },
-                            backgroundColor: Colors.transparent,
-                            foregroundColor: Colors.blue,
-                            icon: Icons.copy_rounded,
-                            label: 'Copy',
-                          ),
-                          SlidableAction(
-                            onPressed: (context) => _showIdentityDeleteConfirmationDialog(
-                              id: card.id!,
-                              name: card.name,
+                                );
+                                if (result == true && ctx.mounted) {
+                                  ctx
+                                      .read<IdentityProvider>()
+                                      .fetchIdentities();
+                                }
+                              },
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.blue,
+                              icon: Icons.edit_outlined,
+                              label: 'Edit',
                             ),
-                            backgroundColor: Colors.transparent,
-                            foregroundColor: Colors.red,
-                            icon: Icons.delete_outline_rounded,
-                            label: 'Delete',
-                          ),
-                        ],
-                      ),
-                      child: IdentityCardWidget(
-                        card: card,
-                        onTap: () async {
-                           HapticFeedback.selectionClick();
-                           final identityProvider = Provider.of<IdentityProvider>(context, listen: false);
-                           final result = await Navigator.push(
-                             context,
-                             SmoothPageRoute(page: IdentityCardDetailScreen(card: card)),
-                           );
-                           if (result == true && mounted) {
-                             await identityProvider.fetchIdentities();
-                           }
-                        },
+                          ],
+                        ),
+                        endActionPane: ActionPane(
+                          motion: const BehindMotion(),
+                          extentRatio: 0.45,
+                          children: [
+                            SlidableAction(
+                              onPressed: (ctx) {
+                                HapticFeedback.mediumImpact();
+                                ClipboardService.instance.copy(card.value);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('ID value copied!'),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                              },
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.blue,
+                              icon: Icons.copy_rounded,
+                              label: 'Copy',
+                            ),
+                            SlidableAction(
+                              onPressed: (context) =>
+                                  _showIdentityDeleteConfirmationDialog(
+                                    id: card.id!,
+                                    name: card.name,
+                                  ),
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.red,
+                              icon: Icons.delete_outline_rounded,
+                              label: 'Delete',
+                            ),
+                          ],
+                        ),
+                        child: IdentityCardWidget(
+                          card: card,
+                          onTap: () async {
+                            HapticFeedback.selectionClick();
+                            final identityProvider =
+                                Provider.of<IdentityProvider>(
+                                  context,
+                                  listen: false,
+                                );
+                            final result = await Navigator.push(
+                              context,
+                              SmoothPageRoute(
+                                page: IdentityCardDetailScreen(card: card),
+                              ),
+                            );
+                            if (result == true && mounted) {
+                              await identityProvider.fetchIdentities();
+                            }
+                          },
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              ),
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
         );
