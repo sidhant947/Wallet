@@ -832,6 +832,7 @@ class _SettingsPageState extends State<SettingsPage> {
           await DatabaseHelper.deleteImageFile(p.backImagePath);
           await DatabaseHelper.deleteImageFile(p.stripImagePath);
           await DatabaseHelper.deleteImageFile(p.thumbnailImagePath);
+          await DatabaseHelper.deleteImageFile(p.fields?['pdfPath'] as String?);
         }
       }
 

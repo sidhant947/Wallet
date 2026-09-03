@@ -179,6 +179,36 @@ class _GoogleWalletBaseLayout extends StatelessWidget {
                         ],
                       ),
                     ),
+                    if (pass.relevantDate != null && pass.relevantDate!.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        margin: const EdgeInsets.only(right: 6),
+                        decoration: BoxDecoration(
+                          color: textColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.calendar_today_rounded, size: 9, color: mutedColor),
+                            const SizedBox(width: 3),
+                            Text(
+                              pass.relevantDate!.length > 16 ? pass.relevantDate!.substring(0, 16) : pass.relevantDate!,
+                              style: TextStyle(
+                                color: textColor,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    if (pass.fields != null && pass.fields!['pdfPath'] != null)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: Icon(Icons.picture_as_pdf_rounded, color: mutedColor, size: 16),
+                      ),
                     if (titleIcon != null)
                       Icon(titleIcon, color: mutedColor, size: 18),
                   ],

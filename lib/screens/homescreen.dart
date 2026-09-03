@@ -23,6 +23,8 @@ import '../pages/walletdetails.dart';
 import 'package:wallet/widgets/identity_card_widget.dart';
 import 'package:wallet/screens/identity_card_details_screen.dart';
 import 'package:wallet/services/auto_backup_service.dart';
+import 'package:wallet/models/pass_types.dart';
+import 'package:wallet/services/pkpass_service.dart';
 
 /// Smooth route builder — used across the app for premium transitions
 class SmoothPageRoute<T> extends PageRouteBuilder<T> {
@@ -50,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   String _selectedFilter = 'all';
   String _selectedPassFilter = 'all';
+  bool _isTimelineSort = false;
 
   late final TextEditingController _searchController;
   String _searchQuery = "";
@@ -109,16 +112,34 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _handleSharedMedia(List<SharedMediaFile> value) {
+  void _handleSharedMedia(List<SharedMediaFile> value) async {
     if (value.isNotEmpty && mounted) {
-      final imagePath = value.first.path;
-      if (imagePath.isNotEmpty) {
+      final filePath = value.first.path;
+      if (filePath.isEmpty) return;
+
+      if (filePath.toLowerCase().endsWith('.pkpass')) {
+        final pass = await PkpassService.instance.parsePkpass(filePath);
+        if (pass != null && mounted) {
+          final confirm = await _showImportConfirmation(pass.organizationName, 'Apple Wallet Pass');
+          if (confirm == true && mounted) {
+            await PassDatabaseHelper.instance.insertPass(pass);
+            AutoBackupService.triggerBackup();
+            if (mounted) {
+              context.read<PassProvider>().fetchPasses();
+              _showSuccessSnackBar('Pass imported successfully!');
+            }
+          }
+          return;
+        }
+      }
+
+      if (mounted) {
         Navigator.push(
           context,
           SmoothPageRoute(
             page: AddCardScreen(
               initialTabIndex: 1,
-              initialSharedImagePath: imagePath,
+              initialSharedImagePath: filePath,
             ),
           ),
         );
@@ -1004,87 +1025,141 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
+        final presentTypes = <String>{};
+        for (final p in passes) {
+          var t = p.type;
+          if (t == 'storeCard') t = 'loyaltyCard';
+          if (t == 'coupon') t = 'offer';
+          presentTypes.add(t);
+        }
+
+        if (_selectedPassFilter != 'all' && !presentTypes.contains(_selectedPassFilter)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _selectedPassFilter = 'all');
+          });
+        }
+
         final searchedPasses = provider.searchPasses(_searchQuery);
         final filteredPasses = searchedPasses.where((pass) {
           if (_selectedPassFilter == 'all') return true;
-          // Handle legacy types mapping to modern equivalents
           if (_selectedPassFilter == 'loyaltyCard' && pass.type == 'storeCard') return true;
           if (_selectedPassFilter == 'offer' && pass.type == 'coupon') return true;
           return pass.type == _selectedPassFilter;
         }).toList();
+
+        if (_isTimelineSort) {
+          filteredPasses.sort((a, b) {
+            final dateA = a.relevantDate;
+            final dateB = b.relevantDate;
+            if (dateA == null && dateB == null) return 0;
+            if (dateA == null) return 1;
+            if (dateB == null) return -1;
+            return dateA.compareTo(dateB);
+          });
+        }
+
+        final segments = <ButtonSegment<String>>[
+          const ButtonSegment<String>(value: 'all', label: Text('ALL')),
+          ...presentTypes.map((type) {
+            final pt = PassType.fromValue(type);
+            return ButtonSegment<String>(
+              value: type,
+              label: Text(pt.label.toUpperCase()),
+            );
+          }),
+        ];
 
         return CustomScrollView(
           physics: const BouncingScrollPhysics(
             parent: AlwaysScrollableScrollPhysics(),
           ),
           slivers: [
-            // Search field
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: isDark ? Colors.white.withValues(alpha: 0.059) : Colors.black.withValues(alpha: 0.031),
-                    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.102) : Colors.black.withValues(alpha: 0.059)),
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                    decoration: InputDecoration(
-                      filled: false,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      hintText: 'Search passes...',
-                      hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: Icon(Icons.clear_rounded, color: isDark ? Colors.white54 : Colors.black45),
-                              onPressed: () {
-                                _searchController.clear();
-                              },
-                            )
-                          : null,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          color: isDark ? Colors.white.withValues(alpha: 0.059) : Colors.black.withValues(alpha: 0.031),
+                          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.102) : Colors.black.withValues(alpha: 0.059)),
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                          decoration: InputDecoration(
+                            filled: false,
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            hintText: 'Search passes...',
+                            hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: Icon(Icons.clear_rounded, color: isDark ? Colors.white54 : Colors.black45),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                    },
+                                  )
+                                : null,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        color: _isTimelineSort
+                            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)
+                            : (isDark ? Colors.white.withValues(alpha: 0.059) : Colors.black.withValues(alpha: 0.031)),
+                        border: Border.all(
+                          color: _isTimelineSort
+                              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.4)
+                              : (isDark ? Colors.white.withValues(alpha: 0.102) : Colors.black.withValues(alpha: 0.059)),
+                        ),
+                      ),
+                      child: IconButton(
+                        tooltip: 'Timeline',
+                        icon: Icon(
+                          Icons.timeline_rounded,
+                          color: _isTimelineSort
+                              ? Theme.of(context).colorScheme.primary
+                              : (isDark ? Colors.white70 : Colors.black54),
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          HapticFeedback.selectionClick();
+                          setState(() => _isTimelineSort = !_isTimelineSort);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (segments.length > 1)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SegmentedButton<String>(
+                      segments: segments,
+                      showSelectedIcon: false,
+                      selected: <String>{_selectedPassFilter},
+                      onSelectionChanged: (Set<String> newSelection) {
+                        HapticFeedback.selectionClick();
+                        setState(() => _selectedPassFilter = newSelection.first);
+                      },
                     ),
                   ),
                 ),
               ),
-            ),
-            // Filter chips
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment<String>(value: 'all', label: Text('ALL')),
-                      ButtonSegment<String>(value: 'loyaltyCard', label: Text('LOYALTY')),
-                      ButtonSegment<String>(value: 'giftCard', label: Text('GIFT CARDS')),
-                      ButtonSegment<String>(value: 'offer', label: Text('OFFERS')),
-                      ButtonSegment<String>(value: 'boardingPass', label: Text('BOARDING')),
-                      ButtonSegment<String>(value: 'eventTicket', label: Text('EVENTS')),
-                      ButtonSegment<String>(value: 'transitPass', label: Text('TRANSIT')),
-                      ButtonSegment<String>(value: 'healthInsuranceCard', label: Text('HEALTH')),
-                      ButtonSegment<String>(value: 'campusId', label: Text('CAMPUS')),
-                      ButtonSegment<String>(value: 'corporateBadge', label: Text('CORPORATE')),
-                      ButtonSegment<String>(value: 'hotelKey', label: Text('HOTEL')),
-                      ButtonSegment<String>(value: 'generic', label: Text('OTHER')),
-                    ],
-                    showSelectedIcon: false,
-                    selected: <String>{_selectedPassFilter},
-                    onSelectionChanged: (Set<String> newSelection) {
-                      HapticFeedback.selectionClick();
-                      setState(() => _selectedPassFilter = newSelection.first);
-                    },
-                  ),
-                ),
-              ),
-            ),
             const SliverToBoxAdapter(child: SizedBox(height: 8)),
-            // Passes list
             if (filteredPasses.isEmpty)
               SliverToBoxAdapter(
                 child: Padding(
@@ -1101,10 +1176,12 @@ class _HomeScreenState extends State<HomeScreen> {
               SliverReorderableList(
               itemCount: filteredPasses.length,
               // ignore: deprecated_member_use
-              onReorder: (oldIndex, newIndex) {
-                HapticFeedback.lightImpact();
-                context.read<PassProvider>().reorderPasses(oldIndex, newIndex);
-              },
+              onReorder: _isTimelineSort
+                  ? (oldIndex, newIndex) {}
+                  : (oldIndex, newIndex) {
+                      HapticFeedback.lightImpact();
+                      context.read<PassProvider>().reorderPasses(oldIndex, newIndex);
+                    },
               itemBuilder: (context, index) {
                 final pass = filteredPasses[index];
                 return ReorderableDelayedDragStartListener(

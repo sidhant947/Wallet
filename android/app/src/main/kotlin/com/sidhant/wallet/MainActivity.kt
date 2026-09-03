@@ -10,8 +10,13 @@ import io.flutter.plugin.common.MethodChannel
 import android.content.Intent
 import android.app.Activity
 import android.net.Uri
+import java.io.File
 import java.io.OutputStream
+import java.io.ByteArrayOutputStream
 import android.provider.DocumentsContract
+import android.os.ParcelFileDescriptor
+import android.graphics.pdf.PdfRenderer
+import android.graphics.Bitmap
 
 class MainActivity: FlutterFragmentActivity() 
   {
@@ -114,6 +119,40 @@ class MainActivity: FlutterFragmentActivity()
                 }
               } else {
                 result.error("INVALID_ARGUMENTS", "Missing uri or filename", null)
+              }
+            }
+            "renderPdfPages" -> {
+              val path = call.argument<String>("path")
+              val maxPages = call.argument<Int>("maxPages") ?: 3
+              if (path != null) {
+                try {
+                  val file = File(path)
+                  val fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+                  val pdfRenderer = PdfRenderer(fileDescriptor)
+                  val pageCount = minOf(pdfRenderer.pageCount, maxPages)
+                  val pagesBytes = mutableListOf<ByteArray>()
+
+                  for (i in 0 until pageCount) {
+                    val page = pdfRenderer.openPage(i)
+                    val width = (page.width * 2).coerceIn(600, 2400)
+                    val height = (page.height * 2).coerceIn(800, 3200)
+                    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                    page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    page.close()
+
+                    val stream = ByteArrayOutputStream()
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                    bitmap.recycle()
+                    pagesBytes.add(stream.toByteArray())
+                  }
+                  pdfRenderer.close()
+                  fileDescriptor.close()
+                  result.success(pagesBytes)
+                } catch (e: Exception) {
+                  result.error("PDF_RENDER_FAILED", e.message, null)
+                }
+              } else {
+                result.error("INVALID_ARGUMENTS", "Path is null", null)
               }
             }
             else -> result.notImplemented()

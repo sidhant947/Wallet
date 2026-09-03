@@ -1,9 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:barcode_widget/barcode_widget.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/theme_provider.dart';
+import 'package:wallet/services/encryption_service.dart';
 import 'package:wallet/widgets/barcode_card_entry_form.dart';
 import 'package:wallet/screens/homescreen.dart';
 import 'package:wallet/services/barcode_utils.dart';
@@ -24,6 +28,35 @@ class BarcodeCardDetailScreen extends StatefulWidget {
 
 class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
   bool _isPathValid(String? path) => path != null && path.isNotEmpty;
+
+  Future<void> _openPdf(String pdfPath) async {
+    try {
+      final bytes = await EncryptionService.instance.decryptImageToBytes(pdfPath);
+      if (bytes == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to decrypt PDF attachment.')),
+          );
+        }
+        return;
+      }
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File('${tempDir.path}/pass_doc_${DateTime.now().millisecondsSinceEpoch}.pdf');
+      await tempFile.writeAsBytes(bytes);
+      final result = await OpenFilex.open(tempFile.path);
+      if (result.type != ResultType.done && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.message.isNotEmpty ? result.message : 'Could not open PDF file.')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error opening PDF document.')),
+        );
+      }
+    }
+  }
 
   Widget _buildImageThumbnail(String imagePath, String label, bool isDark) {
     return Padding(
@@ -263,6 +296,71 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
                 ),
               ),
             ),
+
+          if (p.fields != null && _isPathValid(p.fields!['pdfPath'] as String?)) ...[
+            const SizedBox(height: 16),
+            _LiquidGlassSection(
+              title: "Attached Document",
+              icon: Icons.picture_as_pdf_outlined,
+              isDark: isDark,
+              child: InkWell(
+                onTap: () => _openPdf(p.fields!['pdfPath'] as String),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark ? Colors.white12 : Colors.black12,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.picture_as_pdf_rounded, color: Colors.red, size: 24),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              p.fields!['pdfName']?.toString() ?? 'Pass Document.pdf',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Tap to view / open PDF',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? Colors.white38 : Colors.black38,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.open_in_new_rounded, size: 18, color: isDark ? Colors.white38 : Colors.black38),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+
+          if (p.relevantDate != null && p.relevantDate!.isNotEmpty)
+            _buildInfoSection("Event / Relevant Date", p.relevantDate!, isDark),
 
           if (p.description != null && p.description!.isNotEmpty)
             _buildInfoSection("Description", p.description!, isDark),

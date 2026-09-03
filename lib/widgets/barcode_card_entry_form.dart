@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:barcode_scan2/barcode_scan2.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wallet/models/db_helper.dart';
@@ -10,6 +11,7 @@ import 'package:wallet/services/auto_backup_service.dart';
 import 'package:wallet/widgets/barcode_card.dart';
 import 'package:wallet/widgets/color_picker.dart';
 import 'package:wallet/models/pass_types.dart';
+import 'package:wallet/services/google_wallet_service.dart';
 
 class BarcodeCardEntryForm extends StatefulWidget {
   final Pass? existingPass;
@@ -30,6 +32,7 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
   final _descriptionController = TextEditingController();
   final _logoTextController = TextEditingController();
   final _barcodeValueController = TextEditingController();
+  final _relevantDateController = TextEditingController();
 
   bool _showAdditionalDetails = false;
   bool _isSaving = false;
@@ -40,6 +43,8 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
   String? _transitType;
   String? _frontImagePath;
   String? _backImagePath;
+  String? _pdfPath;
+  String? _pdfName;
 
   final Map<String, List<Map<String, dynamic>>> _dynamicFields = {
     'primaryFields': [],
@@ -94,8 +99,10 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
       _selectedBarcodeFormat = BarcodeUtils.getLabelFromFormat(p.barcodeFormat);
       _frontImagePath = p.frontImagePath;
       _backImagePath = p.backImagePath;
+      if (p.relevantDate != null) {
+        _relevantDateController.text = p.relevantDate!;
+      }
 
-      // Deep copy fields if they exist
       if (p.fields != null) {
         p.fields!.forEach((key, value) {
           if (value is List && _dynamicFields.containsKey(key)) {
@@ -104,9 +111,12 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
             );
           }
         });
+        if (p.fields!['pdfPath'] != null) {
+          _pdfPath = p.fields!['pdfPath'] as String?;
+          _pdfName = p.fields!['pdfName'] as String?;
+        }
       }
 
-      // Load color from existing pass background color
       if (p.backgroundColor != null && p.backgroundColor!.isNotEmpty) {
         _selectedColor = p.backgroundColor!;
       }
@@ -115,11 +125,17 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     }
 
     _organizationController.addListener(() => setState(() {}));
-    _barcodeValueController.addListener(() => setState(() {}));
+    _barcodeValueController.addListener(() {
+      final text = _barcodeValueController.text.trim();
+      if (text.startsWith('http') || text.startsWith('eyJ')) {
+        _checkGoogleWalletUrl(text);
+      }
+      setState(() {});
+    });
 
     if (widget.initialSharedImagePath != null && widget.initialSharedImagePath!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scanFromImagePath(widget.initialSharedImagePath!);
+        _scanFromFilePath(widget.initialSharedImagePath!);
       });
     }
   }
@@ -130,6 +146,7 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     _descriptionController.dispose();
     _logoTextController.dispose();
     _barcodeValueController.dispose();
+    _relevantDateController.dispose();
     super.dispose();
   }
 
@@ -146,6 +163,15 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
 
     setState(() => _isSaving = true);
     try {
+      final fieldsToSave = Map<String, dynamic>.from(_dynamicFields);
+      if (_pdfPath != null) {
+        fieldsToSave['pdfPath'] = _pdfPath;
+        if (_pdfName != null) fieldsToSave['pdfName'] = _pdfName;
+      } else {
+        fieldsToSave.remove('pdfPath');
+        fieldsToSave.remove('pdfName');
+      }
+
       final pass = Pass(
         id: widget.existingPass?.id,
         type: _selectedType,
@@ -157,11 +183,14 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           _selectedBarcodeFormat,
         ),
         transitType: _transitType,
+        relevantDate: _relevantDateController.text.trim().isNotEmpty
+            ? _relevantDateController.text.trim()
+            : null,
         frontImagePath: _frontImagePath,
         backImagePath: _backImagePath,
         stripImagePath: widget.existingPass?.stripImagePath,
         thumbnailImagePath: widget.existingPass?.thumbnailImagePath,
-        fields: _dynamicFields,
+        fields: fieldsToSave,
         backgroundColor: _selectedColor,
       );
 
@@ -191,9 +220,9 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     } catch (_) {}
   }
 
-  Future<void> _scanFromImagePath(String filePath) async {
+  Future<void> _scanFromFilePath(String filePath) async {
     try {
-      final scanResult = await BarcodeDecoderService.scanImageFile(File(filePath));
+      final scanResult = await BarcodeDecoderService.scanFile(File(filePath));
       if (scanResult != null && scanResult.text.isNotEmpty) {
         setState(() {
           _barcodeValueController.text = scanResult.text;
@@ -214,14 +243,14 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No barcode or QR code detected in the selected image.')),
+            const SnackBar(content: Text('No barcode or QR code detected in the selected file.')),
           );
         }
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error reading image file.')),
+          const SnackBar(content: Text('Error reading file for barcode.')),
         );
       }
     }
@@ -232,8 +261,52 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(source: ImageSource.gallery);
       if (pickedFile == null) return;
-      await _scanFromImagePath(pickedFile.path);
+      await _scanFromFilePath(pickedFile.path);
     } catch (_) {}
+  }
+
+  Future<void> _scanFromPdf() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+      if (result != null && result.files.single.path != null) {
+        await _scanFromFilePath(result.files.single.path!);
+      }
+    } catch (_) {}
+  }
+
+  void _checkGoogleWalletUrl(String text) {
+    if (GoogleWalletService.instance.isGoogleWalletUrl(text)) {
+      final pass = GoogleWalletService.instance.parseGoogleWalletUrl(text);
+      if (pass != null) {
+        setState(() {
+          _organizationController.text = pass.organizationName;
+          _barcodeValueController.text = pass.barcodeValue;
+          _selectedType = pass.type;
+          _selectedBarcodeFormat = BarcodeUtils.getLabelFromFormat(pass.barcodeFormat);
+          if (pass.logoText != null) _logoTextController.text = pass.logoText!;
+          if (pass.description != null) _descriptionController.text = pass.description!;
+          if (pass.relevantDate != null) _relevantDateController.text = pass.relevantDate!;
+          if (pass.backgroundColor != null) _selectedColor = pass.backgroundColor!;
+          if (pass.fields != null) {
+            pass.fields!.forEach((key, value) {
+              if (value is List && _dynamicFields.containsKey(key)) {
+                _dynamicFields[key] = List<Map<String, dynamic>>.from(
+                  value.map((v) => Map<String, dynamic>.from(v as Map)),
+                );
+              }
+            });
+          }
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Imported ${pass.organizationName} details from Google Wallet link!')),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _pickImage(bool isFront) async {
@@ -251,30 +324,102 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     }
   }
 
-  Widget _buildImagePickerTile(String label, String? path, VoidCallback onTap, bool isDark) {
+  Future<void> _pickPdf() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+      if (result != null && result.files.single.path != null) {
+        final file = File(result.files.single.path!);
+        final encryptedPath = await saveImageToAppDirectory(file);
+        setState(() {
+          _pdfPath = encryptedPath;
+          _pdfName = result.files.single.name;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _pickDateTime() async {
+    final now = DateTime.now();
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (pickedDate == null || !mounted) return;
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(now),
+    );
+    if (!mounted) return;
+
+    final dt = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime?.hour ?? 0,
+      pickedTime?.minute ?? 0,
+    );
+    setState(() {
+      _relevantDateController.text = dt.toIso8601String().substring(0, 16).replaceAll('T', ' ');
+    });
+  }
+
+  Widget _buildImagePickerTile(
+    String label,
+    String? path,
+    VoidCallback onTap,
+    bool isDark, {
+    IconData? icon,
+    VoidCallback? onClear,
+  }) {
     return Column(
       children: [
         GestureDetector(
           onTap: onTap,
-          child: Container(
-            height: 80,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: path != null 
-                  ? Colors.green.withValues(alpha: 0.5) 
-                  : (isDark ? Colors.white12 : Colors.black12),
-              ),
-            ),
-            child: path != null
-              ? const Icon(Icons.check_circle_rounded, color: Colors.green, size: 28)
-              : Icon(
-                  Icons.add_a_photo_outlined,
-                  size: 24,
-                  color: isDark ? Colors.white38 : Colors.black38,
+          child: Stack(
+            children: [
+              Container(
+                height: 80,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: path != null 
+                      ? Colors.green.withValues(alpha: 0.5) 
+                      : (isDark ? Colors.white12 : Colors.black12),
+                  ),
                 ),
+                child: path != null
+                  ? const Icon(Icons.check_circle_rounded, color: Colors.green, size: 28)
+                  : Icon(
+                      icon ?? Icons.add_a_photo_outlined,
+                      size: 24,
+                      color: isDark ? Colors.white38 : Colors.black38,
+                    ),
+              ),
+              if (path != null && onClear != null)
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: GestureDetector(
+                    onTap: onClear,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: Colors.black54,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close, size: 14, color: Colors.white),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: 6),
@@ -689,6 +834,11 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  tooltip: 'Scan from PDF',
+                  onPressed: _scanFromPdf,
+                ),
+                IconButton(
                   icon: const Icon(Icons.image_outlined),
                   tooltip: 'Import from Gallery',
                   onPressed: _scanFromGallery,
@@ -752,6 +902,25 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
             onChanged: (v) => setState(() => _transitType = v!),
           ),
         ],
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _relevantDateController,
+          readOnly: true,
+          onTap: _pickDateTime,
+          decoration: InputDecoration(
+            labelText: 'Event / Expiry / Relevant Date (Optional)',
+            prefixIcon: const Icon(Icons.calendar_today_rounded, size: 20),
+            suffixIcon: _relevantDateController.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear_rounded, size: 20),
+                    onPressed: () => setState(() => _relevantDateController.clear()),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.edit_calendar_rounded, size: 20),
+                    onPressed: _pickDateTime,
+                  ),
+          ),
+        ),
         const SizedBox(height: 24),
 
         Text(
@@ -772,15 +941,31 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
                 _frontImagePath,
                 () => _pickImage(true),
                 isDark,
+                onClear: () => setState(() => _frontImagePath = null),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: _buildImagePickerTile(
                 'Back Side',
                 _backImagePath,
                 () => _pickImage(false),
                 isDark,
+                onClear: () => setState(() => _backImagePath = null),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildImagePickerTile(
+                _pdfName ?? 'PDF Doc',
+                _pdfPath,
+                _pickPdf,
+                isDark,
+                icon: Icons.picture_as_pdf_outlined,
+                onClear: () => setState(() {
+                  _pdfPath = null;
+                  _pdfName = null;
+                }),
               ),
             ),
           ],

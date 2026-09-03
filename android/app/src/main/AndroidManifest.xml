@@ -35,9 +35,28 @@
                 <data android:mimeType="image/*" />
             </intent-filter>
             <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+            </intent-filter>
+            <intent-filter>
                 <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="pay.google.com" android:pathPrefix="/gp/v/save" />
+                <data android:scheme="http" android:host="pay.google.com" android:pathPrefix="/gp/v/save" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="application/vnd.apple.pkpass" />
+                <data android:mimeType="application/octet-stream" android:pathPattern=".*\\.pkpass" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

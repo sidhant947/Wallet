@@ -9,6 +9,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:wallet/services/encryption_service.dart';
 
 class _DirectoryCache {
   static Directory? _cached;
@@ -287,16 +288,22 @@ class PassDatabaseHelper {
     final db = await database;
     final result = await db.query(
       'passes',
-      columns: ['frontImagePath', 'backImagePath', 'stripImagePath', 'thumbnailImagePath'],
+      columns: ['frontImagePath', 'backImagePath', 'stripImagePath', 'thumbnailImagePath', 'fields'],
       where: 'id = ?',
       whereArgs: [id],
     );
     if (result.isEmpty) return;
-
     await DatabaseHelper.deleteImageFile(result[0]['frontImagePath'] as String?);
     await DatabaseHelper.deleteImageFile(result[0]['backImagePath'] as String?);
     await DatabaseHelper.deleteImageFile(result[0]['stripImagePath'] as String?);
     await DatabaseHelper.deleteImageFile(result[0]['thumbnailImagePath'] as String?);
+
+    final fieldsRaw = result[0]['fields'] as String?;
+    if (fieldsRaw != null) {
+      final decryptedMap = EncryptionService.instance.decryptJsonToDynamicMap(fieldsRaw);
+      final pdfPath = decryptedMap?['pdfPath'] as String?;
+      await DatabaseHelper.deleteImageFile(pdfPath);
+    }
 
     await db.delete('passes', where: 'id = ?', whereArgs: [id]);
   }
