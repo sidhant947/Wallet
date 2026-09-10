@@ -1,8 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wallet/services/clipboard_service.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:wallet/services/encryption_service.dart';
 import 'package:wallet/services/image_service.dart';
 import 'package:wallet/widgets/color_picker.dart';
 import 'package:wallet/screens/homescreen.dart';
@@ -15,7 +20,6 @@ import 'package:wallet/widgets/full_screen_image_viewer.dart';
 import 'package:wallet/widgets/glass_credit_card.dart';
 import 'package:wallet/widgets/encrypted_image_display.dart';
 import 'package:wallet/screens/share_secure_screen.dart';
-import 'dart:io';
 
 // WalletDetailScreen with liquid glass design
 class WalletDetailScreen extends StatefulWidget {
@@ -32,6 +36,61 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
   void initState() {
     super.initState();
     currentWallet = widget.wallet;
+  }
+
+  void _showDeleteConfirmationDialog() {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDark = themeProvider.isDarkMode;
+
+    showDialog(
+      context: context,
+      barrierColor: isDark ? Colors.black54 : Colors.black26,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+          title: Text(
+            'Delete Card?',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to delete "${currentWallet.name}"? This action cannot be undone.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: isDark ? Colors.white60 : Colors.black54,
+                ),
+              ),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: () async {
+                HapticFeedback.mediumImpact();
+                await context.read<WalletProvider>().deleteWallet(currentWallet.id!);
+                if (ctx.mounted) Navigator.of(ctx).pop();
+                if (mounted) {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Card Deleted!')),
+                  );
+                }
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   String _formatCashback(String? spends, String? rewards, String symbol) {
@@ -54,6 +113,35 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
     if (waiverRequirement == 0) return "Not Applicable";
     if (spends >= waiverRequirement) return "Waived Off";
     return "$symbol${(waiverRequirement - spends).toStringAsFixed(2)} more to waive";
+  }
+
+  Future<void> _openPdf(String pdfPath) async {
+    try {
+      final bytes = await EncryptionService.instance.decryptImageToBytes(pdfPath);
+      if (bytes == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to decrypt PDF attachment.')),
+          );
+        }
+        return;
+      }
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File('${tempDir.path}/card_doc_${DateTime.now().millisecondsSinceEpoch}.pdf');
+      await tempFile.writeAsBytes(bytes);
+      final result = await OpenFilex.open(tempFile.path);
+      if (result.type != ResultType.done && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.message.isNotEmpty ? result.message : 'Could not open PDF file.')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error opening PDF document.')),
+        );
+      }
+    }
   }
 
   Widget _buildImageThumbnail(String imagePath, String label, bool isDark) {
@@ -204,6 +292,24 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
               },
             ),
           ),
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.078)
+                  : Colors.black.withValues(alpha: 0.051),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                color: Colors.redAccent,
+                size: 20,
+              ),
+              tooltip: 'Delete Card',
+              onPressed: _showDeleteConfirmationDialog,
+            ),
+          ),
         ],
       ),
       body: ListView(
@@ -219,7 +325,23 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
               );
             },
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
+          Center(
+            child: TextButton.icon(
+              onPressed: () {
+                ClipboardService.instance.copy(currentWallet.number);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Card Number Copied!')),
+                );
+              },
+              icon: const Icon(Icons.copy_rounded, size: 14),
+              label: const Text(
+                'Tap card or here to copy card number',
+                style: TextStyle(fontSize: 12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           if (isPathValid(currentWallet.frontImagePath) ||
               isPathValid(currentWallet.backImagePath))
             _LiquidGlassDetailSection(
@@ -243,6 +365,66 @@ class _WalletDetailScreenState extends State<WalletDetailScreen> {
                           isDark,
                         ),
                     ],
+                  ),
+                ),
+              ],
+            ),
+          if (isPathValid(currentWallet.pdfPath))
+            _LiquidGlassDetailSection(
+              title: "Attached Document",
+              icon: Icons.picture_as_pdf_outlined,
+              children: [
+                InkWell(
+                  onTap: () => _openPdf(currentWallet.pdfPath!),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark ? Colors.white12 : Colors.black12,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.picture_as_pdf_rounded, color: Colors.red, size: 24),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                currentWallet.pdfName ?? 'Card Document.pdf',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Tap to view / open PDF',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? Colors.white38 : Colors.black38,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.open_in_new_rounded, size: 18, color: isDark ? Colors.white38 : Colors.black38),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -341,6 +523,8 @@ class WalletEditScreenState extends State<WalletEditScreen> {
 
   File? _frontImageFile;
   File? _backImageFile;
+  File? _pdfFile;
+  String? _pdfName;
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -368,6 +552,10 @@ class WalletEditScreenState extends State<WalletEditScreen> {
     }
     if (wallet.backImagePath != null && wallet.backImagePath!.isNotEmpty) {
       _backImageFile = File(wallet.backImagePath!);
+    }
+    if (wallet.pdfPath != null && wallet.pdfPath!.isNotEmpty) {
+      _pdfFile = File(wallet.pdfPath!);
+      _pdfName = wallet.pdfName;
     }
 
     if (wallet.customFields != null) {
@@ -438,6 +626,21 @@ class WalletEditScreenState extends State<WalletEditScreen> {
     }
   }
 
+  Future<void> _pickPdf() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+      if (result != null && result.files.single.path != null) {
+        setState(() {
+          _pdfFile = File(result.files.single.path!);
+          _pdfName = result.files.single.name;
+        });
+      }
+    } catch (_) {}
+  }
+
   void _addCustomField() {
     setState(() {
       _customFieldNameControllers.add(TextEditingController());
@@ -489,6 +692,17 @@ class WalletEditScreenState extends State<WalletEditScreen> {
         backImagePath = null;
       }
 
+      String? pdfPath = widget.wallet.pdfPath;
+      String? pdfName = widget.wallet.pdfName;
+      if (_pdfFile != null &&
+          _pdfFile!.path != widget.wallet.pdfPath) {
+        pdfPath = await saveImageToAppDirectory(_pdfFile!);
+        pdfName = _pdfName;
+      } else if (_pdfFile == null) {
+        pdfPath = null;
+        pdfName = null;
+      }
+
       final updatedWallet = Wallet(
         id: widget.wallet.id,
         name: _nameController.text,
@@ -507,6 +721,8 @@ class WalletEditScreenState extends State<WalletEditScreen> {
         color: _selectedColor,
         frontImagePath: frontImagePath,
         backImagePath: backImagePath,
+        pdfPath: pdfPath,
+        pdfName: pdfName,
       );
       await DatabaseHelper.instance.updateWallet(updatedWallet);
 
@@ -662,6 +878,8 @@ class WalletEditScreenState extends State<WalletEditScreen> {
                   () => _pickImage(ImageSource.gallery, false),
                   () => setState(() => _backImageFile = null),
                 ),
+                const SizedBox(height: 16),
+                _buildPdfPicker(isDark),
               ],
             ),
             _LiquidGlassDetailSection(
@@ -971,6 +1189,98 @@ class WalletEditScreenState extends State<WalletEditScreen> {
       ],
     );
   }
+
+  Widget _buildPdfPicker(bool isDark) {
+    final textColor = isDark ? Colors.white38 : Colors.black38;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4.0, bottom: 12.0, top: 12.0),
+          child: Text(
+            'PDF DOCUMENT',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
+        Center(
+          child: _pdfFile == null
+              ? OutlinedButton.icon(
+                  icon: Icon(
+                    Icons.picture_as_pdf_outlined,
+                    color: isDark ? Colors.white70 : Colors.black87,
+                  ),
+                  label: Text(
+                    "Select PDF",
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(200, 50),
+                    side: BorderSide(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.2)
+                          : Colors.black.withValues(alpha: 0.15),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  onPressed: _pickPdf,
+                )
+              : Container(
+                  width: 250,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : Colors.black.withValues(alpha: 0.08),
+                    ),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.black.withValues(alpha: 0.04),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.picture_as_pdf_rounded, color: Colors.red, size: 28),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _pdfName ?? 'Document.pdf',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.close,
+                          size: 20,
+                          color: isDark ? Colors.white70 : Colors.black54,
+                        ),
+                        onPressed: () => setState(() {
+                          _pdfFile = null;
+                          _pdfName = null;
+                        }),
+                      ),
+                    ],
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
 }
 
 // --- LIQUID GLASS DETAIL SECTION ---
@@ -1056,41 +1366,57 @@ class _LiquidGlassDetailTile extends StatelessWidget {
     final isDark = themeProvider.isDarkMode;
     final textColor = isDark ? Colors.white : Colors.black;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(10),
+    return InkWell(
+      onTap: () {
+        if (value.isNotEmpty && value != 'N/A') {
+          HapticFeedback.lightImpact();
+          ClipboardService.instance.copy(value);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$title copied!'),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 1),
             ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: textColor.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              title,
-              style: textTheme.bodyMedium?.copyWith(
-                color: textColor.withValues(alpha: 0.7),
+          );
+        }
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 4.0),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.black.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                size: 18,
+                color: textColor.withValues(alpha: 0.6),
               ),
             ),
-          ),
-          Text(
-            value,
-            style: textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: valueColor ?? textColor,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: textColor.withValues(alpha: 0.7),
+                ),
+              ),
             ),
-          ),
-        ],
+            Text(
+              value,
+              style: textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: valueColor ?? textColor,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

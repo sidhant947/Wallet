@@ -1,6 +1,10 @@
-# Wallet 
+# Important
 
-[![IzzyOnDroid Yearly Downloads](https://img.shields.io/badge/dynamic/json?url=https://dlstats.izzyondroid.org/iod-stats-collector/stats/basic/yearly/rolling.json&query=$.['com.sidhant.wallet']&label=IzzyOnDroid%20yearly%20downloads)](https://apt.izzysoft.de/packages/com.sidhant.wallet) [![License](https://img.shields.io/github/license/sidhant947/Wallet)](LICENSE) ![Downloads last month](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgithub.com%2Fkitswas%2Ffdroid-metrics-dashboard%2Fraw%2Frefs%2Fheads%2Fmain%2Fprocessed%2Fmonthly%2Fcom.sidhant.wallet.json&query=%24.total_downloads&logo=fdroid&label=Downloads%20last%20month)
+Wallet development is paused now , due to flutter being unreliable for wallet development. Project will be moved to Native Kotlin. V1.0.42 is last update until the kotlin app development is finished. New App will be published with V2.0.0 tag when ready. 
+
+---
+
+## Wallet 
 
 **Wallet** is a privacy-first, zero-knowledge card management application. It empowers you to store credit, debit, loyalty, and identity cards locally with military-grade encryption and **absolute zero internet access**.
 
@@ -19,20 +23,6 @@ Stay secure on your favorite platform. Secure Wallet is available on several pri
 [**Download Latest APK**](https://github.com/sidhant947/Wallet/releases/latest)
 
 </div>
-
----
-
-## ✨ Key Features
-
-*   🚫 **Zero Internet Access**: The app does not request the `INTERNET` permission. Your data is physically impossible to leak online.
-*   🛡️ **Military-Grade Encryption**: All sensitive fields, custom data, and card images are encrypted using **AES-256-GCM** with **Argon2id** key derivation (RFC 9106).
-*   🔐 **Biometric Security**: Protect your vault with fingerprint or face unlock. Authentication is required on app start, and before destructive actions like backup restore or data deletion.
-*   🎨 **Liquid Glass UI**: A premium, modern design featuring smooth glassmorphism, staggered animations, and dynamic transitions.
-*   📲 **Apple Wallet Support**: Import `.pkpass` files directly into your local vault.
-*   🔄 **Secure E2EE Sharing**: Share cards via encrypted QR codes. Data is decrypted only by the receiving app instance.
-*   💾 **Encrypted Backups**: Export your entire vault into a `.wbk` file secured with **Argon2id** key derivation. Backups include cards, passes, identities, and settings.
-*   📸 **Encrypted Image Vault**: Store front/back photos of cards; images are encrypted on disk and decrypted directly into memory.
-*   🌓 **True OLED Dark Mode**: Optimized for battery saving and premium aesthetics.
 
 ---
 

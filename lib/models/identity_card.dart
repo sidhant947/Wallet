@@ -7,6 +7,8 @@ class IdentityCard {
   final String cardType; // e.g., Passport, License, etc.
   final String? frontImagePath;
   final String? backImagePath;
+  final String? pdfPath;
+  final String? pdfName;
   final String? color;
   int orderIndex;
 
@@ -17,6 +19,8 @@ class IdentityCard {
     this.cardType = 'Identity Card',
     this.frontImagePath,
     this.backImagePath,
+    this.pdfPath,
+    this.pdfName,
     this.color,
     this.orderIndex = 0,
   });
@@ -29,6 +33,8 @@ class IdentityCard {
       'cardType': cardType,
       'frontImagePath': frontImagePath,
       'backImagePath': backImagePath,
+      'pdfPath': pdfPath,
+      'pdfName': pdfName,
       'color': color,
       'orderIndex': orderIndex,
     };
@@ -43,6 +49,8 @@ class IdentityCard {
       'cardType': enc.encryptText(cardType),
       'frontImagePath': frontImagePath,
       'backImagePath': backImagePath,
+      'pdfPath': pdfPath,
+      'pdfName': enc.encryptText(pdfName),
       'color': color,
       'orderIndex': orderIndex,
     };
@@ -56,6 +64,8 @@ class IdentityCard {
       cardType: map['cardType'] ?? 'Identity Card',
       frontImagePath: map['frontImagePath'],
       backImagePath: map['backImagePath'],
+      pdfPath: map['pdfPath'],
+      pdfName: map['pdfName'],
       color: map['color'],
       orderIndex: map['orderIndex'] ?? 0,
     );
@@ -70,6 +80,8 @@ class IdentityCard {
       cardType: enc.decryptText(map['cardType']) ?? 'Identity Card',
       frontImagePath: map['frontImagePath'],
       backImagePath: map['backImagePath'],
+      pdfPath: map['pdfPath'],
+      pdfName: enc.decryptText(map['pdfName']),
       color: map['color'],
       orderIndex: map['orderIndex'] ?? 0,
     );

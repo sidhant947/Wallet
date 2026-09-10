@@ -1,9 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wallet/services/clipboard_service.dart';
 import 'package:provider/provider.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:wallet/models/identity_card.dart';
 import 'package:wallet/models/theme_provider.dart';
+import 'package:wallet/models/provider_helper.dart';
+import 'package:wallet/services/encryption_service.dart';
 import 'package:wallet/widgets/identity_card_widget.dart';
 import 'package:wallet/widgets/encrypted_image_display.dart';
 import 'package:wallet/widgets/full_screen_image_viewer.dart';
@@ -29,7 +34,91 @@ class _IdentityCardDetailScreenState extends State<IdentityCardDetailScreen> {
     currentCard = widget.card;
   }
 
+  void _showDeleteConfirmationDialog() {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDark = themeProvider.isDarkMode;
+
+    showDialog(
+      context: context,
+      barrierColor: isDark ? Colors.black54 : Colors.black26,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+          title: Text(
+            'Delete Identity Card?',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to delete "${currentCard.name}"? This action cannot be undone.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: isDark ? Colors.white60 : Colors.black54,
+                ),
+              ),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: () async {
+                HapticFeedback.mediumImpact();
+                await context.read<IdentityProvider>().deleteIdentity(currentCard.id!);
+                if (ctx.mounted) Navigator.of(ctx).pop();
+                if (mounted) {
+                  Navigator.of(context).pop(true);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Identity Card Deleted!')),
+                  );
+                }
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   bool _isPathValid(String? path) => path != null && path.isNotEmpty;
+
+  Future<void> _openPdf(String pdfPath) async {
+    try {
+      final bytes = await EncryptionService.instance.decryptImageToBytes(pdfPath);
+      if (bytes == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to decrypt PDF attachment.')),
+          );
+        }
+        return;
+      }
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File('${tempDir.path}/id_doc_${DateTime.now().millisecondsSinceEpoch}.pdf');
+      await tempFile.writeAsBytes(bytes);
+      final result = await OpenFilex.open(tempFile.path);
+      if (result.type != ResultType.done && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.message.isNotEmpty ? result.message : 'Could not open PDF file.')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error opening PDF document.')),
+        );
+      }
+    }
+  }
 
   Widget _buildImageThumbnail(String imagePath, String label, bool isDark) {
     return Padding(
@@ -175,6 +264,24 @@ class _IdentityCardDetailScreenState extends State<IdentityCardDetailScreen> {
               },
             ),
           ),
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.078)
+                  : Colors.black.withValues(alpha: 0.051),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                color: Colors.redAccent,
+                size: 20,
+              ),
+              tooltip: 'Delete Identity Card',
+              onPressed: _showDeleteConfirmationDialog,
+            ),
+          ),
         ],
       ),
       body: ListView(
@@ -205,6 +312,66 @@ class _IdentityCardDetailScreenState extends State<IdentityCardDetailScreen> {
                     if (_isPathValid(currentCard.backImagePath))
                       _buildImageThumbnail(currentCard.backImagePath!, 'Back', isDark),
                   ],
+                ),
+              ),
+            ),
+
+          if (_isPathValid(currentCard.pdfPath))
+            _LiquidGlassDetailSection(
+              title: "Attached Document",
+              icon: Icons.picture_as_pdf_outlined,
+              isDark: isDark,
+              child: InkWell(
+                onTap: () => _openPdf(currentCard.pdfPath!),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark ? Colors.white12 : Colors.black12,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.picture_as_pdf_rounded, color: Colors.red, size: 24),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              currentCard.pdfName ?? 'Identity Document.pdf',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Tap to view / open PDF',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? Colors.white38 : Colors.black38,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.open_in_new_rounded, size: 18, color: isDark ? Colors.white38 : Colors.black38),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:zxing_lib/zxing.dart';
 import 'package:zxing_lib/common.dart';
@@ -13,7 +12,6 @@ class BarcodeScanResult {
 }
 
 class BarcodeDecoderService {
-  static const MethodChannel _channel = MethodChannel('com.sidhant.wallet/save_file');
 
   static BarcodeScanResult? _decodeImage(img.Image decodedImage) {
     final width = decodedImage.width;
@@ -62,35 +60,7 @@ class BarcodeDecoderService {
     return null;
   }
 
-  static Future<BarcodeScanResult?> scanPdfFile(File pdfFile) async {
-    try {
-      final List<dynamic>? pagesBytes = await _channel.invokeMethod<List<dynamic>>(
-        'renderPdfPages',
-        {
-          'path': pdfFile.path,
-          'maxPages': 5,
-        },
-      );
-
-      if (pagesBytes != null && pagesBytes.isNotEmpty) {
-        for (final pageData in pagesBytes) {
-          if (pageData is Uint8List) {
-            final decodedImage = img.decodeImage(pageData);
-            if (decodedImage != null) {
-              final result = _decodeImage(decodedImage);
-              if (result != null) return result;
-            }
-          }
-        }
-      }
-    } catch (_) {}
-    return null;
-  }
-
   static Future<BarcodeScanResult?> scanFile(File file) async {
-    if (file.path.toLowerCase().endsWith('.pdf')) {
-      return scanPdfFile(file);
-    }
     return scanImageFile(file);
   }
 

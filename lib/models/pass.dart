@@ -141,4 +141,50 @@ class Pass {
       orderIndex: map['orderIndex'] ?? 0,
     );
   }
+
+  bool get isRedeemed => fields?['isRedeemed'] == true;
+
+  Pass copyWith({
+    int? id,
+    String? type,
+    String? organizationName,
+    String? description,
+    String? logoText,
+    String? backgroundColor,
+    String? foregroundColor,
+    String? labelColor,
+    String? barcodeValue,
+    String? barcodeFormat,
+    String? barcodeAltText,
+    String? transitType,
+    String? relevantDate,
+    String? frontImagePath,
+    String? backImagePath,
+    String? stripImagePath,
+    String? thumbnailImagePath,
+    Map<String, dynamic>? fields,
+    int? orderIndex,
+  }) {
+    return Pass(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      organizationName: organizationName ?? this.organizationName,
+      description: description ?? this.description,
+      logoText: logoText ?? this.logoText,
+      backgroundColor: backgroundColor ?? this.backgroundColor,
+      foregroundColor: foregroundColor ?? this.foregroundColor,
+      labelColor: labelColor ?? this.labelColor,
+      barcodeValue: barcodeValue ?? this.barcodeValue,
+      barcodeFormat: barcodeFormat ?? this.barcodeFormat,
+      barcodeAltText: barcodeAltText ?? this.barcodeAltText,
+      transitType: transitType ?? this.transitType,
+      relevantDate: relevantDate ?? this.relevantDate,
+      frontImagePath: frontImagePath ?? this.frontImagePath,
+      backImagePath: backImagePath ?? this.backImagePath,
+      stripImagePath: stripImagePath ?? this.stripImagePath,
+      thumbnailImagePath: thumbnailImagePath ?? this.thumbnailImagePath,
+      fields: fields ?? this.fields,
+      orderIndex: orderIndex ?? this.orderIndex,
+    );
+  }
 }

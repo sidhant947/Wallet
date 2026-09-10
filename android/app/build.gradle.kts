@@ -15,7 +15,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.sidhant.wallet"
-    compileSdk = 37
+    compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -67,6 +67,11 @@ android {
                 output.versionCodeOverride = (variant.versionCode) * 100 + abiCode
             }
         }
+    }
+
+    packagingOptions {
+        dex.useLegacyPackaging = true
+        jniLibs.useLegacyPackaging = true
     }
 }
 

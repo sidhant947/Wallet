@@ -15,6 +15,8 @@ import 'package:wallet/widgets/display_barcode_screen.dart';
 import 'package:wallet/widgets/encrypted_image_display.dart';
 import 'package:wallet/widgets/full_screen_image_viewer.dart';
 import 'package:wallet/widgets/barcode_card.dart';
+import 'package:wallet/models/provider_helper.dart';
+import 'package:wallet/services/clipboard_service.dart';
 import 'share_secure_screen.dart';
 
 class BarcodeCardDetailScreen extends StatefulWidget {
@@ -27,6 +29,95 @@ class BarcodeCardDetailScreen extends StatefulWidget {
 }
 
 class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
+  late Pass _currentPass;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentPass = widget.pass;
+  }
+
+  Future<void> _toggleRedeemedStatus() async {
+    HapticFeedback.mediumImpact();
+    final updatedFields = Map<String, dynamic>.from(_currentPass.fields ?? {});
+    final newRedeemed = !_currentPass.isRedeemed;
+    if (newRedeemed) {
+      updatedFields['isRedeemed'] = true;
+    } else {
+      updatedFields.remove('isRedeemed');
+    }
+    final updatedPass = _currentPass.copyWith(fields: updatedFields);
+    await PassDatabaseHelper.instance.updatePass(updatedPass);
+    if (mounted) {
+      setState(() {
+        _currentPass = updatedPass;
+      });
+      Provider.of<PassProvider>(context, listen: false).fetchPasses();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(newRedeemed ? 'Marked as Redeemed' : 'Marked as Active'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
+  }
+
+  void _showDeleteConfirmationDialog() {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDark = themeProvider.isDarkMode;
+
+    showDialog(
+      context: context,
+      barrierColor: isDark ? Colors.black54 : Colors.black26,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+          title: Text(
+            'Delete Pass?',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to delete "${_currentPass.organizationName}"? This action cannot be undone.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: isDark ? Colors.white60 : Colors.black54,
+                ),
+              ),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: () async {
+                HapticFeedback.mediumImpact();
+                await context.read<PassProvider>().deletePass(_currentPass.id!);
+                if (ctx.mounted) Navigator.of(ctx).pop();
+                if (mounted) {
+                  Navigator.of(context).pop(true);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Pass Deleted!')),
+                  );
+                }
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   bool _isPathValid(String? path) => path != null && path.isNotEmpty;
 
   Future<void> _openPdf(String pdfPath) async {
@@ -130,7 +221,7 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
-    final p = widget.pass;
+    final p = _currentPass;
 
     return Scaffold(
       appBar: AppBar(
@@ -151,13 +242,26 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
             margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(12)),
             child: IconButton(
+              icon: Icon(
+                p.isRedeemed ? Icons.check_circle_rounded : Icons.check_circle_outline_rounded,
+                color: p.isRedeemed ? Colors.green : (isDark ? Colors.white : Colors.black),
+                size: 20,
+              ),
+              tooltip: p.isRedeemed ? 'Mark as Active' : 'Mark as Redeemed',
+              onPressed: _toggleRedeemedStatus,
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(12)),
+            child: IconButton(
               icon: Icon(Icons.share_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
               tooltip: 'Share Pass (Encrypted Data)',
               onPressed: () {
                 HapticFeedback.mediumImpact();
                 Navigator.push(
                   context,
-                  SmoothPageRoute(page: ShareSecureScreen(pass: widget.pass)),
+                  SmoothPageRoute(page: ShareSecureScreen(pass: _currentPass)),
                 );
               },
             ),
@@ -169,7 +273,19 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
               icon: Icon(Icons.edit, color: isDark ? Colors.white : Colors.black, size: 20),
               onPressed: () {
                 HapticFeedback.lightImpact();
-                _navigateToEditScreen(context);
+                _navigateToEditScreen();
+              },
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(12)),
+            child: IconButton(
+              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+              tooltip: 'Delete Pass',
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                _showDeleteConfirmationDialog();
               },
             ),
           ),
@@ -196,9 +312,52 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
               }
             },
           ),
+          if (p.isRedeemed) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F7),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Pass redeemed',
+                      style: TextStyle(
+                        color: isDark ? Colors.white70 : Colors.black87,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _toggleRedeemedStatus,
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    ),
+                    child: Text(
+                      'Undo',
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
 
-          // Barcode Section
           if (p.barcodeValue.isNotEmpty) ...[
             GestureDetector(
               onTap: () {
@@ -241,15 +400,38 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
                     ),
                     if (p.barcodeAltText != null || p.barcodeValue.isNotEmpty) ...[
                       const SizedBox(height: 24),
-                      Text(
-                        p.barcodeAltText ?? p.barcodeValue,
-                        style: const TextStyle(
-                          fontFamily: 'Courier',
-                          fontSize: 18,
-                          letterSpacing: 4,
-                          color: Colors.black87,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              p.barcodeAltText ?? p.barcodeValue,
+                              style: const TextStyle(
+                                fontFamily: 'Courier',
+                                fontSize: 18,
+                                letterSpacing: 4,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.copy_rounded, size: 18, color: Colors.black87),
+                            tooltip: 'Copy Code',
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              ClipboardService.instance.copy(p.barcodeValue);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Code copied!'),
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: Duration(seconds: 1),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ],
@@ -498,26 +680,72 @@ class _BarcodeCardDetailScreenState extends State<BarcodeCardDetailScreen> {
   }
 
   Widget _buildDetailRow(String label, String value, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 13, fontWeight: FontWeight.w500)),
-          Flexible(child: Text(value, textAlign: TextAlign.right, style: TextStyle(color: isDark ? Colors.white : Colors.black, fontSize: 14, fontWeight: FontWeight.bold))),
-        ],
+    return InkWell(
+      onTap: () {
+        if (value.isNotEmpty) {
+          HapticFeedback.lightImpact();
+          ClipboardService.instance.copy(value);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$label copied!'),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        }
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 13, fontWeight: FontWeight.w500)),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      value,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black, fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.copy_rounded,
+                    size: 14,
+                    color: isDark ? Colors.white38 : Colors.black38,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  void _navigateToEditScreen(BuildContext context) async {
+  void _navigateToEditScreen() async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PassEditScreen(pass: widget.pass),
+        builder: (context) => PassEditScreen(pass: _currentPass),
       ),
     );
-    if (result == true && context.mounted) Navigator.pop(context, true);
+    if (result == true && mounted) {
+      final updated = await PassDatabaseHelper.instance.getPassById(_currentPass.id!);
+      if (updated != null && mounted) {
+        setState(() {
+          _currentPass = updated;
+        });
+      }
+      if (mounted) {
+        Provider.of<PassProvider>(context, listen: false).fetchPasses();
+      }
+    }
   }
 }
 

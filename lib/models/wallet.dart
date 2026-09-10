@@ -19,6 +19,8 @@ class Wallet {
   final String? color;
   final String? frontImagePath;
   final String? backImagePath;
+  final String? pdfPath;
+  final String? pdfName;
   int orderIndex;
 
   Wallet({
@@ -39,6 +41,8 @@ class Wallet {
     this.color,
     this.frontImagePath,
     this.backImagePath,
+    this.pdfPath,
+    this.pdfName,
     this.orderIndex = 0,
   });
 
@@ -61,6 +65,8 @@ class Wallet {
       'color': color,
       'frontImagePath': frontImagePath,
       'backImagePath': backImagePath,
+      'pdfPath': pdfPath,
+      'pdfName': pdfName,
       'orderIndex': orderIndex,
     };
   }
@@ -87,6 +93,8 @@ class Wallet {
       'color': enc.encryptText(color),
       'frontImagePath': frontImagePath,
       'backImagePath': backImagePath,
+      'pdfPath': pdfPath,
+      'pdfName': enc.encryptText(pdfName),
       'orderIndex': orderIndex,
     };
   }
@@ -112,6 +120,8 @@ class Wallet {
       color: map['color'],
       frontImagePath: map['frontImagePath'],
       backImagePath: map['backImagePath'],
+      pdfPath: map['pdfPath'],
+      pdfName: map['pdfName'],
       orderIndex: map['orderIndex'] ?? 0,
     );
   }
@@ -138,6 +148,8 @@ class Wallet {
       color: enc.decryptText(map['color']),
       frontImagePath: map['frontImagePath'],
       backImagePath: map['backImagePath'],
+      pdfPath: map['pdfPath'],
+      pdfName: enc.decryptText(map['pdfName']),
       orderIndex: map['orderIndex'] ?? 0,
     );
   }
@@ -157,6 +169,8 @@ class Wallet {
       color: enc.decryptText(map['color']),
       frontImagePath: map['frontImagePath'],
       backImagePath: map['backImagePath'],
+      pdfPath: map['pdfPath'],
+      pdfName: enc.decryptText(map['pdfName']),
       orderIndex: map['orderIndex'] ?? 0,
     );
   }

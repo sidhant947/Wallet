@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/db_helper.dart';
@@ -30,6 +31,8 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
   String _selectedColor = 'default';
   File? _frontImageFile;
   File? _backImageFile;
+  File? _pdfFile;
+  String? _pdfName;
   bool _showAdditionalDetails = false;
   bool _isSaving = false;
 
@@ -99,6 +102,21 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
     }
   }
 
+  Future<void> _pickPdf() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+      if (result != null && result.files.single.path != null) {
+        setState(() {
+          _pdfFile = File(result.files.single.path!);
+          _pdfName = result.files.single.name;
+        });
+      }
+    } catch (_) {}
+  }
+
   void _addData() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isSaving = true);
@@ -110,6 +128,12 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
         String? backImagePath;
         if (_backImageFile != null) {
           backImagePath = await saveImageToAppDirectory(_backImageFile!);
+        }
+        String? pdfPath;
+        String? pdfName;
+        if (_pdfFile != null) {
+          pdfPath = await saveImageToAppDirectory(_pdfFile!);
+          pdfName = _pdfName;
         }
 
         Map<String, String> customFields = {};
@@ -131,6 +155,8 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
           color: _selectedColor,
           frontImagePath: frontImagePath,
           backImagePath: backImagePath,
+          pdfPath: pdfPath,
+          pdfName: pdfName,
         );
         await DatabaseHelper.instance.insertWallet(wallet);
         AutoBackupService.triggerBackup();
@@ -306,6 +332,8 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
                   onPickImage: () => _pickImage(ImageSource.gallery, false),
                   onRemoveImage: () => setState(() => _backImageFile = null),
                 ),
+                const SizedBox(height: 16),
+                _buildPdfPicker(),
               ],
             ),
             FormSection(
@@ -407,6 +435,76 @@ class _CreditCardEntryFormState extends State<CreditCardEntryForm> {
           const SizedBox(height: 16),
         ],
       ),
+    );
+  }
+
+  Widget _buildPdfPicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4.0, bottom: 12.0, top: 12.0),
+          child: Text(
+            'PDF DOCUMENT',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Theme.of(context).textTheme.bodySmall?.color,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
+        Center(
+          child: _pdfFile == null
+              ? OutlinedButton.icon(
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: const Text("Select PDF"),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(200, 50),
+                    side: BorderSide(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.502),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: _pickPdf,
+                )
+              : Container(
+                  width: 250,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                    ),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.picture_as_pdf_rounded, color: Colors.red, size: 28),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _pdfName ?? 'Document.pdf',
+                          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 20),
+                        onPressed: () => setState(() {
+                          _pdfFile = null;
+                          _pdfName = null;
+                        }),
+                      ),
+                    ],
+                  ),
+                ),
+        ),
+      ],
     );
   }
 }

@@ -71,16 +71,19 @@ class BackupService {
       for (final w in wallets) {
         if (w.frontImagePath != null) imagePaths.add(w.frontImagePath!);
         if (w.backImagePath != null) imagePaths.add(w.backImagePath!);
+        if (w.pdfPath != null) imagePaths.add(w.pdfPath!);
       }
       for (final p in passes) {
         if (p.frontImagePath != null) imagePaths.add(p.frontImagePath!);
         if (p.backImagePath != null) imagePaths.add(p.backImagePath!);
         if (p.stripImagePath != null) imagePaths.add(p.stripImagePath!);
         if (p.thumbnailImagePath != null) imagePaths.add(p.thumbnailImagePath!);
+        if (p.fields != null && p.fields!['pdfPath'] != null) imagePaths.add(p.fields!['pdfPath'] as String);
       }
       for (final i in identities) {
         if (i.frontImagePath != null) imagePaths.add(i.frontImagePath!);
         if (i.backImagePath != null) imagePaths.add(i.backImagePath!);
+        if (i.pdfPath != null) imagePaths.add(i.pdfPath!);
       }
 
       final imageFutures = imagePaths.map((path) async {
@@ -316,6 +319,15 @@ class BackupService {
               walletMap['backImagePath'] = oldToNewImagePaths[oldName];
             }
           }
+          if (walletMap['pdfPath'] != null) {
+            final oldName = p.basename(walletMap['pdfPath']).replaceAll(
+              '.enc',
+              '',
+            );
+            if (oldToNewImagePaths.containsKey(oldName)) {
+              walletMap['pdfPath'] = oldToNewImagePaths[oldName];
+            }
+          }
 
           await DatabaseHelper.instance.insertWallet(Wallet.fromMap(walletMap));
         } catch (_) {}
@@ -414,6 +426,12 @@ class BackupService {
               identityMap['backImagePath'] = oldToNewImagePaths[oldName];
             }
           }
+          if (identityMap['pdfPath'] != null) {
+            final oldName = p.basename(identityMap['pdfPath']).replaceAll('.enc', '');
+            if (oldToNewImagePaths.containsKey(oldName)) {
+              identityMap['pdfPath'] = oldToNewImagePaths[oldName];
+            }
+          }
 
           await IdentityDatabaseHelper.instance.insertIdentity(IdentityCard.fromMap(identityMap));
         } catch (_) {}
@@ -470,16 +488,19 @@ class BackupService {
       for (final w in wallets) {
         if (w.frontImagePath != null) imagePaths.add(w.frontImagePath!);
         if (w.backImagePath != null) imagePaths.add(w.backImagePath!);
+        if (w.pdfPath != null) imagePaths.add(w.pdfPath!);
       }
       for (final p in passes) {
         if (p.frontImagePath != null) imagePaths.add(p.frontImagePath!);
         if (p.backImagePath != null) imagePaths.add(p.backImagePath!);
         if (p.stripImagePath != null) imagePaths.add(p.stripImagePath!);
         if (p.thumbnailImagePath != null) imagePaths.add(p.thumbnailImagePath!);
+        if (p.fields != null && p.fields!['pdfPath'] != null) imagePaths.add(p.fields!['pdfPath'] as String);
       }
       for (final i in identities) {
         if (i.frontImagePath != null) imagePaths.add(i.frontImagePath!);
         if (i.backImagePath != null) imagePaths.add(i.backImagePath!);
+        if (i.pdfPath != null) imagePaths.add(i.pdfPath!);
       }
 
       final imageFutures = imagePaths.map((path) async {

@@ -298,12 +298,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 onTap: () async {
                   HapticFeedback.mediumImpact();
                   const url = 'https://github.com/sidhant947/Wallet/issues';
-                  if (await canLaunchUrl(Uri.parse(url))) {
-                    await launchUrl(
-                      Uri.parse(url),
-                      mode: LaunchMode.externalApplication,
-                    );
-                  }
+                  await launchUrl(
+                    Uri.parse(url),
+                    mode: LaunchMode.externalApplication,
+                  );
                 },
               ),
             ],
@@ -481,9 +479,7 @@ class _SettingsPageState extends State<SettingsPage> {
     return '.../${parts.sublist(parts.length - 2).join('/')}';
   }
 
-  Future<void> _showEnableAutoBackupDialog(
-    AutoBackupProvider provider,
-  ) async {
+  Future<void> _showEnableAutoBackupDialog(AutoBackupProvider provider) async {
     final isDark = Provider.of<ThemeProvider>(
       context,
       listen: false,
@@ -528,7 +524,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     final result = await SafService.pickDirectory();
                     if (result != null) {
                       final segments = Uri.parse(result).pathSegments;
-                      final displayPath = segments.isNotEmpty ? segments.last : result;
+                      final displayPath = segments.isNotEmpty
+                          ? segments.last
+                          : result;
                       setDialogState(() {
                         pathController.text = displayPath;
                       });
@@ -584,9 +582,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 TextField(
                   controller: passwordController,
                   obscureText: obscure,
-                  style: TextStyle(
-                    color: isDark ? Colors.white : Colors.black,
-                  ),
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: InputDecoration(
                     hintText: 'Enter password',
                     suffixIcon: IconButton(
@@ -639,9 +635,7 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  void _showChangeAutoBackupPasswordDialog(
-    AutoBackupProvider provider,
-  ) {
+  void _showChangeAutoBackupPasswordDialog(AutoBackupProvider provider) {
     final isDark = Provider.of<ThemeProvider>(
       context,
       listen: false,
@@ -659,9 +653,7 @@ class _SettingsPageState extends State<SettingsPage> {
         content: TextField(
           controller: passwordController,
           obscureText: true,
-          style: TextStyle(
-            color: isDark ? Colors.white : Colors.black,
-          ),
+          style: TextStyle(color: isDark ? Colors.white : Colors.black),
           decoration: const InputDecoration(
             hintText: 'Enter new password (min 8 characters)',
           ),
@@ -813,6 +805,7 @@ class _SettingsPageState extends State<SettingsPage> {
         for (var w in wallets) {
           await DatabaseHelper.deleteImageFile(w.frontImagePath);
           await DatabaseHelper.deleteImageFile(w.backImagePath);
+          await DatabaseHelper.deleteImageFile(w.pdfPath);
         }
       }
 
@@ -837,7 +830,8 @@ class _SettingsPageState extends State<SettingsPage> {
       }
 
       // Bulk delete identities
-      final identities = await IdentityDatabaseHelper.instance.getAllIdentities();
+      final identities = await IdentityDatabaseHelper.instance
+          .getAllIdentities();
       if (identities.isNotEmpty) {
         final db = await IdentityDatabaseHelper.instance.database;
         final batch = db.batch();
@@ -850,6 +844,7 @@ class _SettingsPageState extends State<SettingsPage> {
         for (var i in identities) {
           await DatabaseHelper.deleteImageFile(i.frontImagePath);
           await DatabaseHelper.deleteImageFile(i.backImagePath);
+          await DatabaseHelper.deleteImageFile(i.pdfPath);
         }
       }
 
@@ -860,7 +855,9 @@ class _SettingsPageState extends State<SettingsPage> {
         for (var f in dir.listSync()) {
           if (f is File) {
             final basename = f.path.split(Platform.pathSeparator).last;
-            final isTimestampImage = RegExp(r'^\d{16,}\.(png|jpg)$').hasMatch(basename);
+            final isTimestampImage = RegExp(
+              r'^\d{16,}\.(png|jpg)$',
+            ).hasMatch(basename);
             if (basename.endsWith('.enc') || isTimestampImage) {
               deleteFutures.add(f.delete());
             }
@@ -881,9 +878,9 @@ class _SettingsPageState extends State<SettingsPage> {
       ).showSnackBar(const SnackBar(content: Text('All data deleted.')));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Delete failed. Please try again.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Delete failed. Please try again.')),
+      );
     }
   }
 
@@ -892,9 +889,7 @@ class _SettingsPageState extends State<SettingsPage> {
       onTap: () async {
         HapticFeedback.mediumImpact();
         const url = 'https://ko-fi.com/sidhant947';
-        if (await canLaunchUrl(Uri.parse(url))) {
-          await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-        }
+        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -978,7 +973,9 @@ class _LiquidGlassSection extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8),
+                  color: isDark
+                      ? const Color(0xFF2A2A2A)
+                      : const Color(0xFFE8E8E8),
                   width: 0.5,
                 ),
               ),
@@ -1098,7 +1095,8 @@ class _LiquidGlassPasswordDialogState
     final password = _passwordController.text;
     if (widget.validatePassword && password.length < _minPasswordLength) {
       setState(() {
-        _passwordError = 'Password must be at least $_minPasswordLength characters';
+        _passwordError =
+            'Password must be at least $_minPasswordLength characters';
       });
       return;
     }

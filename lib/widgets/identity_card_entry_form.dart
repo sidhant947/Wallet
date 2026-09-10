@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/models/db_helper.dart';
 import 'package:wallet/models/provider_helper.dart';
@@ -23,6 +24,8 @@ class IdentityCardEntryFormState extends State<IdentityCardEntryForm> {
   final _cardTypeController = TextEditingController();
   String? _frontImagePath;
   String? _backImagePath;
+  String? _pdfPath;
+  String? _pdfName;
   String _selectedColor = 'obsidian';
   bool _isSaving = false;
 
@@ -35,6 +38,8 @@ class IdentityCardEntryFormState extends State<IdentityCardEntryForm> {
       _cardTypeController.text = widget.existingCard!.cardType;
       _frontImagePath = widget.existingCard!.frontImagePath;
       _backImagePath = widget.existingCard!.backImagePath;
+      _pdfPath = widget.existingCard!.pdfPath;
+      _pdfName = widget.existingCard!.pdfName;
       _selectedColor = widget.existingCard!.color ?? 'obsidian';
     }
     _nameController.addListener(() => setState(() {}));
@@ -67,6 +72,23 @@ class IdentityCardEntryFormState extends State<IdentityCardEntryForm> {
     }
   }
 
+  Future<void> _pickPdf() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+      if (result != null && result.files.single.path != null) {
+        final originalFile = File(result.files.single.path!);
+        final encryptedPath = await saveImageToAppDirectory(originalFile);
+        setState(() {
+          _pdfPath = encryptedPath;
+          _pdfName = result.files.single.name;
+        });
+      }
+    } catch (_) {}
+  }
+
   Future<void> _saveData() async {
     final name = _nameController.text.trim();
     final value = _valueController.text.trim();
@@ -89,6 +111,8 @@ class IdentityCardEntryFormState extends State<IdentityCardEntryForm> {
         cardType: cardType.isEmpty ? 'Identity Card' : cardType,
         frontImagePath: _frontImagePath,
         backImagePath: _backImagePath,
+        pdfPath: _pdfPath,
+        pdfName: _pdfName,
         color: _selectedColor,
         orderIndex: widget.existingCard?.orderIndex ?? 0,
       );
@@ -130,6 +154,8 @@ class IdentityCardEntryFormState extends State<IdentityCardEntryForm> {
                 : _cardTypeController.text,
             frontImagePath: _frontImagePath,
             backImagePath: _backImagePath,
+            pdfPath: _pdfPath,
+            pdfName: _pdfName,
             color: _selectedColor,
           ),
           onTap: () {},
@@ -193,15 +219,31 @@ class IdentityCardEntryFormState extends State<IdentityCardEntryForm> {
                 _frontImagePath,
                 () => _pickImage(true),
                 isDark,
+                onClear: () => setState(() => _frontImagePath = null),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: _buildImagePickerTile(
                 'Back Side',
                 _backImagePath,
                 () => _pickImage(false),
                 isDark,
+                onClear: () => setState(() => _backImagePath = null),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildImagePickerTile(
+                _pdfName ?? 'PDF Doc',
+                _pdfPath,
+                _pickPdf,
+                isDark,
+                icon: Icons.picture_as_pdf_outlined,
+                onClear: () => setState(() {
+                  _pdfPath = null;
+                  _pdfName = null;
+                }),
               ),
             ),
           ],
@@ -244,43 +286,69 @@ class IdentityCardEntryFormState extends State<IdentityCardEntryForm> {
     String label,
     String? path,
     VoidCallback onTap,
-    bool isDark,
-  ) {
+    bool isDark, {
+    IconData? icon,
+    VoidCallback? onClear,
+  }) {
     return Column(
       children: [
         GestureDetector(
           onTap: onTap,
-          child: Container(
-            height: 100,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.05)
-                  : Colors.black.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: path != null
-                    ? Colors.green.withValues(alpha: 0.5)
-                    : (isDark ? Colors.white12 : Colors.black12),
-              ),
-            ),
-            child: path != null
-                ? const Icon(
-                    Icons.check_circle_rounded,
-                    color: Colors.green,
-                    size: 32,
-                  )
-                : Icon(
-                    Icons.add_a_photo_outlined,
-                    color: isDark ? Colors.white38 : Colors.black38,
+          child: Stack(
+            children: [
+              Container(
+                height: 80,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.black.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: path != null
+                        ? Colors.green.withValues(alpha: 0.5)
+                        : (isDark ? Colors.white12 : Colors.black12),
                   ),
+                ),
+                child: path != null
+                    ? const Icon(
+                        Icons.check_circle_rounded,
+                        color: Colors.green,
+                        size: 28,
+                      )
+                    : Icon(
+                        icon ?? Icons.add_a_photo_outlined,
+                        size: 24,
+                        color: isDark ? Colors.white38 : Colors.black38,
+                      ),
+              ),
+              if (path != null && onClear != null)
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: GestureDetector(
+                    onTap: onClear,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: Colors.black54,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close, size: 14, color: Colors.white),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
             color: isDark ? Colors.white54 : Colors.black54,
           ),
         ),

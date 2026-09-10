@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wallet/services/clipboard_service.dart';
-import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:provider/provider.dart';
@@ -24,7 +22,6 @@ import 'package:wallet/widgets/identity_card_widget.dart';
 import 'package:wallet/screens/identity_card_details_screen.dart';
 import 'package:wallet/services/auto_backup_service.dart';
 import 'package:wallet/models/pass_types.dart';
-import 'package:wallet/services/pkpass_service.dart';
 
 /// Smooth route builder — used across the app for premium transitions
 class SmoothPageRoute<T> extends PageRouteBuilder<T> {
@@ -62,8 +59,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<String> _transferChunks = [];
   int _expectedTotalChunks = 0;
 
-  StreamSubscription? _intentDataStreamSubscription;
-
   @override
   void initState() {
     super.initState();
@@ -74,15 +69,12 @@ class _HomeScreenState extends State<HomeScreen> {
       context.read<PassProvider>().fetchPasses();
       context.read<IdentityProvider>().fetchIdentities();
 
-      // Initialize selected index from startup settings
       final startupProvider = context.read<StartupSettingsProvider>();
       if (startupProvider.paymentsOnlyMode) {
         setState(() => _selectedIndex = 0);
       } else {
         setState(() => _selectedIndex = startupProvider.defaultScreenIndex);
       }
-
-      _initSharingIntent();
     });
 
     _searchController.addListener(() {
@@ -97,59 +89,8 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _initSharingIntent() {
-    if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) return;
-
-    // For sharing images while app is in memory
-    _intentDataStreamSubscription = ReceiveSharingIntent.instance.getMediaStream().listen((value) {
-      _handleSharedMedia(value);
-    }, onError: (_) {});
-
-    // For sharing images when app was closed/opened via intent
-    ReceiveSharingIntent.instance.getInitialMedia().then((value) {
-      _handleSharedMedia(value);
-      ReceiveSharingIntent.instance.reset();
-    });
-  }
-
-  void _handleSharedMedia(List<SharedMediaFile> value) async {
-    if (value.isNotEmpty && mounted) {
-      final filePath = value.first.path;
-      if (filePath.isEmpty) return;
-
-      if (filePath.toLowerCase().endsWith('.pkpass')) {
-        final pass = await PkpassService.instance.parsePkpass(filePath);
-        if (pass != null && mounted) {
-          final confirm = await _showImportConfirmation(pass.organizationName, 'Apple Wallet Pass');
-          if (confirm == true && mounted) {
-            await PassDatabaseHelper.instance.insertPass(pass);
-            AutoBackupService.triggerBackup();
-            if (mounted) {
-              context.read<PassProvider>().fetchPasses();
-              _showSuccessSnackBar('Pass imported successfully!');
-            }
-          }
-          return;
-        }
-      }
-
-      if (mounted) {
-        Navigator.push(
-          context,
-          SmoothPageRoute(
-            page: AddCardScreen(
-              initialTabIndex: 1,
-              initialSharedImagePath: filePath,
-            ),
-          ),
-        );
-      }
-    }
-  }
-
   @override
   void dispose() {
-    _intentDataStreamSubscription?.cancel();
     _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
@@ -516,6 +457,61 @@ class _HomeScreenState extends State<HomeScreen> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
+    );
+  }
+
+  void _showWalletDeleteConfirmationDialog({
+    required int id,
+    required String name,
+  }) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDark = themeProvider.isDarkMode;
+
+    showDialog(
+      context: context,
+      barrierColor: isDark ? Colors.black54 : Colors.black26,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+          title: Text(
+            'Delete Card?',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to delete "$name"? This action cannot be undone.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: isDark ? Colors.white60 : Colors.black54,
+                ),
+              ),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                context.read<WalletProvider>().deleteWallet(id);
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Card Deleted!')));
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -968,12 +964,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                 label: 'Copy',
                               ),
                               SlidableAction(
-                                onPressed: (ctx) async {
-                                  HapticFeedback.mediumImpact();
-                                  await context
-                                      .read<WalletProvider>()
-                                      .deleteWallet(wallet.id!);
-                                },
+                                onPressed: (context) => _showWalletDeleteConfirmationDialog(
+                                  id: wallet.id!,
+                                  name: wallet.name,
+                                ),
                                 backgroundColor: Colors.transparent,
                                 foregroundColor: Colors.red,
                                 icon: Icons.delete_outline_rounded,
@@ -1193,7 +1187,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       key: ValueKey(pass.id),
                       startActionPane: ActionPane(
                         motion: const BehindMotion(),
-                        extentRatio: 0.25,
+                        extentRatio: 0.45,
                         children: [
                           SlidableAction(
                             onPressed: (ctx) async {
@@ -1212,6 +1206,34 @@ class _HomeScreenState extends State<HomeScreen> {
                             foregroundColor: Colors.blue,
                             icon: Icons.edit_outlined,
                             label: 'Edit',
+                          ),
+                          SlidableAction(
+                            onPressed: (ctx) async {
+                              HapticFeedback.mediumImpact();
+                              final updatedFields = Map<String, dynamic>.from(pass.fields ?? {});
+                              final newRedeemed = !pass.isRedeemed;
+                              if (newRedeemed) {
+                                updatedFields['isRedeemed'] = true;
+                              } else {
+                                updatedFields.remove('isRedeemed');
+                              }
+                              final updatedPass = pass.copyWith(fields: updatedFields);
+                              await PassDatabaseHelper.instance.updatePass(updatedPass);
+                              if (ctx.mounted) {
+                                ctx.read<PassProvider>().fetchPasses();
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  SnackBar(
+                                    content: Text(newRedeemed ? 'Pass marked as redeemed' : 'Pass marked as active'),
+                                    behavior: SnackBarBehavior.floating,
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                              }
+                            },
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: pass.isRedeemed ? Colors.green : Colors.amber,
+                            icon: pass.isRedeemed ? Icons.check_circle_rounded : Icons.check_circle_outline_rounded,
+                            label: pass.isRedeemed ? 'Active' : 'Redeem',
                           ),
                         ],
                       ),

@@ -36,7 +36,7 @@ class DatabaseHelper {
     final path = join(directory.path, 'walletbox.db');
     return openDatabase(
       path,
-      version: 7,
+      version: 8,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE wallets(
@@ -57,6 +57,8 @@ class DatabaseHelper {
             color TEXT,
             frontImagePath TEXT,
             backImagePath TEXT,
+            pdfPath TEXT,
+            pdfName TEXT,
             orderIndex INTEGER DEFAULT 0
           )
           ''');
@@ -102,6 +104,10 @@ class DatabaseHelper {
             'CREATE INDEX idx_wallets_order ON wallets(orderIndex);',
           );
         }
+        if (oldVersion < 8) {
+          await db.execute('ALTER TABLE wallets ADD COLUMN pdfPath TEXT;');
+          await db.execute('ALTER TABLE wallets ADD COLUMN pdfName TEXT;');
+        }
       },
     );
   }
@@ -139,7 +145,7 @@ class DatabaseHelper {
     Database db = await instance.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'wallets',
-      columns: ['id', 'name', 'number', 'expiry', 'network', 'issuer', 'cardtype', 'color', 'frontImagePath', 'backImagePath', 'orderIndex'],
+      columns: ['id', 'name', 'number', 'expiry', 'network', 'issuer', 'cardtype', 'color', 'frontImagePath', 'backImagePath', 'pdfPath', 'pdfName', 'orderIndex'],
       orderBy: 'orderIndex ASC',
     );
     return List.generate(maps.length, (i) => Wallet.fromEncryptedMapSummary(maps[i]));
@@ -162,7 +168,7 @@ class DatabaseHelper {
     Database db = await instance.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'wallets',
-      columns: ['frontImagePath', 'backImagePath'],
+      columns: ['frontImagePath', 'backImagePath', 'pdfPath'],
       where: 'id = ?',
       whereArgs: [id],
     );
@@ -170,6 +176,7 @@ class DatabaseHelper {
 
     await deleteImageFile(maps[0]['frontImagePath'] as String?);
     await deleteImageFile(maps[0]['backImagePath'] as String?);
+    await deleteImageFile(maps[0]['pdfPath'] as String?);
 
     return await db.delete('wallets', where: 'id = ?', whereArgs: [id]);
   }
@@ -284,6 +291,15 @@ class PassDatabaseHelper {
     return result.map((e) => Pass.fromEncryptedMap(e)).toList();
   }
 
+  Future<Pass?> getPassById(int id) async {
+    final db = await database;
+    final result = await db.query('passes', where: 'id = ?', whereArgs: [id]);
+    if (result.isNotEmpty) {
+      return Pass.fromEncryptedMap(result.first);
+    }
+    return null;
+  }
+
   Future<void> deletePass(int id) async {
     final db = await database;
     final result = await db.query(
@@ -371,7 +387,7 @@ class IdentityDatabaseHelper {
     final path = join(directory.path, 'identities.db');
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE identities(
@@ -381,6 +397,8 @@ class IdentityDatabaseHelper {
             cardType TEXT,
             frontImagePath TEXT,
             backImagePath TEXT,
+            pdfPath TEXT,
+            pdfName TEXT,
             color TEXT,
             orderIndex INTEGER DEFAULT 0
           )
@@ -395,6 +413,10 @@ class IdentityDatabaseHelper {
         }
         if (oldVersion < 3) {
           await db.execute('ALTER TABLE identities ADD COLUMN color TEXT;');
+        }
+        if (oldVersion < 4) {
+          await db.execute('ALTER TABLE identities ADD COLUMN pdfPath TEXT;');
+          await db.execute('ALTER TABLE identities ADD COLUMN pdfName TEXT;');
         }
       },
     );
@@ -415,7 +437,7 @@ class IdentityDatabaseHelper {
     final db = await database;
     final result = await db.query(
       'identities',
-      columns: ['frontImagePath', 'backImagePath'],
+      columns: ['frontImagePath', 'backImagePath', 'pdfPath'],
       where: 'id = ?',
       whereArgs: [id],
     );
@@ -423,6 +445,7 @@ class IdentityDatabaseHelper {
 
     await DatabaseHelper.deleteImageFile(result[0]['frontImagePath'] as String?);
     await DatabaseHelper.deleteImageFile(result[0]['backImagePath'] as String?);
+    await DatabaseHelper.deleteImageFile(result[0]['pdfPath'] as String?);
 
     await db.delete('identities', where: 'id = ?', whereArgs: [id]);
   }

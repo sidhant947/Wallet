@@ -15,12 +15,10 @@ import 'package:wallet/services/google_wallet_service.dart';
 
 class BarcodeCardEntryForm extends StatefulWidget {
   final Pass? existingPass;
-  final String? initialSharedImagePath;
 
   const BarcodeCardEntryForm({
     super.key,
     this.existingPass,
-    this.initialSharedImagePath,
   });
 
   @override
@@ -45,6 +43,7 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
   String? _backImagePath;
   String? _pdfPath;
   String? _pdfName;
+  bool _isRedeemed = false;
 
   final Map<String, List<Map<String, dynamic>>> _dynamicFields = {
     'primaryFields': [],
@@ -90,6 +89,7 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     if (widget.existingPass != null) {
       _showAdditionalDetails = true;
       final p = widget.existingPass!;
+      _isRedeemed = p.isRedeemed;
       _organizationController.text = p.organizationName;
       _descriptionController.text = p.description ?? '';
       _logoTextController.text = p.logoText ?? '';
@@ -132,12 +132,6 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
       }
       setState(() {});
     });
-
-    if (widget.initialSharedImagePath != null && widget.initialSharedImagePath!.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scanFromFilePath(widget.initialSharedImagePath!);
-      });
-    }
   }
 
   @override
@@ -164,6 +158,18 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     setState(() => _isSaving = true);
     try {
       final fieldsToSave = Map<String, dynamic>.from(_dynamicFields);
+      for (var key in ['primaryFields', 'secondaryFields', 'auxiliaryFields', 'headerFields', 'backFields']) {
+        if (fieldsToSave[key] is List) {
+          fieldsToSave[key] = (fieldsToSave[key] as List)
+              .where((f) => (f['value']?.toString().trim().isNotEmpty ?? false) || (f['label']?.toString().trim().isNotEmpty ?? false))
+              .toList();
+        }
+      }
+      if (_isRedeemed) {
+        fieldsToSave['isRedeemed'] = true;
+      } else {
+        fieldsToSave.remove('isRedeemed');
+      }
       if (_pdfPath != null) {
         fieldsToSave['pdfPath'] = _pdfPath;
         if (_pdfName != null) fieldsToSave['pdfName'] = _pdfName;
@@ -265,17 +271,6 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
     } catch (_) {}
   }
 
-  Future<void> _scanFromPdf() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf'],
-      );
-      if (result != null && result.files.single.path != null) {
-        await _scanFromFilePath(result.files.single.path!);
-      }
-    } catch (_) {}
-  }
 
   void _checkGoogleWalletUrl(String text) {
     if (GoogleWalletService.instance.isGoogleWalletUrl(text)) {
@@ -670,32 +665,98 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
 
   Widget _buildFieldSection(String title, String sectionKey) {
     final fields = _dynamicFields[sectionKey]!;
-    if (fields.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title.toUpperCase(),
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title.toUpperCase(),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  fields.add({'label': '', 'value': '', 'isCustom': true});
+                });
+              },
+              icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
+              label: const Text('Add Field', style: TextStyle(fontSize: 12)),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         ...List.generate(fields.length, (index) {
+          final isCustom = fields[index]['isCustom'] == true;
+          if (isCustom) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 4,
+                    child: TextFormField(
+                      initialValue: fields[index]['label']?.toString(),
+                      decoration: InputDecoration(
+                        labelText: 'LABEL',
+                        isDense: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onChanged: (val) => fields[index]['label'] = val,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 5,
+                    child: TextFormField(
+                      initialValue: fields[index]['value']?.toString(),
+                      decoration: InputDecoration(
+                        labelText: 'VALUE',
+                        isDense: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onChanged: (val) => fields[index]['value'] = val,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                    onPressed: () => setState(() => fields.removeAt(index)),
+                  ),
+                ],
+              ),
+            );
+          }
           return Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
-            child: TextFormField(
-              initialValue: fields[index]['value']?.toString(),
-              decoration: InputDecoration(
-                labelText: fields[index]['label']?.toString().toUpperCase(),
-                isDense: true,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    initialValue: fields[index]['value']?.toString(),
+                    decoration: InputDecoration(
+                      labelText: fields[index]['label']?.toString().toUpperCase(),
+                      isDense: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onChanged: (val) => fields[index]['value'] = val,
+                  ),
                 ),
-              ),
-              onChanged: (val) => setState(() => fields[index]['value'] = val),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  onPressed: () => setState(() => fields.removeAt(index)),
+                ),
+              ],
             ),
           );
         }),
@@ -834,11 +895,6 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.picture_as_pdf_outlined),
-                  tooltip: 'Scan from PDF',
-                  onPressed: _scanFromPdf,
-                ),
-                IconButton(
                   icon: const Icon(Icons.image_outlined),
                   tooltip: 'Import from Gallery',
                   onPressed: _scanFromGallery,
@@ -937,7 +993,7 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           children: [
             Expanded(
               child: _buildImagePickerTile(
-                'Front Side',
+                'Logo / Front',
                 _frontImagePath,
                 () => _pickImage(true),
                 isDark,
@@ -1002,12 +1058,19 @@ class BarcodeCardEntryFormState extends State<BarcodeCardEntryForm> {
           ),
           const SizedBox(height: 32),
 
-          // Dynamic Fields Sections
           _buildFieldSection('Primary Fields (Main Info)', 'primaryFields'),
           _buildFieldSection('Secondary Fields (Details)', 'secondaryFields'),
           _buildFieldSection('Auxiliary Fields (More)', 'auxiliaryFields'),
           _buildFieldSection('Header Fields (Top Right)', 'headerFields'),
           _buildFieldSection('Back Details (Fine Print)', 'backFields'),
+          const SizedBox(height: 16),
+          SwitchListTile(
+            title: const Text('Mark as Redeemed', style: TextStyle(fontWeight: FontWeight.w600)),
+            subtitle: const Text('Marks this pass as redeemed / used'),
+            value: _isRedeemed,
+            onChanged: (val) => setState(() => _isRedeemed = val),
+            contentPadding: EdgeInsets.zero,
+          ),
         ],
 
         const SizedBox(height: 32),

@@ -17,8 +17,58 @@ class BarcodeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final card = _buildLayout(context);
+    if (!pass.isRedeemed) {
+      return RepaintBoundary(child: card);
+    }
     return RepaintBoundary(
-      child: _buildLayout(context),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Opacity(
+            opacity: 0.65,
+            child: card,
+          ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.38),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Center(
+                    child: Transform.rotate(
+                      angle: -0.1,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: const Color(0xFFEF4444).withValues(alpha: 0.85),
+                            width: 1.5,
+                          ),
+                          color: Colors.black.withValues(alpha: 0.35),
+                        ),
+                        child: const Text(
+                          'REDEEMED',
+                          style: TextStyle(
+                            color: Color(0xFFF87171),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 4,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
